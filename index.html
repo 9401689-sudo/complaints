@@ -305,7 +305,7 @@
               <div class="panel-header">
                 <h3>Пакет подачи</h3>
                 <div class="actions">
-                  <button class="btn btn-primary" id="btnBuildPackage">Собрать пакет</button>
+                  <button class="btn btn-primary" id="btnBuildPackage">Подготовить отправку</button>
                 </div>
               </div>
               <div id="packageViewer" class="package-viewer"></div>
@@ -316,14 +316,7 @@
             <div class="panel">
               <div class="panel-header">
                 <h3>Отправка</h3>
-                <div class="actions">
-                  <button class="btn btn-secondary" id="btnPrepareSubmit">Подготовить отправку</button>
-                </div>
               </div>
-              <div class="notice">
-                При подготовке к submit выбранные файлы переносятся в папку `result` в Nextcloud и здесь появляются URL для копирования.
-              </div>
-              <div id="submitStatus" class="submit-status hidden"></div>
 
               <div class="submit-section">
                 <div class="panel-header">
@@ -345,7 +338,7 @@
               <div class="submit-section">
                 <div class="panel-header">
                   <h4>Файлы для отправки</h4>
-                  <button class="btn btn-secondary" id="btnDownloadSubmitFiles" type="button">Скачать все файлы</button>
+                  <button class="btn btn-primary" id="btnDownloadSubmitFiles" type="button">Скачать все файлы</button>
                 </div>
                 <div id="submitFilesList" class="files-grid"></div>
               </div>

@@ -109,10 +109,11 @@ class FilesService {
             throw new Error(`invalid fsm state: ${snapshot.state}`);
         }
         const existingFilesResult = await postgres_1.postgres.query(`
-      select id
+      select id, file_path, file_name, selected_for_submission
       from case_files
       where case_id = $1
       `, [caseId]);
+        const existingById = new Map(existingFilesResult.rows.map((row) => [row.id, row]));
         const existingIds = new Set(existingFilesResult.rows.map((row) => row.id));
         for (const item of body.files) {
             if (!item.fileId) {
@@ -130,6 +131,20 @@ class FilesService {
         await postgres_1.postgres.query('begin');
         try {
             for (const item of body.files) {
+                const existingFile = existingById.get(item.fileId);
+                if (existingFile &&
+                    existingFile.selected_for_submission &&
+                    !item.selected &&
+                    existingFile.file_path.startsWith(caseRow.nextcloud_result_folder.replace(/\/+$/, '') + '/')) {
+                    const incomingPath = `${caseRow.nextcloud_incoming_folder.replace(/\/+$/, '')}/${existingFile.file_name}`;
+                    await nextcloud_client_1.nextcloudClient.moveFile(existingFile.file_path, incomingPath);
+                    await postgres_1.postgres.query(`
+            update case_files
+            set file_path = $3
+            where case_id = $1
+              and id = $2
+            `, [caseId, item.fileId, incomingPath]);
+                }
                 await this.applyFileSelection(caseId, item);
             }
             const files = await this.getCaseFiles(caseId);

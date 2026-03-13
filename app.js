@@ -110,7 +110,6 @@ const els = {
 
   btnBuildPackage: document.getElementById("btnBuildPackage"),
   packageViewer: document.getElementById("packageViewer"),
-  btnPrepareSubmit: document.getElementById("btnPrepareSubmit"),
   btnCopySubmitText: document.getElementById("btnCopySubmitText"),
   btnCopySubmitUrl: document.getElementById("btnCopySubmitUrl"),
   btnDownloadSubmitFiles: document.getElementById("btnDownloadSubmitFiles"),
@@ -118,7 +117,6 @@ const els = {
   submitInstitutionUrl: document.getElementById("submitInstitutionUrl"),
   submitInstitutionUrlPretty: document.getElementById("submitInstitutionUrlPretty"),
   submitFilesList: document.getElementById("submitFilesList"),
-  submitStatus: document.getElementById("submitStatus"),
 
   imageModal: document.getElementById("imageModal"),
   imageModalBackdrop: document.getElementById("imageModalBackdrop"),
@@ -897,14 +895,6 @@ function renderSubmit() {
     : "";
   els.submitInstitutionUrlPretty.classList.toggle("hidden", !submit.submitUrl);
 
-  if (submit.preparedAt) {
-    els.submitStatus.textContent = `Отправка подготовлена ${submit.preparedAt}. Выбранные файлы уже перенесены в папку result и готовы к копированию.`;
-    els.submitStatus.classList.remove("hidden");
-  } else {
-    els.submitStatus.textContent = "";
-    els.submitStatus.classList.add("hidden");
-  }
-
   if (!files.length) {
     els.submitFilesList.innerHTML = '<div class="notice">Файлы для submit ещё не подготовлены.</div>';
     return;
@@ -1306,7 +1296,7 @@ async function buildPackage() {
 async function prepareSubmit() {
   if (!state.currentCaseId) return;
 
-  return withButtonLoading(els.btnPrepareSubmit, "Подготовка...", async () => {
+  return withButtonLoading(null, "Подготовка...", async () => {
     const data = await api.prepareSubmit(state.currentCaseId);
     const preparedAt = new Date().toLocaleString("ru-RU");
     state.submitData = {
@@ -1484,7 +1474,6 @@ if (els.casesSearchInput) {
   els.btnSaveVariables.addEventListener("click", () => handle(saveVariables));
   els.btnSaveText.addEventListener("click", () => handle(saveText));
   els.btnBuildPackage.addEventListener("click", () => handle(buildPackage));
-  els.btnPrepareSubmit.addEventListener("click", () => handle(prepareSubmit));
   els.btnCopySubmitText.addEventListener("click", () => handle(() => copyToClipboard(els.submitText.value, "Текст жалобы скопирован")));
   els.btnCopySubmitUrl.addEventListener("click", () => handle(() => copyToClipboard(els.submitInstitutionUrl.value, "URL организации скопирован")));
   els.btnDownloadSubmitFiles.addEventListener("click", () => handle(downloadSubmitFiles));
