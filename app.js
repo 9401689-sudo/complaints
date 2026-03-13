@@ -331,12 +331,12 @@ function renderVariableToolbar(container, targetTextarea, mode = "token") {
   if (!container || !targetTextarea) return;
 
   container.innerHTML = FIXED_VARIABLES.map((field) => (
-    `<button class="variable-chip" type="button" data-variable-key="${escapeHtml(field.key)}">${escapeHtml(field.label)}</button>`
+    `<button class="variable-chip" type="button" data-variable-chip-key="${escapeHtml(field.key)}">${escapeHtml(field.label)}</button>`
   )).join("");
 
-  container.querySelectorAll("[data-variable-key]").forEach((button) => {
+  container.querySelectorAll("[data-variable-chip-key]").forEach((button) => {
     button.addEventListener("click", () => {
-      const field = FIXED_VARIABLES.find((item) => item.key === button.dataset.variableKey);
+      const field = FIXED_VARIABLES.find((item) => item.key === button.dataset.variableChipKey);
       if (!field) return;
 
       if (mode === "value") {
@@ -691,7 +691,7 @@ function renderVariablesForm() {
           </div>
           <div class="field">
             <label for="var-${escapeHtml(field.key)}">Значение</label>
-            <input id="var-${escapeHtml(field.key)}" type="${inputType}" data-variable-key="${escapeHtml(field.key)}" value="${escapeHtml(value)}" />
+            <input id="var-${escapeHtml(field.key)}" type="${inputType}" data-variable-input-key="${escapeHtml(field.key)}" value="${escapeHtml(value)}" />
           </div>
         </div>
       `;
@@ -1189,8 +1189,8 @@ async function saveVariables() {
   const normalized = normalizeVariableState(state.variables);
 
   FIXED_VARIABLES.forEach((field) => {
-    const valueInput = document.querySelector(`[data-variable-key="${field.key}"]`);
-    const enabledInput = document.querySelector(`[data-variable-enabled-key="${field.enabledKey}"]`);
+    const valueInput = els.variablesForm.querySelector(`[data-variable-input-key="${field.key}"]`);
+    const enabledInput = els.variablesForm.querySelector(`[data-variable-enabled-key="${field.enabledKey}"]`);
     const enabled = Boolean(enabledInput?.checked);
     const rawValue = valueInput?.value || (field.key === "complaint_date" ? getTodayInputValue() : "");
 
@@ -1213,9 +1213,14 @@ async function saveVariables() {
 
 async function loadText() {
   if (!state.currentCaseId) return;
+
+  if (state.currentCase?.case?.template_id && !Object.keys(state.variables || {}).length) {
+    await loadVariables().catch(() => {});
+  }
+
   try {
     const data = await api.getText(state.currentCaseId);
-    state.textContent = data.content || "";
+    state.textContent = data.content || buildComputedTextPreview();
     renderText();
     logRuntime("get text", data);
   } catch {
