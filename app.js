@@ -81,12 +81,6 @@ const els = {
   btnReloadCase: document.getElementById("btnReloadCase"),
   workspaceTitle: document.getElementById("workspaceTitle"),
   workspaceSubtitle: document.getElementById("workspaceSubtitle"),
-  summaryCaseId: document.getElementById("summaryCaseId"),
-  summaryCaseNumber: document.getElementById("summaryCaseNumber"),
-  summaryFsm: document.getElementById("summaryFsm"),
-  summaryFilesSelected: document.getElementById("summaryFilesSelected"),
-  summaryTextReady: document.getElementById("summaryTextReady"),
-  summaryPackageReady: document.getElementById("summaryPackageReady"),
 
   workspaceFilesList: document.getElementById("workspaceFilesList"),
   btnSyncFiles: document.getElementById("btnSyncFiles"),
@@ -736,7 +730,6 @@ async function saveCaseMeta() {
 function renderWorkspaceSummary() {
   const caseData = state.currentCase?.case || {};
   const fsm = state.currentCase?.fsm || {};
-  const ctx = fsm.context || {};
 
   const institution = state.institutions.find((x) => x.id === caseData.institution_id);
   const template = state.templates.find((x) => x.id === caseData.template_id);
@@ -746,13 +739,6 @@ function renderWorkspaceSummary() {
     : (caseData.case_number ? `Кейс ${caseData.case_number}` : "Кейс");
 
   els.workspaceSubtitle.textContent = caseData.description || state.currentCaseId || "";
-
-  els.summaryCaseId.textContent = caseData.id || "—";
-  els.summaryCaseNumber.textContent = caseData.case_number || "—";
-  els.summaryFsm.textContent = fsm.state || "—";
-  els.summaryFilesSelected.textContent = String(ctx.filesSelected ?? 0);
-  els.summaryTextReady.textContent = String(ctx.textReady ?? false);
-  els.summaryPackageReady.textContent = String(ctx.packageReady ?? false);
 
   els.caseInstitutionSelect.value = caseData.institution_id || "";
   els.caseTemplateSelect.value = caseData.template_id || "";

@@ -21,7 +21,11 @@ function buildDavPath(relativePath: string): string {
   requireNextcloudEnv();
 
   const user = encodeURIComponent(env.NEXTCLOUD_USERNAME!);
-  const normalized = trimSlashes(relativePath);
+  const normalized = trimSlashes(relativePath)
+    .split('/')
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
 
   return `${env.NEXTCLOUD_BASE_URL!}/remote.php/dav/files/${user}/${normalized}`;
 }
