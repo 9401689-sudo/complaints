@@ -88,8 +88,6 @@ const els = {
 
   caseInstitutionSelect: document.getElementById("caseInstitutionSelect"),
   caseTemplateSelect: document.getElementById("caseTemplateSelect"),
-  btnSaveCaseConfig: document.getElementById("btnSaveCaseConfig"),
-  btnLoadVariables: document.getElementById("btnLoadVariables"),
   btnSaveVariables: document.getElementById("btnSaveVariables"),
   variablesForm: document.getElementById("variablesForm"),
   variablesEmptyState: document.getElementById("variablesEmptyState"),
@@ -709,18 +707,34 @@ async function saveCaseMeta() {
   if (!state.currentCaseId) return;
 
   return withButtonLoading(els.btnSaveCaseMeta, "Сохранение...", async () => {
-    const payload = {
+    const previousTemplateId = state.currentCase?.case?.template_id || null;
+    const metaPayload = {
       title: els.caseTitle.value.trim(),
       description: els.caseDescription.value.trim()
     };
+    const configPayload = {
+      institutionId: els.caseInstitutionSelect.value || null,
+      templateId: els.caseTemplateSelect.value || null
+    };
 
-    const data = await api.updateCaseMeta(state.currentCaseId, payload);
+    const [metaData, configData] = await Promise.all([
+      api.updateCaseMeta(state.currentCaseId, metaPayload),
+      api.updateCaseConfig(state.currentCaseId, configPayload)
+    ]);
 
-    logRuntime("save case meta", data);
-
-    alert("Карточка кейса сохранена");
+    logRuntime("save case meta", metaData);
+    logRuntime("save case config", configData);
 
     await reloadCurrentCase();
+
+    const nextTemplateId = configPayload.templateId || null;
+    if (nextTemplateId && nextTemplateId !== previousTemplateId) {
+      state.textContent = buildComputedTextPreview();
+      setWorkspaceTab("variables");
+      await loadVariables().catch(() => {});
+    }
+
+    alert("Карточка кейса сохранена");
   });
 }
 
@@ -1156,31 +1170,6 @@ async function saveFiles() {
   });
 }
 
-async function saveCaseConfig() {
-  if (!state.currentCaseId) return;
-
-  return withButtonLoading(els.btnSaveCaseConfig, "Сохранение...", async () => {
-    const previousTemplateId = state.currentCase?.case?.template_id || null;
-    const payload = {
-      institutionId: els.caseInstitutionSelect.value || null,
-      templateId: els.caseTemplateSelect.value || null
-    };
-
-    const data = await api.updateCaseConfig(state.currentCaseId, payload);
-    logRuntime("save case config", data);
-
-    await reloadCurrentCase();
-    alert("Конфигурация кейса сохранена");
-    setWorkspaceTab("variables");
-    await loadVariables().catch(() => {});
-
-    const nextTemplateId = payload.templateId || null;
-    if (nextTemplateId && nextTemplateId !== previousTemplateId) {
-      state.textContent = buildComputedTextPreview();
-    }
-  });
-}
-
 async function loadVariables() {
   if (!state.currentCaseId) return;
   if (!state.currentCase?.case?.template_id) {
@@ -1445,8 +1434,6 @@ if (els.casesSearchInput) {
 
   els.btnSyncFiles.addEventListener("click", () => handle(syncFiles));
   els.btnSaveFilesSelection.addEventListener("click", () => handle(saveFiles));
-  els.btnSaveCaseConfig.addEventListener("click", () => handle(saveCaseConfig));
-  els.btnLoadVariables.addEventListener("click", () => handle(loadVariables));
   els.btnSaveVariables.addEventListener("click", () => handle(saveVariables));
   els.btnSaveText.addEventListener("click", () => handle(saveText));
   els.btnBuildPackage.addEventListener("click", () => handle(buildPackage));

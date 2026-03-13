@@ -676,6 +676,13 @@ textarea {
   object-fit: contain;
 }
 
+.pdf-modal-frame {
+  width: min(86vw, 1120px);
+  height: min(78vh, 920px);
+  max-width: min(86vw, 1120px);
+  max-height: min(78vh, 920px);
+}
+
 @media (max-width: 900px) {
   .image-modal-content {
     max-width: 94vw;
@@ -686,6 +693,13 @@ textarea {
   .modal-media {
     max-width: 90vw;
     max-height: 68vh;
+  }
+
+  .pdf-modal-frame {
+    width: 90vw;
+    height: 74vh;
+    max-width: 90vw;
+    max-height: 74vh;
   }
 }
 
@@ -716,4 +730,70 @@ textarea {
   border-radius: 12px;
   padding: 12px;
   background: rgba(255,255,255,.68);
+}
+
+@media (max-width: 760px) {
+  .main-content {
+    padding: 14px;
+    gap: 14px;
+  }
+
+  .page-header,
+  .panel-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-header .actions,
+  .panel-header .actions,
+  .actions.top-space {
+    width: 100%;
+  }
+
+  .page-header .actions .btn,
+  .panel-header .actions .btn,
+  .actions.top-space .btn {
+    flex: 1 1 100%;
+  }
+
+  .panel {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .workspace-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workspace-tabs .tab-btn {
+    text-align: center;
+  }
+
+  .file-card {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .file-card-controls {
+    width: 100%;
+    justify-items: start;
+  }
+
+  .image-modal {
+    padding: 12px;
+  }
+
+  .image-modal-content {
+    width: min(94vw, 640px);
+    padding: 10px;
+  }
+
+  .image-modal-controls {
+    padding: 10px 12px;
+  }
+
+  .large-textarea {
+    min-height: 240px;
+  }
 }
