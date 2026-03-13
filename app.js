@@ -226,6 +226,16 @@ function logRuntime(title, payload) {
   els.runtimeLog.textContent = `[${new Date().toISOString()}] ${title}\n\n${message}`;
 }
 
+function isMobileViewport() {
+  const narrowScreen = window.matchMedia("(max-width: 820px)").matches;
+  const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+  return narrowScreen || coarsePointer;
+}
+
+function updateDeviceMode() {
+  document.body.classList.toggle("is-mobile", isMobileViewport());
+}
+
 function setScreen(name) {
   state.currentScreen = name;
   els.screens.forEach((screen) => {
@@ -1465,6 +1475,8 @@ async function handle(fn) {
 async function bootstrap() {
   renderVariableToolbar(els.templateVariableToolbar, els.templateBody, "token");
   renderVariableToolbar(els.textVariableToolbar, els.caseTextEditor, "value");
+  updateDeviceMode();
+  window.addEventListener("resize", updateDeviceMode);
   bindEvents();
   await loadInstitutions();
   await loadTemplates();

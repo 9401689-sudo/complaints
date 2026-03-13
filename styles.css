@@ -32,6 +32,10 @@ body {
   color: var(--text);
 }
 
+body.is-mobile {
+  overflow-x: hidden;
+}
+
 button,
 input,
 textarea,
@@ -96,6 +100,135 @@ pre {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+body.is-mobile .app-shell {
+  display: block;
+  min-height: auto;
+}
+
+body.is-mobile .sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding: 14px 14px 10px;
+  border-right: 0;
+  border-bottom: 1px solid var(--line);
+  background: rgba(251, 246, 239, 0.96);
+  backdrop-filter: blur(12px);
+}
+
+body.is-mobile .sidebar-brand h1 {
+  margin-bottom: 10px;
+  font-size: 20px;
+}
+
+body.is-mobile .sidebar-nav {
+  margin-top: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+body.is-mobile .nav-btn {
+  min-width: 0;
+  text-align: center;
+  padding: 10px 8px;
+  font-size: 14px;
+}
+
+body.is-mobile .main-content {
+  padding: 12px;
+  gap: 14px;
+}
+
+body.is-mobile .screen {
+  display: grid;
+  gap: 14px;
+}
+
+body.is-mobile .page-header,
+body.is-mobile .panel-header {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+body.is-mobile .page-header .actions,
+body.is-mobile .panel-header .actions,
+body.is-mobile .actions.top-space {
+  width: 100%;
+}
+
+body.is-mobile .page-header .actions .btn,
+body.is-mobile .panel-header .actions .btn,
+body.is-mobile .actions.top-space .btn {
+  flex: 1 1 100%;
+}
+
+body.is-mobile .panel {
+  padding: 14px;
+  border-radius: 16px;
+}
+
+body.is-mobile .workspace-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+body.is-mobile .workspace-tabs .tab-btn {
+  text-align: center;
+  padding: 10px 8px;
+}
+
+body.is-mobile .file-card,
+body.is-mobile .table-row,
+body.is-mobile .table-row.compact-3,
+body.is-mobile .table-row.compact-4,
+body.is-mobile .cases-row {
+  grid-template-columns: 1fr;
+}
+
+body.is-mobile .file-card {
+  justify-items: start;
+}
+
+body.is-mobile .file-card-controls {
+  width: 100%;
+  justify-items: start;
+}
+
+body.is-mobile .form-grid,
+body.is-mobile .package-grid {
+  grid-template-columns: 1fr;
+}
+
+body.is-mobile .large-textarea {
+  min-height: 220px;
+}
+
+body.is-mobile .image-modal {
+  padding: 12px;
+}
+
+body.is-mobile .image-modal-content {
+  width: min(94vw, 640px);
+  max-width: 94vw;
+  max-height: 88vh;
+  padding: 10px;
+}
+
+body.is-mobile .image-modal-img,
+body.is-mobile .modal-media {
+  max-width: 90vw;
+  max-height: 68vh;
+}
+
+body.is-mobile .pdf-modal-frame {
+  width: 90vw;
+  height: 74vh;
+  max-width: 90vw;
+  max-height: 74vh;
 }
 
 .page-header,
