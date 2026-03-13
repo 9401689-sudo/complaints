@@ -193,55 +193,29 @@
     </div>
 
     <div class="field">
-      <label>Организация</label>
-      <input id="caseInstitutionNameReadonly" readonly />
+      <label for="caseInstitutionSelect">Организация</label>
+      <select id="caseInstitutionSelect"></select>
     </div>
 
     <div class="field">
-      <label>Шаблон</label>
-      <input id="caseTemplateNameReadonly" readonly />
-    </div>
-
-    <div class="field">
-      <label>FSM</label>
-      <input id="caseFsmReadonly" readonly />
+      <label for="caseTemplateSelect">Шаблон</label>
+      <select id="caseTemplateSelect"></select>
     </div>
   </div>
 
   <div class="actions top-space">
+    <button class="btn btn-primary" id="btnSaveCaseConfig">Сохранить организацию и шаблон</button>
     <button class="btn btn-secondary" id="btnSaveCaseMeta">Сохранить карточку кейса</button>
   </div>
 </div>
 <div class="workspace-tabs">
-  <button class="tab-btn active" data-tab="config" type="button">Организация и шаблон</button>
-  <button class="tab-btn" data-tab="variables" type="button">Переменные</button>
+  <button class="tab-btn active" data-tab="variables" type="button">Переменные</button>
   <button class="tab-btn" data-tab="text" type="button">Текст</button>
   <button class="tab-btn" data-tab="files" type="button">Файлы</button>
   <button class="tab-btn" data-tab="package" type="button">Пакет подачи</button>
   <button class="tab-btn" data-tab="submit" type="button" disabled>Отправка</button>
 </div>
-          <div class="workspace-tab-panel hidden" data-tab-panel="config">
-            <div class="panel">
-              <div class="panel-header">
-                <h3>Организация и шаблон</h3>
-              </div>
-              <div class="form-grid">
-                <div class="field">
-                  <label for="caseInstitutionSelect">Организация</label>
-                  <select id="caseInstitutionSelect"></select>
-                </div>
-                <div class="field">
-                  <label for="caseTemplateSelect">Шаблон</label>
-                  <select id="caseTemplateSelect"></select>
-                </div>
-              </div>
-              <div class="actions top-space">
-                <button class="btn btn-primary" id="btnSaveCaseConfig">Сохранить config</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="workspace-tab-panel hidden" data-tab-panel="variables">
+          <div class="workspace-tab-panel" data-tab-panel="variables">
             <div class="panel">
               <div class="panel-header">
                 <h3>Переменные</h3>

@@ -360,6 +360,9 @@ textarea {
   position: fixed;
   inset: 0;
   z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
 }
 
 .image-modal-backdrop {
@@ -369,28 +372,30 @@ textarea {
 }
 
 .image-modal-content {
-  position: fixed;
+  position: relative;
   z-index: 1001;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(86vw, 980px);
-  height: min(82vh, 760px);
+  width: auto;
+  max-width: min(90vw, 1080px);
+  max-height: min(90vh, 920px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   gap: 12px;
   padding: 12px;
-  overflow: hidden;
+  border-radius: 20px;
+  background: rgba(255, 252, 247, 0.97);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  overflow: visible;
 }
 
 .image-modal-img {
   display: block;
-  width: 100%;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
+  width: auto;
+  height: auto;
+  max-width: min(86vw, 980px);
+  max-height: min(72vh, 760px);
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0,0,0,.4);
   background: #fffdfa;
@@ -638,13 +643,14 @@ textarea {
 }
 
 .image-modal-body {
-  width: 100%;
-  flex: 1;
-  min-height: 0;
   display: grid;
   place-items: center;
+  width: auto;
+  max-width: 100%;
+  max-height: calc(90vh - 120px);
+  min-height: 0;
   padding: 8px 0 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .image-modal-controls {
@@ -660,10 +666,10 @@ textarea {
 
 .modal-media {
   display: block;
-  width: 100%;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
+  width: auto;
+  height: auto;
+  max-width: min(86vw, 980px);
+  max-height: min(72vh, 760px);
   border-radius: 16px;
   background: #fffdfa;
   border: 1px solid var(--line);
@@ -672,8 +678,14 @@ textarea {
 
 @media (max-width: 900px) {
   .image-modal-content {
-    width: 92vw;
-    height: 74vh;
+    max-width: 94vw;
+    max-height: 88vh;
+  }
+
+  .image-modal-img,
+  .modal-media {
+    max-width: 90vw;
+    max-height: 68vh;
   }
 }
 
@@ -704,11 +716,4 @@ textarea {
   border-radius: 12px;
   padding: 12px;
   background: rgba(255,255,255,.68);
-}
-
-@media (max-width: 900px) {
-  .image-modal-content {
-    width: min(92vw, 620px);
-    height: min(76vh, 520px);
-  }
 }

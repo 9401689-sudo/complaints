@@ -122,9 +122,6 @@ const els = {
   caseTitle: document.getElementById("caseTitle"),
   caseDescription: document.getElementById("caseDescription"),
   caseNumberReadonly: document.getElementById("caseNumberReadonly"),
-  caseInstitutionNameReadonly: document.getElementById("caseInstitutionNameReadonly"),
-  caseTemplateNameReadonly: document.getElementById("caseTemplateNameReadonly"),
-  caseFsmReadonly: document.getElementById("caseFsmReadonly"),
   btnSaveCaseMeta: document.getElementById("btnSaveCaseMeta"),
   btnSaveAsTemplate: document.getElementById("btnSaveAsTemplate"),
 
@@ -670,7 +667,7 @@ function renderVariablesForm() {
 
   if (!template) {
     els.variablesForm.innerHTML = "";
-    els.variablesEmptyState.textContent = "Сначала выберите шаблон в конфигурации кейса.";
+    els.variablesEmptyState.textContent = "Сначала выберите шаблон в карточке кейса.";
     els.variablesEmptyState.classList.remove("hidden");
     return;
   }
@@ -729,10 +726,6 @@ async function saveCaseMeta() {
 
 function renderWorkspaceSummary() {
   const caseData = state.currentCase?.case || {};
-  const fsm = state.currentCase?.fsm || {};
-
-  const institution = state.institutions.find((x) => x.id === caseData.institution_id);
-  const template = state.templates.find((x) => x.id === caseData.template_id);
 
   els.workspaceTitle.textContent = caseData.title
     ? `${caseData.title}`
@@ -746,9 +739,6 @@ function renderWorkspaceSummary() {
   els.caseTitle.value = caseData.title || "";
   els.caseDescription.value = caseData.description || "";
   els.caseNumberReadonly.value = caseData.case_number || "";
-  els.caseInstitutionNameReadonly.value = institution?.name || "—";
-  els.caseTemplateNameReadonly.value = template?.name || "—";
-  els.caseFsmReadonly.value = fsm.state || "—";
   updateWorkspaceTabAvailability();
   renderVariablesForm();
 }
@@ -1012,7 +1002,7 @@ async function createCase() {
       alert(`Кейс создан: ${newCaseNumber}`);
       await openCase(newCaseId);
       setScreen("case-workspace");
-      setWorkspaceTab("config");
+      setWorkspaceTab("variables");
       return;
     }
 
@@ -1108,7 +1098,7 @@ async function openCase(caseId) {
   renderSubmit();
 
   setScreen("case-workspace");
-  setWorkspaceTab("config");
+  setWorkspaceTab("variables");
   logRuntime("open case", data);
 }
 
@@ -1493,7 +1483,7 @@ async function bootstrap() {
   await loadTemplates();
   await loadCases();
   setScreen("dashboard");
-  setWorkspaceTab("config");
+  setWorkspaceTab("variables");
 }
 
 bootstrap().catch((error) => {
