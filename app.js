@@ -90,13 +90,7 @@ const els = {
 
   workspaceFilesList: document.getElementById("workspaceFilesList"),
   btnSyncFiles: document.getElementById("btnSyncFiles"),
-  btnOpenFilesModal: document.getElementById("btnOpenFilesModal"),
-  btnSaveFiles: document.getElementById("btnSaveFiles"),
-  filesModal: document.getElementById("filesModal"),
-  filesModalBackdrop: document.getElementById("filesModalBackdrop"),
-  btnCloseFilesModal: document.getElementById("btnCloseFilesModal"),
-  btnCancelFilesModal: document.getElementById("btnCancelFilesModal"),
-  filesModalList: document.getElementById("filesModalList"),
+  btnSaveFilesSelection: document.getElementById("btnSaveFilesSelection"),
 
   caseInstitutionSelect: document.getElementById("caseInstitutionSelect"),
   caseTemplateSelect: document.getElementById("caseTemplateSelect"),
@@ -114,7 +108,6 @@ const els = {
   caseTextEditor: document.getElementById("caseTextEditor"),
   textVariableToolbar: document.getElementById("textVariableToolbar"),
 
-  btnLoadPackage: document.getElementById("btnLoadPackage"),
   btnBuildPackage: document.getElementById("btnBuildPackage"),
   packageViewer: document.getElementById("packageViewer"),
   btnPrepareSubmit: document.getElementById("btnPrepareSubmit"),
@@ -383,9 +376,9 @@ function insertAtCursor(textarea, value) {
 
 function openImageModal(src, mimeType = "image/jpeg", title = "", fileId = null) {
   if (isVideoMime(mimeType)) {
-    els.imageModalBody.innerHTML = `<video class="modal-media" src="${escapeHtml(src)}" controls autoplay></video>`;
+    els.imageModalBody.innerHTML = `<video class="modal-media" src="${escapeHtml(src)}" controls preload="metadata" playsinline></video>`;
   } else if (isPdfMime(mimeType)) {
-    els.imageModalBody.innerHTML = `<iframe class="modal-media" src="${escapeHtml(src)}#toolbar=0&navpanes=0"></iframe>`;
+    els.imageModalBody.innerHTML = `<iframe class="modal-media pdf-modal-frame" src="${escapeHtml(src)}#toolbar=0&navpanes=0"></iframe>`;
   } else {
     els.imageModalBody.innerHTML = `<img class="image-modal-img" src="${escapeHtml(src)}" alt="${escapeHtml(title || "preview")}" />`;
   }
@@ -412,34 +405,40 @@ function closeImageModal() {
   delete els.imageModalSelectedCheckbox.dataset.fileId;
 }
 
-function openFilesModal() {
-  renderFilesModal();
-  els.filesModal.classList.remove("hidden");
-}
-
-function closeFilesModal() {
-  els.filesModal.classList.add("hidden");
-}
-
 function getPreviewMarkup(file, opts = {}) {
   const src = getPreviewUrl(state.currentCaseId, file.id);
   const mimeType = file.mime_type || file.mimeType || "";
   const title = file.file_name || file.fileName || "preview";
   const previewAttr = opts.attrName || "data-preview-file-id";
+  const clickable = opts.clickable !== false;
+  const wrapperAttr = clickable ? `${previewAttr}="${file.id}"` : "";
 
   if (isImageMime(mimeType)) {
-    return `<img class="image-thumb" ${previewAttr}="${file.id}" src="${src}" alt="${escapeHtml(title)}" />`;
+    return `<button class="preview-button" type="button" ${wrapperAttr}><img class="image-thumb" src="${src}" alt="${escapeHtml(title)}" /></button>`;
   }
 
   if (isVideoMime(mimeType)) {
-    return `<video class="media-thumb" ${previewAttr}="${file.id}" src="${src}" muted preload="metadata"></video>`;
+    return `
+      <button class="preview-button" type="button" ${wrapperAttr}>
+        <video class="media-thumb" src="${src}" muted preload="metadata" playsinline></video>
+        <span class="thumb-badge">Видео</span>
+      </button>
+    `;
   }
 
   if (isPdfMime(mimeType)) {
-    return `<iframe class="pdf-thumb" ${previewAttr}="${file.id}" src="${src}#toolbar=0&navpanes=0&scrollbar=0" title="${escapeHtml(title)}"></iframe>`;
+    return `
+      <button class="preview-button" type="button" ${wrapperAttr}>
+        <span class="file-thumb media-tile pdf-tile">PDF</span>
+      </button>
+    `;
   }
 
-  return `<div class="file-thumb media-tile">${escapeHtml((mimeType || "FILE").toUpperCase())}</div>`;
+  return `
+    <button class="preview-button" type="button" ${wrapperAttr}>
+      <span class="file-thumb media-tile">${escapeHtml((mimeType || "FILE").toUpperCase())}</span>
+    </button>
+  `;
 }
 
 function bindPreviewOpeners(root = document) {
@@ -457,10 +456,9 @@ function syncModalSelectionState(fileId, selected) {
   if (file) {
     file.selected_for_submission = selected;
   }
-
-  const modalCheckbox = els.filesModalList.querySelector(`[data-file-selected-id="${fileId}"]`);
-  if (modalCheckbox) {
-    modalCheckbox.checked = selected;
+  const workspaceCheckbox = els.workspaceFilesList.querySelector(`[data-file-selected-id="${fileId}"]`);
+  if (workspaceCheckbox) {
+    workspaceCheckbox.checked = selected;
   }
 }
 
@@ -797,16 +795,37 @@ function renderWorkspaceFiles() {
         <div class="file-card-main">
           <div class="row-title">${escapeHtml(file.file_name || "unnamed")}</div>
           <div class="row-meta">${escapeHtml(file.mime_type || "unknown")} · ${file.size_bytes || 0} bytes</div>
-          <div class="row-meta">${isSelected ? `В подаче · порядок ${file.sort_order ?? index}` : "Не выбран для подачи"}</div>
+          <div class="row-meta" data-file-status-id="${file.id}">${isSelected ? `В подаче · порядок ${file.sort_order ?? index}` : "Не выбран для подачи"}</div>
         </div>
         <div class="file-card-controls">
-          <button class="btn btn-secondary" type="button" data-preview-file-id="${file.id}">Открыть превью</button>
+          <input class="file-order" type="number" min="0" value="${file.sort_order ?? index}" data-file-order-id="${file.id}" />
+          <label class="file-select-toggle"><input type="checkbox" data-file-selected-id="${file.id}" ${isSelected ? "checked" : ""} /> В подачу</label>
         </div>
       </div>
     `;
   }).join("");
 
   bindPreviewOpeners(els.workspaceFilesList);
+  els.workspaceFilesList.querySelectorAll("[data-file-selected-id]").forEach((checkbox) => {
+    checkbox.addEventListener("change", () => {
+      const fileId = checkbox.dataset.fileSelectedId;
+      const card = checkbox.closest(".file-card");
+      const status = els.workspaceFilesList.querySelector(`[data-file-status-id="${fileId}"]`);
+      const orderInput = els.workspaceFilesList.querySelector(`[data-file-order-id="${fileId}"]`);
+
+      syncModalSelectionState(fileId, checkbox.checked);
+
+      if (card) {
+        card.classList.toggle("selected", checkbox.checked);
+      }
+
+      if (status) {
+        status.textContent = checkbox.checked
+          ? `В подаче · порядок ${orderInput?.value || 0}`
+          : "Не выбран для подачи";
+      }
+    });
+  });
 }
 
 function renderText() {
@@ -907,7 +926,6 @@ function renderSubmit() {
           <div class="url-preview file-url-preview">${escapeHtml(formatUrlPreview(file.copyUrl, 100))}</div>
         </div>
         <div class="file-card-controls">
-          <button class="btn btn-secondary" type="button" data-preview-file-id="${file.id}">Открыть превью</button>
           <button class="btn btn-secondary" data-copy-file-url="${escapeHtml(file.copyUrl)}">Скопировать URL</button>
         </div>
       </div>
@@ -958,7 +976,7 @@ async function downloadSubmitFiles() {
   }
 
   const directoryHandle = await window.showDirectoryPicker({
-    id: `complaints-${state.currentCaseId}`,
+    id: `cmp-${String(state.currentCaseId).slice(0, 28)}`,
     mode: "readwrite"
   });
 
@@ -1125,8 +1143,8 @@ async function syncFiles() {
 
 function collectFileSelectionPayload() {
   return state.currentCaseFiles.map((file, index) => {
-    const orderInput = els.filesModalList.querySelector(`[data-file-order-id="${file.id}"]`);
-    const selectedInput = els.filesModalList.querySelector(`[data-file-selected-id="${file.id}"]`);
+    const orderInput = els.workspaceFilesList.querySelector(`[data-file-order-id="${file.id}"]`);
+    const selectedInput = els.workspaceFilesList.querySelector(`[data-file-selected-id="${file.id}"]`);
     return {
       fileId: file.id,
       selected: Boolean(selectedInput?.checked),
@@ -1135,36 +1153,10 @@ function collectFileSelectionPayload() {
   });
 }
 
-function renderFilesModal() {
-  if (!state.currentCaseFiles.length) {
-    els.filesModalList.innerHTML = '<div class="notice">Сначала синхронизируй файлы из Nextcloud.</div>';
-    return;
-  }
-
-  const sorted = [...state.currentCaseFiles].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-  els.filesModalList.innerHTML = sorted.map((file, index) => `
-    <div class="file-card ${file.selected_for_submission ? "selected" : ""}">
-      ${getPreviewMarkup(file)}
-      <div class="file-card-main">
-        <div class="row-title">${escapeHtml(file.file_name || "unnamed")}</div>
-        <div class="row-meta">${escapeHtml(file.mime_type || "unknown")} · ${file.size_bytes || 0} bytes</div>
-        <div class="row-meta">${escapeHtml(file.file_path || "")}</div>
-      </div>
-      <div class="file-card-controls">
-        <input class="file-order" type="number" min="0" value="${file.sort_order ?? index}" data-file-order-id="${file.id}" />
-        <label><input type="checkbox" data-file-selected-id="${file.id}" ${file.selected_for_submission ? "checked" : ""} /> включить</label>
-        <button class="btn btn-secondary" type="button" data-preview-file-id="${file.id}">Открыть превью</button>
-      </div>
-    </div>
-  `).join("");
-
-  bindPreviewOpeners(els.filesModalList);
-}
-
 async function saveFiles() {
   if (!state.currentCaseId) return;
 
-  return withButtonLoading(els.btnSaveFiles, "Сохранение...", async () => {
+  return withButtonLoading(els.btnSaveFilesSelection, "Сохранение...", async () => {
     const payload = collectFileSelectionPayload();
     const data = await api.updateFiles(state.currentCaseId, payload);
     state.currentCase = { case: data.case, fsm: data.fsm };
@@ -1173,7 +1165,6 @@ async function saveFiles() {
     renderWorkspaceSummary();
     renderWorkspaceFiles();
     logRuntime("save files", data);
-    closeFilesModal();
     alert("Выбор файлов сохранён");
   });
 }
@@ -1412,12 +1403,7 @@ function bindEvents() {
     if (!fileId) return;
     syncModalSelectionState(fileId, els.imageModalSelectedCheckbox.checked);
     renderWorkspaceFiles();
-    renderFilesModal();
   });
-  els.btnOpenFilesModal.addEventListener("click", openFilesModal);
-  els.btnCloseFilesModal.addEventListener("click", closeFilesModal);
-  els.btnCancelFilesModal.addEventListener("click", closeFilesModal);
-  els.filesModalBackdrop.addEventListener("click", closeFilesModal);
   els.btnShowRuntimeLog.addEventListener("click", openRuntimeLogModal);
   els.btnCloseRuntimeLog.addEventListener("click", closeRuntimeLogModal);
   els.runtimeLogBackdrop.addEventListener("click", closeRuntimeLogModal);
@@ -1471,7 +1457,7 @@ if (els.casesSearchInput) {
   els.btnReloadCase.addEventListener("click", () => handle(reloadCurrentCase));
 
   els.btnSyncFiles.addEventListener("click", () => handle(syncFiles));
-  els.btnSaveFiles.addEventListener("click", () => handle(saveFiles));
+  els.btnSaveFilesSelection.addEventListener("click", () => handle(saveFiles));
   els.btnSaveCaseConfig.addEventListener("click", () => handle(saveCaseConfig));
   els.btnLoadVariables.addEventListener("click", () => handle(loadVariables));
   els.btnSaveVariables.addEventListener("click", () => handle(saveVariables));

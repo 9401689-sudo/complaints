@@ -262,7 +262,7 @@
                 </div>
               </div>
               <div class="notice">
-                Изменение переменных сбрасывает готовый текст и пакет, чтобы их можно было безопасно собрать заново.
+                Переменные используются при первом заполнении текста из шаблона и при смене шаблона.
               </div>
               <div id="variablesEmptyState" class="notice hidden"></div>
               <div id="variablesForm" class="form-grid"></div>
@@ -292,10 +292,10 @@
                 <h3>Файлы</h3>
                 <div class="actions">
                   <button class="btn btn-secondary" id="btnSyncFiles">Sync files</button>
-                  <button class="btn btn-secondary" id="btnOpenFilesModal">Выбрать файлы</button>
+                  <button class="btn btn-primary" id="btnSaveFilesSelection">Сохранить выбор</button>
                 </div>
               </div>
-              <div class="notice">Загрузка самих файлов идёт в Nextcloud. Здесь отображаются выбранные вложения, а выбор выполняется в модальном окне.</div>
+              <div class="notice">Загрузка самих файлов идёт в Nextcloud. Здесь можно сразу отметить файлы для подачи и сохранить выбор.</div>
               <div id="workspaceFilesList" class="files-grid"></div>
             </div>
           </div>
@@ -364,23 +364,6 @@
         <input id="imageModalSelectedCheckbox" type="checkbox" />
         Включить файл в подачу
       </label>
-    </div>
-  </div>
-</div>
-
-<div id="filesModal" class="image-modal hidden">
-  <div class="image-modal-backdrop" id="filesModalBackdrop"></div>
-  <div class="image-modal-content files-modal-content">
-    <button class="image-modal-close" id="btnCloseFilesModal" type="button">×</button>
-    <div class="panel runtime-log-panel">
-      <div class="panel-header">
-        <h3>Выбор файлов</h3>
-        <div class="actions">
-          <button class="btn btn-secondary" id="btnCancelFilesModal">Отмена</button>
-          <button class="btn btn-primary" id="btnSaveFiles">Сохранить выбор</button>
-        </div>
-      </div>
-      <div id="filesModalList" class="files-grid"></div>
     </div>
   </div>
 </div>

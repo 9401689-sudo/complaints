@@ -342,6 +342,20 @@ textarea {
   background: #fffdfa;
 }
 
+.preview-button {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.preview-button > * {
+  pointer-events: none;
+}
+
 .image-modal {
   position: fixed;
   inset: 0;
@@ -357,13 +371,13 @@ textarea {
 .image-modal-content {
   position: relative;
   z-index: 1001;
-  width: min(92vw, 1200px);
-  height: min(92vh, 900px);
-  margin: 4vh auto;
+  width: min(72vw, 760px);
+  height: min(72vh, 560px);
+  margin: 8vh auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 12px;
 }
 
@@ -561,6 +575,14 @@ textarea {
   color: var(--muted);
 }
 
+.file-select-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 14px;
+}
+
 .file-card.selected {
   border-color: var(--line-strong);
   box-shadow: inset 0 0 0 1px rgba(179,154,122,.35);
@@ -576,10 +598,6 @@ textarea {
   object-fit: cover;
 }
 
-.pdf-thumb {
-  overflow: hidden;
-}
-
 .media-tile {
   display: grid;
   place-items: center;
@@ -589,32 +607,52 @@ textarea {
   text-align: center;
 }
 
+.pdf-tile,
+.media-thumb {
+  position: relative;
+}
+
+.thumb-badge {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(47, 42, 36, 0.82);
+  color: #fffdfa;
+  font-size: 11px;
+  line-height: 1;
+}
+
 .image-modal-body {
   width: 100%;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   display: grid;
   place-items: center;
+  padding: 8px 0 0;
 }
 
 .image-modal-controls {
-  width: min(100%, 1180px);
+  width: 100%;
   display: flex;
   justify-content: flex-start;
-  padding: 0 8px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.92);
+  box-shadow: var(--shadow);
 }
 
 .modal-media {
-  width: min(100%, 1180px);
-  height: min(100%, 820px);
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   border-radius: 16px;
   background: #fffdfa;
   border: 1px solid var(--line);
-}
-
-.files-modal-content {
-  width: min(96vw, 1320px);
-  height: min(92vh, 920px);
-  align-items: stretch;
+  object-fit: contain;
 }
 
 .package-viewer {
@@ -644,4 +682,11 @@ textarea {
   border-radius: 12px;
   padding: 12px;
   background: rgba(255,255,255,.68);
+}
+
+@media (max-width: 900px) {
+  .image-modal-content {
+    width: min(92vw, 620px);
+    height: min(76vh, 520px);
+  }
 }
