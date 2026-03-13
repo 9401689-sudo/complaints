@@ -17,6 +17,30 @@ const state = {
   editingTemplateId: null,
 };
 
+const FIXED_VARIABLES = [
+  {
+    key: "complaint_date",
+    enabledKey: "complaint_date_enabled",
+    label: "Дата",
+    type: "date",
+    token: "{{complaint_date}}"
+  },
+  {
+    key: "address",
+    enabledKey: "address_enabled",
+    label: "Адрес",
+    type: "text",
+    token: "{{address}}"
+  },
+  {
+    key: "license_plate",
+    enabledKey: "license_plate_enabled",
+    label: "Гос.номер",
+    type: "text",
+    token: "{{license_plate}}"
+  }
+];
+
 const els = {
   screens: [...document.querySelectorAll("[data-screen-panel]")],
   navButtons: [...document.querySelectorAll(".nav-btn")],
@@ -66,7 +90,13 @@ const els = {
 
   workspaceFilesList: document.getElementById("workspaceFilesList"),
   btnSyncFiles: document.getElementById("btnSyncFiles"),
+  btnOpenFilesModal: document.getElementById("btnOpenFilesModal"),
   btnSaveFiles: document.getElementById("btnSaveFiles"),
+  filesModal: document.getElementById("filesModal"),
+  filesModalBackdrop: document.getElementById("filesModalBackdrop"),
+  btnCloseFilesModal: document.getElementById("btnCloseFilesModal"),
+  btnCancelFilesModal: document.getElementById("btnCancelFilesModal"),
+  filesModalList: document.getElementById("filesModalList"),
 
   caseInstitutionSelect: document.getElementById("caseInstitutionSelect"),
   caseTemplateSelect: document.getElementById("caseTemplateSelect"),
@@ -84,6 +114,7 @@ const els = {
   btnGenerateText: document.getElementById("btnGenerateText"),
   btnSaveText: document.getElementById("btnSaveText"),
   caseTextEditor: document.getElementById("caseTextEditor"),
+  textVariableToolbar: document.getElementById("textVariableToolbar"),
 
   btnLoadPackage: document.getElementById("btnLoadPackage"),
   btnBuildPackage: document.getElementById("btnBuildPackage"),
@@ -100,7 +131,7 @@ const els = {
   imageModal: document.getElementById("imageModal"),
   imageModalBackdrop: document.getElementById("imageModalBackdrop"),
   btnCloseImageModal: document.getElementById("btnCloseImageModal"),
-  imageModalImg: document.getElementById("imageModalImg"),
+  imageModalBody: document.getElementById("imageModalBody"),
 
   caseTitle: document.getElementById("caseTitle"),
   caseDescription: document.getElementById("caseDescription"),
@@ -119,6 +150,45 @@ const els = {
 
   runtimeLog: document.getElementById("runtimeLog")
 };
+
+els.templateVariableToolbar = document.getElementById("templateVariableToolbar");
+
+function getTodayInputValue() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getDefaultTemplateValues() {
+  return {
+    complaint_date: "",
+    address: "",
+    license_plate: ""
+  };
+}
+
+function getTemplateVariablesSchema() {
+  return FIXED_VARIABLES.map(({ key, label, type }) => ({
+    key,
+    label,
+    type,
+    required: false
+  }));
+}
+
+function normalizeVariableState(variables = {}) {
+  const normalized = { ...variables };
+
+  for (const field of FIXED_VARIABLES) {
+    const rawEnabled = normalized[field.enabledKey];
+    const enabled = rawEnabled === undefined ? true : String(rawEnabled).toLowerCase() === "true";
+    normalized[field.enabledKey] = String(enabled);
+
+    if (normalized[field.key] === undefined || normalized[field.key] === null || normalized[field.key] === "") {
+      normalized[field.key] = field.key === "complaint_date" ? getTodayInputValue() : "";
+    }
+  }
+
+  return normalized;
+}
 
 function openRuntimeLogModal() {
   els.runtimeLogModal.classList.remove("hidden");
@@ -173,10 +243,6 @@ function resetTemplateForm() {
   els.templateName.value = "";
   els.templateInstitutionSelect.value = "";
   els.templateBody.value = "";
-  els.templateVariablesSchema.value = `[
-  { "key": "address", "label": "Адрес", "type": "text", "required": true }
-]`;
-  els.templateDefaultValues.value = "{}";
   els.templateActive.checked = true;
   els.btnCreateTemplate.textContent = "Сохранить шаблон";
 }
@@ -201,8 +267,6 @@ function openTemplateEdit(item) {
   els.templateName.value = item.name || "";
   els.templateInstitutionSelect.value = item.institution_id || "";
   els.templateBody.value = item.body_template || "";
-  els.templateVariablesSchema.value = JSON.stringify(item.variables_schema ?? [], null, 2);
-  els.templateDefaultValues.value = JSON.stringify(item.default_values ?? {}, null, 2);
   els.templateActive.checked = Boolean(item.active);
   els.btnCreateTemplate.textContent = "Сохранить изменения";
   els.templateFormPanel.classList.remove("hidden");
@@ -217,14 +281,94 @@ function isImageMime(mimeType) {
   return ["image/jpeg", "image/png", "image/webp"].includes(mimeType || "");
 }
 
-function openImageModal(src) {
-  els.imageModalImg.src = src;
+function isVideoMime(mimeType) {
+  return ["video/mp4", "video/webm", "video/quicktime"].includes(mimeType || "");
+}
+
+function isPdfMime(mimeType) {
+  return mimeType === "application/pdf";
+}
+
+function renderVariableToolbar(container, targetTextarea) {
+  if (!container || !targetTextarea) return;
+
+  container.innerHTML = FIXED_VARIABLES.map((field) => (
+    `<button class="variable-chip" type="button" data-insert-token="${escapeHtml(field.token)}">${escapeHtml(field.label)}</button>`
+  )).join("");
+
+  container.querySelectorAll("[data-insert-token]").forEach((button) => {
+    button.addEventListener("click", () => insertAtCursor(targetTextarea, button.dataset.insertToken));
+  });
+}
+
+function insertAtCursor(textarea, value) {
+  if (!textarea) return;
+
+  const start = textarea.selectionStart ?? textarea.value.length;
+  const end = textarea.selectionEnd ?? textarea.value.length;
+  const before = textarea.value.slice(0, start);
+  const after = textarea.value.slice(end);
+  textarea.value = `${before}${value}${after}`;
+  textarea.focus();
+  const caret = start + value.length;
+  textarea.setSelectionRange(caret, caret);
+}
+
+function openImageModal(src, mimeType = "image/jpeg", title = "") {
+  if (isVideoMime(mimeType)) {
+    els.imageModalBody.innerHTML = `<video class="modal-media" src="${escapeHtml(src)}" controls autoplay></video>`;
+  } else if (isPdfMime(mimeType)) {
+    els.imageModalBody.innerHTML = `<iframe class="modal-media" src="${escapeHtml(src)}#toolbar=0&navpanes=0"></iframe>`;
+  } else {
+    els.imageModalBody.innerHTML = `<img class="image-modal-img" src="${escapeHtml(src)}" alt="${escapeHtml(title || "preview")}" />`;
+  }
+
   els.imageModal.classList.remove("hidden");
 }
 
 function closeImageModal() {
   els.imageModal.classList.add("hidden");
-  els.imageModalImg.src = "";
+  els.imageModalBody.innerHTML = "";
+}
+
+function openFilesModal() {
+  renderFilesModal();
+  els.filesModal.classList.remove("hidden");
+}
+
+function closeFilesModal() {
+  els.filesModal.classList.add("hidden");
+}
+
+function getPreviewMarkup(file, opts = {}) {
+  const src = getPreviewUrl(state.currentCaseId, file.id);
+  const mimeType = file.mime_type || file.mimeType || "";
+  const title = file.file_name || file.fileName || "preview";
+  const previewAttr = opts.attrName || "data-preview-file-id";
+
+  if (isImageMime(mimeType)) {
+    return `<img class="image-thumb" ${previewAttr}="${file.id}" src="${src}" alt="${escapeHtml(title)}" />`;
+  }
+
+  if (isVideoMime(mimeType)) {
+    return `<video class="media-thumb" ${previewAttr}="${file.id}" src="${src}" muted preload="metadata"></video>`;
+  }
+
+  if (isPdfMime(mimeType)) {
+    return `<iframe class="pdf-thumb" ${previewAttr}="${file.id}" src="${src}#toolbar=0&navpanes=0&scrollbar=0" title="${escapeHtml(title)}"></iframe>`;
+  }
+
+  return `<div class="file-thumb media-tile">${escapeHtml((mimeType || "FILE").toUpperCase())}</div>`;
+}
+
+function bindPreviewOpeners(root = document) {
+  root.querySelectorAll("[data-preview-file-id]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const file = state.currentCaseFiles.find((item) => item.id === node.dataset.previewFileId);
+      if (!file) return;
+      openImageModal(getPreviewUrl(state.currentCaseId, file.id), file.mime_type, file.file_name);
+    });
+  });
 }
 
 function getCaseStatusBadges(item) {
@@ -413,40 +557,6 @@ function getCurrentTemplate() {
   return state.templates.find((item) => item.id === templateId) || null;
 }
 
-function getVariableInputMarkup(field, value) {
-  const type = String(field?.type || "text").toLowerCase();
-  const key = String(field?.key || "");
-  const label = String(field?.label || key || "Переменная");
-  const required = Boolean(field?.required);
-  const placeholder = field?.placeholder ? ` placeholder="${escapeHtml(field.placeholder)}"` : "";
-
-  if (type === "textarea") {
-    return `
-      <div class="field full">
-        <label for="var-${escapeHtml(key)}">${escapeHtml(label)}${required ? " *" : ""}</label>
-        <textarea id="var-${escapeHtml(key)}" data-variable-key="${escapeHtml(key)}"${placeholder}>${escapeHtml(value ?? "")}</textarea>
-      </div>
-    `;
-  }
-
-  if (type === "checkbox" || type === "boolean") {
-    const checked = String(value).toLowerCase() === "true" ? "checked" : "";
-    return `
-      <div class="field checkbox-field full">
-        <label><input type="checkbox" data-variable-key="${escapeHtml(key)}" ${checked} /> ${escapeHtml(label)}${required ? " *" : ""}</label>
-      </div>
-    `;
-  }
-
-  const inputType = ["number", "date", "email"].includes(type) ? type : "text";
-  return `
-    <div class="field">
-      <label for="var-${escapeHtml(key)}">${escapeHtml(label)}${required ? " *" : ""}</label>
-      <input id="var-${escapeHtml(key)}" type="${inputType}" data-variable-key="${escapeHtml(key)}" value="${escapeHtml(value ?? "")}"${placeholder} />
-    </div>
-  `;
-}
-
 function renderVariablesForm() {
   const template = getCurrentTemplate();
 
@@ -464,26 +574,35 @@ function renderVariablesForm() {
     return;
   }
 
-  const schema = Array.isArray(template.variables_schema) ? template.variables_schema : [];
-  const defaults = template.default_values && typeof template.default_values === "object"
+  const defaults = normalizeVariableState(template.default_values && typeof template.default_values === "object"
     ? template.default_values
-    : {};
-
-  if (schema.length === 0) {
-    els.variablesForm.innerHTML = "";
-    els.variablesEmptyState.textContent = "У выбранного шаблона нет описанных переменных. Можно переходить к тексту.";
-    els.variablesEmptyState.classList.remove("hidden");
-    return;
-  }
+    : {});
+  const current = normalizeVariableState(state.variables);
 
   els.variablesEmptyState.classList.add("hidden");
   els.variablesEmptyState.textContent = "";
-  els.variablesForm.innerHTML = schema
-    .filter((field) => field && typeof field === "object" && field.key)
+  els.variablesForm.innerHTML = FIXED_VARIABLES
     .map((field) => {
-      const key = String(field.key);
-      const value = state.variables[key] ?? defaults[key] ?? "";
-      return getVariableInputMarkup(field, value);
+      const value = current[field.key] ?? defaults[field.key] ?? "";
+      const enabled = String(current[field.enabledKey] ?? defaults[field.enabledKey] ?? "true").toLowerCase() === "true";
+      const inputType = field.type === "date" ? "date" : "text";
+
+      return `
+        <div class="variable-item">
+          <div class="variable-item-meta">
+            <div class="row-title">${escapeHtml(field.label)}</div>
+            <label class="variable-toggle">
+              <input type="checkbox" data-variable-enabled-key="${escapeHtml(field.enabledKey)}" ${enabled ? "checked" : ""} />
+              Использовать при рендере
+            </label>
+            <div class="row-meta">Токен для шаблона: ${escapeHtml(field.token)}</div>
+          </div>
+          <div class="field">
+            <label for="var-${escapeHtml(field.key)}">Значение</label>
+            <input id="var-${escapeHtml(field.key)}" type="${inputType}" data-variable-key="${escapeHtml(field.key)}" value="${escapeHtml(value)}" />
+          </div>
+        </div>
+      `;
     })
     .join("");
 }
@@ -541,36 +660,34 @@ function renderWorkspaceSummary() {
 }
 
 function renderWorkspaceFiles() {
-  if (!state.currentCaseFiles.length) {
-    els.workspaceFilesList.innerHTML = '<div class="notice">Файлы ещё не синхронизированы.</div>';
+  const selectedFiles = state.currentCaseFiles.filter((file) => file.selected_for_submission);
+
+  if (!selectedFiles.length) {
+    els.workspaceFilesList.innerHTML = '<div class="notice">Файлы для подачи пока не выбраны. Используй кнопку "Выбрать файлы".</div>';
     return;
   }
 
-  const sorted = [...state.currentCaseFiles].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const sorted = [...selectedFiles].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
   els.workspaceFilesList.innerHTML = sorted.map((file, index) => {
-    const thumb = isImageMime(file.mime_type)
-      ? `<img class="image-thumb" data-preview-file-id="${file.id}" src="${getPreviewUrl(state.currentCaseId, file.id)}" alt="${escapeHtml(file.file_name || "image")}" />`
-      : `<div class="file-thumb"></div>`;
+    const thumb = getPreviewMarkup(file);
 
     return `
-      <div class="file-card">
+      <div class="file-card selected">
         ${thumb}
-        <div>
+        <div class="file-card-main">
           <div class="row-title">${escapeHtml(file.file_name || "unnamed")}</div>
           <div class="row-meta">${escapeHtml(file.mime_type || "unknown")} · ${file.size_bytes || 0} bytes</div>
+          <div class="row-meta">Порядок в подаче: ${file.sort_order ?? index}</div>
         </div>
-        <input class="file-order" type="number" min="0" value="${file.sort_order ?? index}" data-file-order-id="${file.id}" />
-        <label><input type="checkbox" data-file-selected-id="${file.id}" ${file.selected_for_submission ? "checked" : ""} /> выбрать</label>
+        <div class="file-card-controls">
+          <button class="btn btn-secondary" type="button" data-preview-file-id="${file.id}">Открыть превью</button>
+        </div>
       </div>
     `;
   }).join("");
 
-  document.querySelectorAll("[data-preview-file-id]").forEach((img) => {
-    img.addEventListener("click", () => {
-      openImageModal(getPreviewUrl(state.currentCaseId, img.dataset.previewFileId));
-    });
-  });
+  bindPreviewOpeners(els.workspaceFilesList);
 }
 
 function renderText() {
@@ -578,7 +695,43 @@ function renderText() {
 }
 
 function renderPackage() {
-  els.packageViewer.textContent = JSON.stringify(state.packageData || {}, null, 2);
+  const packageData = state.packageData || {};
+  const attachments = Array.isArray(packageData.attachments) ? packageData.attachments : [];
+  const institution = state.institutions.find((item) => item.id === packageData?.case?.institutionId);
+  const template = state.templates.find((item) => item.id === packageData?.case?.templateId);
+
+  if (!packageData.case) {
+    els.packageViewer.innerHTML = '<div class="notice">Пакет ещё не собран.</div>';
+    return;
+  }
+
+  els.packageViewer.innerHTML = `
+    <div class="package-section">
+      <h4>Основная информация</h4>
+      <div class="package-grid">
+        <div class="package-item"><div class="summary-label">Кейс</div><div class="summary-value">${escapeHtml(packageData.case.caseNumber || "—")}</div></div>
+        <div class="package-item"><div class="summary-label">Организация</div><div class="summary-value">${escapeHtml(institution?.name || "—")}</div></div>
+        <div class="package-item"><div class="summary-label">Шаблон</div><div class="summary-value">${escapeHtml(template?.name || "—")}</div></div>
+        <div class="package-item"><div class="summary-label">Выбрано файлов</div><div class="summary-value">${attachments.length}</div></div>
+      </div>
+    </div>
+    <div class="package-section">
+      <h4>Текст жалобы</h4>
+      <div class="package-item">${escapeHtml(shorten(packageData?.text?.content || "", 700))}</div>
+    </div>
+    <div class="package-section">
+      <h4>Вложения</h4>
+      <div class="package-grid">
+        ${attachments.map((item) => `
+          <div class="package-item">
+            <div class="row-title">${escapeHtml(item.fileName || "unnamed")}</div>
+            <div class="row-meta">${escapeHtml(item.mimeType || "unknown")} · ${item.sizeBytes || 0} bytes</div>
+            <div class="row-meta">${escapeHtml(item.filePath || "")}</div>
+          </div>
+        `).join("") || '<div class="notice">Вложений нет.</div>'}
+      </div>
+    </div>
+  `;
 }
 
 function formatUrlPreview(value, max = 88) {
@@ -606,7 +759,7 @@ function renderSubmit() {
   els.submitInstitutionUrlPretty.classList.toggle("hidden", !submit.submitUrl);
 
   if (submit.preparedAt) {
-    els.submitStatus.textContent = `Submit подготовлен ${submit.preparedAt}. Выбранные файлы уже перенесены в папку result и готовы к копированию.`;
+    els.submitStatus.textContent = `Отправка подготовлена ${submit.preparedAt}. Выбранные файлы уже перенесены в папку result и готовы к копированию.`;
     els.submitStatus.classList.remove("hidden");
   } else {
     els.submitStatus.textContent = "";
@@ -619,27 +772,30 @@ function renderSubmit() {
   }
 
   els.submitFilesList.innerHTML = files.map((file) => {
-    const thumb = isImageMime(file.mimeType)
-      ? `<img class="image-thumb" data-submit-preview-url="${getPreviewUrl(state.currentCaseId, file.id)}" src="${getPreviewUrl(state.currentCaseId, file.id)}" alt="${escapeHtml(file.fileName || "image")}" />`
-      : `<div class="file-thumb"></div>`;
+    const thumb = getPreviewMarkup({
+      id: file.id,
+      file_name: file.fileName,
+      mime_type: file.mimeType
+    });
 
     return `
       <div class="file-card">
         ${thumb}
-        <div>
+        <div class="file-card-main">
           <div class="row-title">${escapeHtml(file.fileName || "unnamed")}</div>
           <div class="row-meta">${escapeHtml(file.mimeType || "unknown")} · ${file.sizeBytes || 0} bytes</div>
           <div class="row-meta">${escapeHtml(file.filePath || "")}</div>
           <div class="url-preview file-url-preview">${escapeHtml(formatUrlPreview(file.copyUrl, 100))}</div>
         </div>
-        <button class="btn btn-secondary" data-copy-file-url="${escapeHtml(file.copyUrl)}">Скопировать URL</button>
+        <div class="file-card-controls">
+          <button class="btn btn-secondary" type="button" data-preview-file-id="${file.id}">Открыть превью</button>
+          <button class="btn btn-secondary" data-copy-file-url="${escapeHtml(file.copyUrl)}">Скопировать URL</button>
+        </div>
       </div>
     `;
   }).join("");
 
-  document.querySelectorAll("[data-submit-preview-url]").forEach((img) => {
-    img.addEventListener("click", () => openImageModal(img.dataset.submitPreviewUrl));
-  });
+  bindPreviewOpeners(els.submitFilesList);
 
   document.querySelectorAll("[data-copy-file-url]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -739,8 +895,8 @@ async function createTemplate() {
       name: els.templateName.value.trim(),
       institutionId: els.templateInstitutionSelect.value || null,
       bodyTemplate: els.templateBody.value,
-      variablesSchema: JSON.parse(els.templateVariablesSchema.value || "[]"),
-      defaultValues: JSON.parse(els.templateDefaultValues.value || "{}"),
+      variablesSchema: getTemplateVariablesSchema(),
+      defaultValues: getDefaultTemplateValues(),
       active: els.templateActive.checked
     };
 
@@ -809,14 +965,40 @@ async function syncFiles() {
 
 function collectFileSelectionPayload() {
   return state.currentCaseFiles.map((file, index) => {
-    const orderInput = document.querySelector(`[data-file-order-id="${file.id}"]`);
-    const selectedInput = document.querySelector(`[data-file-selected-id="${file.id}"]`);
+    const orderInput = els.filesModalList.querySelector(`[data-file-order-id="${file.id}"]`);
+    const selectedInput = els.filesModalList.querySelector(`[data-file-selected-id="${file.id}"]`);
     return {
       fileId: file.id,
       selected: Boolean(selectedInput?.checked),
       sortOrder: Number(orderInput?.value ?? index)
     };
   });
+}
+
+function renderFilesModal() {
+  if (!state.currentCaseFiles.length) {
+    els.filesModalList.innerHTML = '<div class="notice">Сначала синхронизируй файлы из Nextcloud.</div>';
+    return;
+  }
+
+  const sorted = [...state.currentCaseFiles].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  els.filesModalList.innerHTML = sorted.map((file, index) => `
+    <div class="file-card ${file.selected_for_submission ? "selected" : ""}">
+      ${getPreviewMarkup(file)}
+      <div class="file-card-main">
+        <div class="row-title">${escapeHtml(file.file_name || "unnamed")}</div>
+        <div class="row-meta">${escapeHtml(file.mime_type || "unknown")} · ${file.size_bytes || 0} bytes</div>
+        <div class="row-meta">${escapeHtml(file.file_path || "")}</div>
+      </div>
+      <div class="file-card-controls">
+        <input class="file-order" type="number" min="0" value="${file.sort_order ?? index}" data-file-order-id="${file.id}" />
+        <label><input type="checkbox" data-file-selected-id="${file.id}" ${file.selected_for_submission ? "checked" : ""} /> включить</label>
+        <button class="btn btn-secondary" type="button" data-preview-file-id="${file.id}">Открыть превью</button>
+      </div>
+    </div>
+  `).join("");
+
+  bindPreviewOpeners(els.filesModalList);
 }
 
 async function saveFiles() {
@@ -831,6 +1013,7 @@ async function saveFiles() {
     renderWorkspaceSummary();
     renderWorkspaceFiles();
     logRuntime("save files", data);
+    closeFilesModal();
     alert("Выбор файлов сохранён");
   });
 }
@@ -857,12 +1040,12 @@ async function saveCaseConfig() {
 async function loadVariables() {
   if (!state.currentCaseId) return;
   if (!state.currentCase?.case?.template_id) {
-    state.variables = {};
+    state.variables = normalizeVariableState({});
     renderVariablesForm();
     return;
   }
   const data = await api.getVariables(state.currentCaseId);
-  state.variables = data.variables || {};
+  state.variables = normalizeVariableState(data.variables || {});
   renderVariablesForm();
   logRuntime("get variables", data);
 }
@@ -871,12 +1054,22 @@ async function saveVariables() {
   if (!state.currentCaseId) return;
 
   const payload = {};
-  document.querySelectorAll("[data-variable-key]").forEach((input) => {
-    payload[input.dataset.variableKey] = input.type === "checkbox" ? String(Boolean(input.checked)) : input.value;
+  const normalized = normalizeVariableState(state.variables);
+
+  FIXED_VARIABLES.forEach((field) => {
+    const valueInput = document.querySelector(`[data-variable-key="${field.key}"]`);
+    const enabledInput = document.querySelector(`[data-variable-enabled-key="${field.enabledKey}"]`);
+    const enabled = Boolean(enabledInput?.checked);
+    const rawValue = valueInput?.value || (field.key === "complaint_date" ? getTodayInputValue() : "");
+
+    payload[field.enabledKey] = String(enabled);
+    payload[field.key] = enabled ? rawValue : "";
+    normalized[field.enabledKey] = String(enabled);
+    normalized[field.key] = rawValue;
   });
 
   const data = await api.saveVariables(state.currentCaseId, payload);
-  state.variables = data.variables || {};
+  state.variables = normalizeVariableState(data.variables || normalized);
   state.submitData = null;
   renderVariablesForm();
   logRuntime("save variables", data);
@@ -995,6 +1188,7 @@ async function deleteCaseFromList(caseId, caseNumber) {
     state.currentCaseFiles = [];
     state.variables = {};
     state.packageData = null;
+    state.submitData = null;
     state.textContent = "";
     setScreen("dashboard");
   }
@@ -1063,6 +1257,10 @@ function bindEvents() {
   els.btnSaveCaseMeta.addEventListener("click", () => handle(saveCaseMeta));
   els.btnCloseImageModal.addEventListener("click", closeImageModal);
   els.imageModalBackdrop.addEventListener("click", closeImageModal);
+  els.btnOpenFilesModal.addEventListener("click", openFilesModal);
+  els.btnCloseFilesModal.addEventListener("click", closeFilesModal);
+  els.btnCancelFilesModal.addEventListener("click", closeFilesModal);
+  els.filesModalBackdrop.addEventListener("click", closeFilesModal);
   els.btnShowRuntimeLog.addEventListener("click", openRuntimeLogModal);
   els.btnCloseRuntimeLog.addEventListener("click", closeRuntimeLogModal);
   els.runtimeLogBackdrop.addEventListener("click", closeRuntimeLogModal);
@@ -1153,6 +1351,8 @@ async function handle(fn) {
 }
 
 async function bootstrap() {
+  renderVariableToolbar(els.templateVariableToolbar, els.templateBody);
+  renderVariableToolbar(els.textVariableToolbar, els.caseTextEditor);
   bindEvents();
   await loadInstitutions();
   await loadTemplates();

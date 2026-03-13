@@ -100,16 +100,27 @@ export async function registerFilesRoutes(app: FastifyInstance): Promise<void> {
 
         const mimeType = file.mime_type || 'application/octet-stream';
 
-        if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) {
+        if (
+          ![
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'video/mp4',
+            'video/webm',
+            'video/quicktime',
+            'application/pdf'
+          ].includes(mimeType)
+        ) {
           return reply.code(400).send({
             ok: false,
-            error: 'preview is supported only for images',
+            error: 'preview is supported only for image, video and pdf files',
           });
         }
 
         const buffer = await nextcloudClient.downloadBinaryFile(file.file_path);
 
         reply.header('Content-Type', mimeType);
+        reply.header('Content-Disposition', 'inline');
         reply.header('Cache-Control', 'private, max-age=60');
         return reply.send(buffer);
       } catch (error) {
