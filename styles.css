@@ -371,14 +371,15 @@ textarea {
 .image-modal-content {
   position: relative;
   z-index: 1001;
-  width: min(72vw, 760px);
-  height: min(72vh, 560px);
-  margin: 8vh auto;
+  width: min(50vw, 530px);
+  height: min(50vh, 390px);
+  margin: 10vh auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   gap: 12px;
+  overflow: hidden;
 }
 
 .image-modal-img {
@@ -598,6 +599,11 @@ textarea {
   object-fit: cover;
 }
 
+.pdf-thumb {
+  overflow: hidden;
+  pointer-events: none;
+}
+
 .media-tile {
   display: grid;
   place-items: center;
@@ -653,6 +659,13 @@ textarea {
   background: #fffdfa;
   border: 1px solid var(--line);
   object-fit: contain;
+}
+
+@media (max-width: 900px) {
+  .image-modal-content {
+    width: min(64vw, 440px);
+    height: min(58vh, 340px);
+  }
 }
 
 .package-viewer {

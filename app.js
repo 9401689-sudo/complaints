@@ -429,7 +429,8 @@ function getPreviewMarkup(file, opts = {}) {
   if (isPdfMime(mimeType)) {
     return `
       <button class="preview-button" type="button" ${wrapperAttr}>
-        <span class="file-thumb media-tile pdf-tile">PDF</span>
+        <iframe class="pdf-thumb" src="${src}#toolbar=0&navpanes=0&scrollbar=0" title="${escapeHtml(title)}"></iframe>
+        <span class="thumb-badge">PDF</span>
       </button>
     `;
   }
@@ -926,7 +927,7 @@ function renderSubmit() {
           <div class="url-preview file-url-preview">${escapeHtml(formatUrlPreview(file.copyUrl, 100))}</div>
         </div>
         <div class="file-card-controls">
-          <button class="btn btn-secondary" data-copy-file-url="${escapeHtml(file.copyUrl)}">Скопировать URL</button>
+          <button class="btn btn-secondary" data-download-submit-file-id="${file.id}" data-download-submit-file-name="${escapeHtml(file.fileName || "file.bin")}">Скачать</button>
         </div>
       </div>
     `;
@@ -934,9 +935,9 @@ function renderSubmit() {
 
   bindPreviewOpeners(els.submitFilesList);
 
-  document.querySelectorAll("[data-copy-file-url]").forEach((button) => {
+  document.querySelectorAll("[data-download-submit-file-id]").forEach((button) => {
     button.addEventListener("click", () => {
-      handle(() => copyToClipboard(button.dataset.copyFileUrl, "URL файла скопирован"));
+      handle(() => downloadSubmitFile(button.dataset.downloadSubmitFileId, button.dataset.downloadSubmitFileName));
     });
   });
 }
@@ -982,8 +983,9 @@ async function downloadSubmitFiles() {
 
   for (const file of files) {
     const { blob, filename } = await api.downloadCaseFile(state.currentCaseId, file.id);
+    const preferredFilename = filename && filename !== "download.bin" ? filename : file.fileName;
     const fileHandle = await directoryHandle.getFileHandle(
-      sanitizeFilename(filename || file.fileName, "file.bin"),
+      sanitizeFilename(preferredFilename, "file.bin"),
       { create: true }
     );
     const writable = await fileHandle.createWritable();
@@ -992,6 +994,25 @@ async function downloadSubmitFiles() {
   }
 
   alert(`Файлы сохранены в выбранную папку: ${files.length}`);
+}
+
+function triggerBrowserDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = sanitizeFilename(filename, "file.bin");
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function downloadSubmitFile(fileId, fallbackName) {
+  if (!state.currentCaseId) return;
+
+  const { blob, filename } = await api.downloadCaseFile(state.currentCaseId, fileId);
+  const preferredFilename = filename && filename !== "download.bin" ? filename : fallbackName;
+  triggerBrowserDownload(blob, preferredFilename);
 }
 
 async function loadCases() {
