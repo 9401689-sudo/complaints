@@ -556,6 +556,8 @@ export class CasesService {
 
     const artifactPath = `${caseRow.nextcloud_artifacts_folder}/complaint.txt`;
     const content = await nextcloudClient.downloadTextFile(artifactPath);
+    const variables = await this.getCaseVariables(caseId);
+    const templateContent = this.restoreTemplateVariables(content, variables);
 
     if (!content.trim()) {
       throw new Error('case text is empty');
@@ -587,12 +589,20 @@ export class CasesService {
         created_at,
         updated_at
       `,
-      [
+        [
         templateName,
         caseRow.institution_id,
-        content,
-        JSON.stringify([]),
-        JSON.stringify({}),
+        templateContent,
+        JSON.stringify([
+          { key: 'complaint_date', label: 'Дата', type: 'date', required: false },
+          { key: 'address', label: 'Адрес', type: 'text', required: false },
+          { key: 'license_plate', label: 'Гос.номер', type: 'text', required: false }
+        ]),
+        JSON.stringify({
+          complaint_date: '',
+          address: '',
+          license_plate: ''
+        }),
         true
       ]
     );
@@ -760,6 +770,25 @@ export class CasesService {
 
       return String(value);
     });
+  }
+
+  private restoreTemplateVariables(content: string, variables: Record<string, string>): string {
+    const replacements: Array<{ key: string; value: string }> = [
+      { key: 'complaint_date', value: variables.complaint_date ?? '' },
+      { key: 'address', value: variables.address ?? '' },
+      { key: 'license_plate', value: variables.license_plate ?? '' }
+    ]
+      .filter((item) => item.value.trim().length > 0)
+      .sort((a, b) => b.value.length - a.value.length);
+
+    let result = content;
+
+    for (const item of replacements) {
+      const escaped = item.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      result = result.replace(new RegExp(escaped, 'g'), `{{${item.key}}}`);
+    }
+
+    return result;
   }
   async updateCaseMeta(
     caseId: string,

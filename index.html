@@ -274,14 +274,8 @@
               <div class="panel-header">
                 <h3>Текст</h3>
  <div class="actions">
-  <button class="btn btn-secondary" id="btnLoadText">Открыть текст</button>
-  <button class="btn btn-secondary" id="btnGenerateText">Сгенерировать текст</button>
   <button class="btn btn-secondary" id="btnSaveAsTemplate">Сохранить как шаблон</button>
   <button class="btn btn-primary" id="btnSaveText">Сохранить текст</button>
-</div>
-<div class="notice">
-  Сгенерировать текст — взять текущий шаблон кейса и заново сформировать complaint.txt.
-  Сохранить как шаблон — создать новый шаблон из текущего текста кейса.
 </div>
 </div>
               <div class="field full">
@@ -365,6 +359,12 @@
   <div class="image-modal-content">
     <button class="image-modal-close" id="btnCloseImageModal" type="button">×</button>
     <div id="imageModalBody" class="image-modal-body"></div>
+    <div id="imageModalControls" class="image-modal-controls hidden">
+      <label class="variable-toggle">
+        <input id="imageModalSelectedCheckbox" type="checkbox" />
+        Включить файл в подачу
+      </label>
+    </div>
   </div>
 </div>
 

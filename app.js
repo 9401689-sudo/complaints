@@ -110,8 +110,6 @@ const els = {
   caseDescription: document.getElementById("caseDescription"),
   btnSaveCaseMeta: document.getElementById("btnSaveCaseMeta"),
 
-  btnLoadText: document.getElementById("btnLoadText"),
-  btnGenerateText: document.getElementById("btnGenerateText"),
   btnSaveText: document.getElementById("btnSaveText"),
   caseTextEditor: document.getElementById("caseTextEditor"),
   textVariableToolbar: document.getElementById("textVariableToolbar"),
@@ -132,6 +130,8 @@ const els = {
   imageModalBackdrop: document.getElementById("imageModalBackdrop"),
   btnCloseImageModal: document.getElementById("btnCloseImageModal"),
   imageModalBody: document.getElementById("imageModalBody"),
+  imageModalControls: document.getElementById("imageModalControls"),
+  imageModalSelectedCheckbox: document.getElementById("imageModalSelectedCheckbox"),
 
   caseTitle: document.getElementById("caseTitle"),
   caseDescription: document.getElementById("caseDescription"),
@@ -289,15 +289,27 @@ function isPdfMime(mimeType) {
   return mimeType === "application/pdf";
 }
 
-function renderVariableToolbar(container, targetTextarea) {
+function renderVariableToolbar(container, targetTextarea, mode = "token") {
   if (!container || !targetTextarea) return;
 
   container.innerHTML = FIXED_VARIABLES.map((field) => (
-    `<button class="variable-chip" type="button" data-insert-token="${escapeHtml(field.token)}">${escapeHtml(field.label)}</button>`
+    `<button class="variable-chip" type="button" data-variable-key="${escapeHtml(field.key)}">${escapeHtml(field.label)}</button>`
   )).join("");
 
-  container.querySelectorAll("[data-insert-token]").forEach((button) => {
-    button.addEventListener("click", () => insertAtCursor(targetTextarea, button.dataset.insertToken));
+  container.querySelectorAll("[data-variable-key]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const field = FIXED_VARIABLES.find((item) => item.key === button.dataset.variableKey);
+      if (!field) return;
+
+      if (mode === "value") {
+        const variables = normalizeVariableState(state.variables);
+        const enabled = String(variables[field.enabledKey] ?? "true").toLowerCase() === "true";
+        insertAtCursor(targetTextarea, enabled ? String(variables[field.key] ?? "") : "");
+        return;
+      }
+
+      insertAtCursor(targetTextarea, field.token);
+    });
   });
 }
 
@@ -314,7 +326,7 @@ function insertAtCursor(textarea, value) {
   textarea.setSelectionRange(caret, caret);
 }
 
-function openImageModal(src, mimeType = "image/jpeg", title = "") {
+function openImageModal(src, mimeType = "image/jpeg", title = "", fileId = null) {
   if (isVideoMime(mimeType)) {
     els.imageModalBody.innerHTML = `<video class="modal-media" src="${escapeHtml(src)}" controls autoplay></video>`;
   } else if (isPdfMime(mimeType)) {
@@ -323,12 +335,26 @@ function openImageModal(src, mimeType = "image/jpeg", title = "") {
     els.imageModalBody.innerHTML = `<img class="image-modal-img" src="${escapeHtml(src)}" alt="${escapeHtml(title || "preview")}" />`;
   }
 
+  if (fileId) {
+    const file = state.currentCaseFiles.find((item) => item.id === fileId);
+    els.imageModalControls.classList.remove("hidden");
+    els.imageModalSelectedCheckbox.checked = Boolean(file?.selected_for_submission);
+    els.imageModalSelectedCheckbox.dataset.fileId = fileId;
+  } else {
+    els.imageModalControls.classList.add("hidden");
+    els.imageModalSelectedCheckbox.checked = false;
+    delete els.imageModalSelectedCheckbox.dataset.fileId;
+  }
+
   els.imageModal.classList.remove("hidden");
 }
 
 function closeImageModal() {
   els.imageModal.classList.add("hidden");
   els.imageModalBody.innerHTML = "";
+  els.imageModalControls.classList.add("hidden");
+  els.imageModalSelectedCheckbox.checked = false;
+  delete els.imageModalSelectedCheckbox.dataset.fileId;
 }
 
 function openFilesModal() {
@@ -366,8 +392,38 @@ function bindPreviewOpeners(root = document) {
     node.addEventListener("click", () => {
       const file = state.currentCaseFiles.find((item) => item.id === node.dataset.previewFileId);
       if (!file) return;
-      openImageModal(getPreviewUrl(state.currentCaseId, file.id), file.mime_type, file.file_name);
+      openImageModal(getPreviewUrl(state.currentCaseId, file.id), file.mime_type, file.file_name, file.id);
     });
+  });
+}
+
+function syncModalSelectionState(fileId, selected) {
+  const file = state.currentCaseFiles.find((item) => item.id === fileId);
+  if (file) {
+    file.selected_for_submission = selected;
+  }
+
+  const modalCheckbox = els.filesModalList.querySelector(`[data-file-selected-id="${fileId}"]`);
+  if (modalCheckbox) {
+    modalCheckbox.checked = selected;
+  }
+}
+
+function buildComputedTextPreview() {
+  const template = getCurrentTemplate();
+  if (!template?.body_template) {
+    return "";
+  }
+
+  const variables = normalizeVariableState(state.variables);
+  return template.body_template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key) => {
+    const field = FIXED_VARIABLES.find((item) => item.key === key);
+    if (field) {
+      const enabled = String(variables[field.enabledKey] ?? "true").toLowerCase() === "true";
+      return enabled ? String(variables[key] ?? "") : "";
+    }
+
+    return String(variables[key] ?? "");
   });
 }
 
@@ -476,7 +532,7 @@ function renderInstitutions() {
         <div>${escapeHtml(item.submit_url)}</div>
         <div>${item.active ? "active" : "inactive"}</div>
         <div class="actions">
-          <button class="btn btn-secondary" data-edit-institution-id="${item.id}">Редактировать</button>
+          <button class="btn btn-primary" data-edit-institution-id="${item.id}">Редактировать</button>
           <button class="btn btn-secondary" data-delete-institution-id="${item.id}" data-delete-institution-name="${escapeHtml(item.name)}">Удалить</button>
         </div>
       </div>
@@ -512,7 +568,7 @@ function renderTemplates() {
         <div>${escapeHtml(item.institution_id || "—")}</div>
         <div>${item.active ? "active" : "inactive"}</div>
        <div class="actions">
-         <button class="btn btn-secondary" data-edit-template-id="${item.id}">Редактировать</button>
+         <button class="btn btn-primary" data-edit-template-id="${item.id}">Редактировать</button>
          <button class="btn btn-secondary" data-delete-template-id="${item.id}" data-delete-template-name="${escapeHtml(item.name)}">Удалить</button>
        </div>
       </div>
@@ -886,6 +942,7 @@ async function loadTemplates() {
   const data = await api.listTemplates();
   state.templates = data.templates || [];
   renderTemplates();
+  renderVariableToolbar(els.templateVariableToolbar, els.templateBody);
   logRuntime("list templates", data);
 }
 
@@ -1079,30 +1136,17 @@ async function saveVariables() {
   setWorkspaceTab("text");
 }
 
-async function generateText() {
-  if (!state.currentCaseId) return;
-
-  return withButtonLoading(els.btnGenerateText, "Генерация...", async () => {
-    const data = await api.generateText(state.currentCaseId);
-    state.textContent = data.text || "";
-    state.currentCase = { case: data.case, fsm: data.fsm };
-    state.submitData = null;
-
-    renderWorkspaceSummary();
-    renderText();
-    logRuntime("generate text", data);
-
-    alert("Текст сгенерирован");
-    setWorkspaceTab("text");
-  });
-}
-
 async function loadText() {
   if (!state.currentCaseId) return;
-  const data = await api.getText(state.currentCaseId);
-  state.textContent = data.content || "";
-  renderText();
-  logRuntime("get text", data);
+  try {
+    const data = await api.getText(state.currentCaseId);
+    state.textContent = data.content || "";
+    renderText();
+    logRuntime("get text", data);
+  } catch {
+    state.textContent = buildComputedTextPreview();
+    renderText();
+  }
 }
 
 async function saveText() {
@@ -1257,6 +1301,13 @@ function bindEvents() {
   els.btnSaveCaseMeta.addEventListener("click", () => handle(saveCaseMeta));
   els.btnCloseImageModal.addEventListener("click", closeImageModal);
   els.imageModalBackdrop.addEventListener("click", closeImageModal);
+  els.imageModalSelectedCheckbox.addEventListener("change", () => {
+    const fileId = els.imageModalSelectedCheckbox.dataset.fileId;
+    if (!fileId) return;
+    syncModalSelectionState(fileId, els.imageModalSelectedCheckbox.checked);
+    renderWorkspaceFiles();
+    renderFilesModal();
+  });
   els.btnOpenFilesModal.addEventListener("click", openFilesModal);
   els.btnCloseFilesModal.addEventListener("click", closeFilesModal);
   els.btnCancelFilesModal.addEventListener("click", closeFilesModal);
@@ -1320,8 +1371,6 @@ if (els.casesSearchInput) {
   els.btnSaveCaseConfig.addEventListener("click", () => handle(saveCaseConfig));
   els.btnLoadVariables.addEventListener("click", () => handle(loadVariables));
   els.btnSaveVariables.addEventListener("click", () => handle(saveVariables));
-  els.btnLoadText.addEventListener("click", () => handle(loadText));
-  els.btnGenerateText.addEventListener("click", () => handle(generateText));
   els.btnSaveText.addEventListener("click", () => handle(saveText));
   els.btnLoadPackage.addEventListener("click", () => handle(loadPackage));
   els.btnBuildPackage.addEventListener("click", () => handle(buildPackage));
@@ -1351,8 +1400,8 @@ async function handle(fn) {
 }
 
 async function bootstrap() {
-  renderVariableToolbar(els.templateVariableToolbar, els.templateBody);
-  renderVariableToolbar(els.textVariableToolbar, els.caseTextEditor);
+  renderVariableToolbar(els.templateVariableToolbar, els.templateBody, "token");
+  renderVariableToolbar(els.textVariableToolbar, els.caseTextEditor, "value");
   bindEvents();
   await loadInstitutions();
   await loadTemplates();
