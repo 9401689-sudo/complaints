@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.textService = exports.TextService = void 0;
 const crypto_1 = require("crypto");
+const postgres_1 = require("../db/postgres");
 const cases_service_1 = require("../cases/cases.service");
 const fsm_service_1 = require("../fsm/fsm.service");
 const nextcloud_client_1 = require("../nextcloud/nextcloud.client");
@@ -44,19 +45,36 @@ class TextService {
         const content = body.content;
         const textChecksum = sha256(content);
         await nextcloud_client_1.nextcloudClient.uploadTextFile(filePath, content);
-        await fsm_service_1.fsmService.syncWorkingState(caseId, {
-            textReady: true,
-            textChecksum,
-            packageReady: false,
-            packageChecksum: null,
-            lastErrorCode: null,
-            lastErrorMessage: null
-        });
-        await cases_service_1.casesService.logCaseAction(caseId, 'case.text.saved', {
-            filePath,
-            textChecksum,
-            contentLength: content.length,
-        });
+        await postgres_1.postgres.query('begin');
+        try {
+            await postgres_1.postgres.query(`
+        delete from case_artifacts
+        where case_id = $1
+          and artifact_type = 'generated_text'
+        `, [caseId]);
+            await postgres_1.postgres.query(`
+        insert into case_artifacts (case_id, artifact_type, file_path)
+        values ($1, $2, $3)
+        `, [caseId, 'generated_text', filePath]);
+            await fsm_service_1.fsmService.syncWorkingState(caseId, {
+                textReady: true,
+                textChecksum,
+                packageReady: false,
+                packageChecksum: null,
+                lastErrorCode: null,
+                lastErrorMessage: null
+            });
+            await cases_service_1.casesService.logCaseAction(caseId, 'case.text.saved', {
+                filePath,
+                textChecksum,
+                contentLength: content.length,
+            });
+            await postgres_1.postgres.query('commit');
+        }
+        catch (error) {
+            await postgres_1.postgres.query('rollback');
+            throw error;
+        }
         return {
             caseId,
             filePath,

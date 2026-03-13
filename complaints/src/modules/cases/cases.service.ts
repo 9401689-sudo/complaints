@@ -278,7 +278,7 @@ export class CasesService {
       throw new Error(`invalid fsm state: ${snapshot.state}`);
     }
 
-    const textArtifact = await this.getArtifactByType(caseId, 'generated_text');
+    const textArtifact = await this.getTextArtifact(caseId, caseRow.nextcloud_artifacts_folder);
 
     if (!textArtifact) {
       throw new Error('generated text artifact not found');
@@ -417,7 +417,7 @@ export class CasesService {
       throw new Error('institution not found');
     }
 
-    const textArtifact = await this.getArtifactByType(caseId, 'generated_text');
+    const textArtifact = await this.getTextArtifact(caseId, caseRow.nextcloud_artifacts_folder);
 
     if (!textArtifact) {
       throw new Error('generated text artifact not found');
@@ -760,6 +760,37 @@ export class CasesService {
     );
 
     return result.rows[0] ?? null;
+  }
+
+  private async getTextArtifact(caseId: string, artifactsFolder: string): Promise<ArtifactRow | null> {
+    const existing = await this.getArtifactByType(caseId, 'generated_text');
+
+    if (existing) {
+      return existing;
+    }
+
+    const fallbackPath = `${artifactsFolder.replace(/\/+$/, '')}/complaint.txt`;
+
+    try {
+      await nextcloudClient.downloadTextFile(fallbackPath);
+    } catch {
+      return null;
+    }
+
+    await postgres.query(
+      `
+      insert into case_artifacts (case_id, artifact_type, file_path)
+      values ($1, $2, $3)
+      `,
+      [caseId, 'generated_text', fallbackPath]
+    );
+
+    return {
+      id: '',
+      artifact_type: 'generated_text',
+      file_path: fallbackPath,
+      created_at: new Date().toISOString()
+    };
   }
 
   private renderTemplate(template: string, variables: Record<string, unknown>): string {

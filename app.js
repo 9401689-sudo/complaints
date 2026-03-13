@@ -257,11 +257,29 @@ function setScreen(name) {
 }
 
 function setWorkspaceTab(name) {
+  if (name === "submit" && !canOpenSubmitTab()) {
+    return;
+  }
+
   els.tabButtons.forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.tab === name);
   });
   els.tabPanels.forEach((panel) => {
     panel.classList.toggle("hidden", panel.dataset.tabPanel !== name);
+  });
+}
+
+function canOpenSubmitTab() {
+  return Boolean(state.submitData?.preparedAt);
+}
+
+function updateWorkspaceTabAvailability() {
+  els.tabButtons.forEach((btn) => {
+    if (btn.dataset.tab === "submit") {
+      btn.disabled = !canOpenSubmitTab();
+    } else {
+      btn.disabled = false;
+    }
   });
 }
 
@@ -748,29 +766,38 @@ function renderWorkspaceSummary() {
   els.caseInstitutionNameReadonly.value = institution?.name || "—";
   els.caseTemplateNameReadonly.value = template?.name || "—";
   els.caseFsmReadonly.value = fsm.state || "—";
+  updateWorkspaceTabAvailability();
   renderVariablesForm();
 }
 
 function renderWorkspaceFiles() {
-  const selectedFiles = state.currentCaseFiles.filter((file) => file.selected_for_submission);
+  const allFiles = [...state.currentCaseFiles];
 
-  if (!selectedFiles.length) {
-    els.workspaceFilesList.innerHTML = '<div class="notice">Файлы для подачи пока не выбраны. Используй кнопку "Выбрать файлы".</div>';
+  if (!allFiles.length) {
+    els.workspaceFilesList.innerHTML = '<div class="notice">Файлы ещё не синхронизированы. Нажми "Sync files", чтобы получить содержимое папки incoming.</div>';
     return;
   }
 
-  const sorted = [...selectedFiles].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const sorted = allFiles.sort((a, b) => {
+    const selectedDiff = Number(Boolean(b.selected_for_submission)) - Number(Boolean(a.selected_for_submission));
+    if (selectedDiff !== 0) {
+      return selectedDiff;
+    }
+
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  });
 
   els.workspaceFilesList.innerHTML = sorted.map((file, index) => {
     const thumb = getPreviewMarkup(file);
+    const isSelected = Boolean(file.selected_for_submission);
 
     return `
-      <div class="file-card selected">
+      <div class="file-card ${isSelected ? "selected" : ""}">
         ${thumb}
         <div class="file-card-main">
           <div class="row-title">${escapeHtml(file.file_name || "unnamed")}</div>
           <div class="row-meta">${escapeHtml(file.mime_type || "unknown")} · ${file.size_bytes || 0} bytes</div>
-          <div class="row-meta">Порядок в подаче: ${file.sort_order ?? index}</div>
+          <div class="row-meta">${isSelected ? `В подаче · порядок ${file.sort_order ?? index}` : "Не выбран для подачи"}</div>
         </div>
         <div class="file-card-controls">
           <button class="btn btn-secondary" type="button" data-preview-file-id="${file.id}">Открыть превью</button>
@@ -1086,12 +1113,13 @@ async function syncFiles() {
 
   return withButtonLoading(els.btnSyncFiles, "Синхронизация...", async () => {
     const data = await api.syncFiles(state.currentCaseId);
-  state.currentCase = { case: data.case, fsm: data.fsm };
+    state.currentCase = { case: data.case, fsm: data.fsm };
     state.currentCaseFiles = data.files || [];
     state.submitData = null;
     renderWorkspaceSummary();
     renderWorkspaceFiles();
     logRuntime("sync files", data);
+    alert(`Синхронизация завершена: ${state.currentCaseFiles.length} файлов`);
   });
 }
 
@@ -1154,6 +1182,7 @@ async function saveCaseConfig() {
   if (!state.currentCaseId) return;
 
   return withButtonLoading(els.btnSaveCaseConfig, "Сохранение...", async () => {
+    const previousTemplateId = state.currentCase?.case?.template_id || null;
     const payload = {
       institutionId: els.caseInstitutionSelect.value || null,
       templateId: els.caseTemplateSelect.value || null
@@ -1166,6 +1195,11 @@ async function saveCaseConfig() {
     alert("Конфигурация кейса сохранена");
     setWorkspaceTab("variables");
     await loadVariables().catch(() => {});
+
+    const nextTemplateId = payload.templateId || null;
+    if (nextTemplateId && nextTemplateId !== previousTemplateId) {
+      state.textContent = buildComputedTextPreview();
+    }
   });
 }
 
@@ -1252,17 +1286,9 @@ async function buildPackage() {
     logRuntime("build package", data);
 
     alert("Пакет собран");
-    setWorkspaceTab("submit");
     await prepareSubmit();
+    setWorkspaceTab("submit");
   });
-}
-
-async function loadPackage() {
-  if (!state.currentCaseId) return;
-  const data = await api.getPackage(state.currentCaseId);
-  state.packageData = data.package || {};
-  renderPackage();
-  logRuntime("get package", data);
 }
 
 async function prepareSubmit() {
@@ -1406,8 +1432,6 @@ if (els.casesSearchInput) {
       setWorkspaceTab(btn.dataset.tab);
       if (btn.dataset.tab === "variables") await loadVariables().catch(() => {});
       if (btn.dataset.tab === "text") await loadText().catch(() => {});
-      if (btn.dataset.tab === "package") await loadPackage().catch(() => {});
-      if (btn.dataset.tab === "submit") await prepareSubmit().catch(() => {});
     });
   });
 
@@ -1452,7 +1476,6 @@ if (els.casesSearchInput) {
   els.btnLoadVariables.addEventListener("click", () => handle(loadVariables));
   els.btnSaveVariables.addEventListener("click", () => handle(saveVariables));
   els.btnSaveText.addEventListener("click", () => handle(saveText));
-  els.btnLoadPackage.addEventListener("click", () => handle(loadPackage));
   els.btnBuildPackage.addEventListener("click", () => handle(buildPackage));
   els.btnPrepareSubmit.addEventListener("click", () => handle(prepareSubmit));
   els.btnCopySubmitText.addEventListener("click", () => handle(() => copyToClipboard(els.submitText.value, "Текст жалобы скопирован")));

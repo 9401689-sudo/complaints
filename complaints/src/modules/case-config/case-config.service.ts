@@ -1,6 +1,7 @@
 import { postgres } from '../db/postgres';
 import { casesService } from '../cases/cases.service';
 import { fsmService } from '../fsm/fsm.service';
+import { nextcloudClient } from '../nextcloud/nextcloud.client';
 import { UpdateCaseConfigBody } from './case-config.types';
 
 export class CaseConfigService {
@@ -75,6 +76,7 @@ export class CaseConfigService {
     );
 
     const updatedCase = result.rows[0];
+    const templateChanged = (caseRow.template_id ?? null) !== (templateId ?? null);
 
     const snapshot = await fsmService.getSnapshot(caseId);
 
@@ -86,11 +88,28 @@ export class CaseConfigService {
       throw new Error(`invalid fsm state: ${snapshot.state}`);
     }
 
+    if (templateChanged) {
+      const complaintTextPath = `${caseRow.nextcloud_artifacts_folder.replace(/\/+$/, '')}/complaint.txt`;
+      const packagePath = `${caseRow.nextcloud_artifacts_folder.replace(/\/+$/, '')}/submission-package.json`;
+
+      await nextcloudClient.deletePath(complaintTextPath);
+      await nextcloudClient.deletePath(packagePath);
+
+      await postgres.query(
+        `
+        delete from case_artifacts
+        where case_id = $1
+          and artifact_type in ('generated_text', 'submission_package')
+        `,
+        [caseId]
+      );
+    }
+
     await fsmService.syncWorkingState(caseId, {
       institutionId: institutionId ?? null,
       templateId: templateId ?? null,
-      textReady: false,
-      textChecksum: null,
+      textReady: templateChanged ? false : snapshot.context.textReady,
+      textChecksum: templateChanged ? null : snapshot.context.textChecksum,
       packageReady: false,
       packageChecksum: null,
       lastErrorCode: null,

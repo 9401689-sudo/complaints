@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import { postgres } from '../db/postgres';
 import { casesService } from '../cases/cases.service';
 import { fsmService } from '../fsm/fsm.service';
 import { nextcloudClient } from '../nextcloud/nextcloud.client';
@@ -56,21 +57,46 @@ export class TextService {
     const textChecksum = sha256(content);
 
     await nextcloudClient.uploadTextFile(filePath, content);
+    await postgres.query('begin');
 
-    await fsmService.syncWorkingState(caseId, {
-      textReady: true,
-      textChecksum,
-      packageReady: false,
-      packageChecksum: null,
-      lastErrorCode: null,
-      lastErrorMessage: null
-    });
+    try {
+      await postgres.query(
+        `
+        delete from case_artifacts
+        where case_id = $1
+          and artifact_type = 'generated_text'
+        `,
+        [caseId]
+      );
 
-    await casesService.logCaseAction(caseId, 'case.text.saved', {
-      filePath,
-      textChecksum,
-      contentLength: content.length,
-    });
+      await postgres.query(
+        `
+        insert into case_artifacts (case_id, artifact_type, file_path)
+        values ($1, $2, $3)
+        `,
+        [caseId, 'generated_text', filePath]
+      );
+
+      await fsmService.syncWorkingState(caseId, {
+        textReady: true,
+        textChecksum,
+        packageReady: false,
+        packageChecksum: null,
+        lastErrorCode: null,
+        lastErrorMessage: null
+      });
+
+      await casesService.logCaseAction(caseId, 'case.text.saved', {
+        filePath,
+        textChecksum,
+        contentLength: content.length,
+      });
+
+      await postgres.query('commit');
+    } catch (error) {
+      await postgres.query('rollback');
+      throw error;
+    }
 
     return {
       caseId,

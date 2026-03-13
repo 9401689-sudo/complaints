@@ -72,10 +72,6 @@ class VariablesService {
             throw error;
         }
         await fsm_service_1.fsmService.syncWorkingState(caseId, {
-            textReady: false,
-            textChecksum: null,
-            packageReady: false,
-            packageChecksum: null,
             lastErrorCode: null,
             lastErrorMessage: null
         });

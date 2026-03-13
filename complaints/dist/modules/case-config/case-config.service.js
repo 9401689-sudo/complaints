@@ -4,6 +4,7 @@ exports.caseConfigService = exports.CaseConfigService = void 0;
 const postgres_1 = require("../db/postgres");
 const cases_service_1 = require("../cases/cases.service");
 const fsm_service_1 = require("../fsm/fsm.service");
+const nextcloud_client_1 = require("../nextcloud/nextcloud.client");
 class CaseConfigService {
     async updateCaseConfig(caseId, body = {}) {
         const caseRow = await cases_service_1.casesService.getCaseById(caseId);
@@ -56,6 +57,7 @@ class CaseConfigService {
         updated_at
       `, [caseId, institutionId ?? null, templateId ?? null]);
         const updatedCase = result.rows[0];
+        const templateChanged = (caseRow.template_id ?? null) !== (templateId ?? null);
         const snapshot = await fsm_service_1.fsmService.getSnapshot(caseId);
         if (!snapshot) {
             throw new Error('fsm not found');
@@ -63,11 +65,22 @@ class CaseConfigService {
         if (!fsm_service_1.fsmService.isEditableState(snapshot.state)) {
             throw new Error(`invalid fsm state: ${snapshot.state}`);
         }
+        if (templateChanged) {
+            const complaintTextPath = `${caseRow.nextcloud_artifacts_folder.replace(/\/+$/, '')}/complaint.txt`;
+            const packagePath = `${caseRow.nextcloud_artifacts_folder.replace(/\/+$/, '')}/submission-package.json`;
+            await nextcloud_client_1.nextcloudClient.deletePath(complaintTextPath);
+            await nextcloud_client_1.nextcloudClient.deletePath(packagePath);
+            await postgres_1.postgres.query(`
+        delete from case_artifacts
+        where case_id = $1
+          and artifact_type in ('generated_text', 'submission_package')
+        `, [caseId]);
+        }
         await fsm_service_1.fsmService.syncWorkingState(caseId, {
             institutionId: institutionId ?? null,
             templateId: templateId ?? null,
-            textReady: false,
-            textChecksum: null,
+            textReady: templateChanged ? false : snapshot.context.textReady,
+            textChecksum: templateChanged ? null : snapshot.context.textChecksum,
             packageReady: false,
             packageChecksum: null,
             lastErrorCode: null,

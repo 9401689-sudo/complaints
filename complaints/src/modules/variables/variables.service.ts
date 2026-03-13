@@ -103,10 +103,6 @@ export class VariablesService {
     }
 
     await fsmService.syncWorkingState(caseId, {
-      textReady: false,
-      textChecksum: null,
-      packageReady: false,
-      packageChecksum: null,
       lastErrorCode: null,
       lastErrorMessage: null
     });
