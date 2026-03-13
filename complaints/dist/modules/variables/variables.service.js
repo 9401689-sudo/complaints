@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.variablesService = exports.VariablesService = void 0;
 const postgres_1 = require("../db/postgres");
 const cases_service_1 = require("../cases/cases.service");
+const fsm_service_1 = require("../fsm/fsm.service");
 class VariablesService {
     async getCaseVariables(caseId) {
         const caseRow = await cases_service_1.casesService.getCaseById(caseId);
@@ -34,6 +35,13 @@ class VariablesService {
         if (!body || typeof body !== 'object' || !body.variables || typeof body.variables !== 'object' || Array.isArray(body.variables)) {
             throw new Error('variables object is required');
         }
+        const snapshot = await fsm_service_1.fsmService.getSnapshot(caseId);
+        if (!snapshot) {
+            throw new Error('fsm not found');
+        }
+        if (!fsm_service_1.fsmService.isEditableState(snapshot.state)) {
+            throw new Error(`invalid fsm state: ${snapshot.state}`);
+        }
         await postgres_1.postgres.query('begin');
         try {
             for (const [key, rawValue] of Object.entries(body.variables)) {
@@ -63,6 +71,14 @@ class VariablesService {
             await postgres_1.postgres.query('rollback');
             throw error;
         }
+        await fsm_service_1.fsmService.syncWorkingState(caseId, {
+            textReady: false,
+            textChecksum: null,
+            packageReady: false,
+            packageChecksum: null,
+            lastErrorCode: null,
+            lastErrorMessage: null
+        });
         return this.getCaseVariables(caseId);
     }
 }

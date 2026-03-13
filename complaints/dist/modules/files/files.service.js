@@ -39,7 +39,7 @@ class FilesService {
         if (!snapshot) {
             throw new Error('fsm not found');
         }
-        if (!['awaiting_files', 'files_synced', 'files_selected'].includes(snapshot.state)) {
+        if (!fsm_service_1.fsmService.isEditableState(snapshot.state)) {
             throw new Error(`invalid fsm state: ${snapshot.state}`);
         }
         const incomingFiles = await nextcloud_client_1.nextcloudClient.listFiles(caseRow.nextcloud_incoming_folder);
@@ -49,13 +49,16 @@ class FilesService {
             const files = await this.getCaseFiles(caseId);
             const selectedFiles = files.filter((file) => file.selected_for_submission);
             const selectedFileIds = selectedFiles.map((file) => file.id);
-            const nextState = selectedFiles.length > 0 && files.length > 0 ? 'files_selected' : 'files_synced';
-            const fsm = await fsm_service_1.fsmService.transition(caseId, nextState, {
+            const fsm = await fsm_service_1.fsmService.syncWorkingState(caseId, {
                 filesTotal: files.length,
                 filesSelected: selectedFiles.length,
                 selectedFileIds,
+                textReady: snapshot.context.textReady,
+                textChecksum: snapshot.context.textChecksum,
+                packageReady: snapshot.context.packageReady,
+                packageChecksum: snapshot.context.packageChecksum,
                 lastErrorCode: null,
-                lastErrorMessage: null,
+                lastErrorMessage: null
             });
             await cases_service_1.casesService.logCaseAction(caseId, 'files.synced', {
                 filesTotal: files.length,
@@ -102,7 +105,7 @@ class FilesService {
         if (!snapshot) {
             throw new Error('fsm not found');
         }
-        if (!['files_synced', 'files_selected', 'text_ready', 'package_ready'].includes(snapshot.state)) {
+        if (!fsm_service_1.fsmService.isEditableState(snapshot.state)) {
             throw new Error(`invalid fsm state: ${snapshot.state}`);
         }
         const existingFilesResult = await postgres_1.postgres.query(`
@@ -132,8 +135,7 @@ class FilesService {
             const files = await this.getCaseFiles(caseId);
             const selectedFiles = files.filter((file) => file.selected_for_submission);
             const selectedFileIds = selectedFiles.map((file) => file.id);
-            const nextState = selectedFiles.length > 0 ? 'files_selected' : 'files_synced';
-            await fsm_service_1.fsmService.transition(caseId, nextState, {
+            await fsm_service_1.fsmService.syncWorkingState(caseId, {
                 filesTotal: files.length,
                 filesSelected: selectedFiles.length,
                 selectedFileIds,
@@ -142,7 +144,7 @@ class FilesService {
                 packageReady: false,
                 packageChecksum: null,
                 lastErrorCode: null,
-                lastErrorMessage: null,
+                lastErrorMessage: null
             });
             await cases_service_1.casesService.logCaseAction(caseId, 'files.selection.updated', {
                 files: body.files,

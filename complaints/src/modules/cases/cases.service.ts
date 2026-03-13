@@ -150,6 +150,8 @@ export class CasesService {
       throw new Error('case not found');
     }
 
+    await nextcloudClient.deletePath(existing.nextcloud_case_folder);
+
     await postgres.query(
       `
       delete from cases
@@ -768,7 +770,7 @@ export class CasesService {
         return '';
       }
 
-      return String(value);
+      return this.formatTemplateVariableValue(key, value);
     });
   }
 
@@ -779,6 +781,19 @@ export class CasesService {
       { key: 'license_plate', value: variables.license_plate ?? '' }
     ]
       .filter((item) => item.value.trim().length > 0)
+      .flatMap((item) => {
+        if (item.key !== 'complaint_date') {
+          return [item];
+        }
+
+        const formattedValue = this.formatComplaintDate(item.value);
+        return [
+          item,
+          ...(formattedValue && formattedValue !== item.value
+            ? [{ key: item.key, value: formattedValue }]
+            : [])
+        ];
+      })
       .sort((a, b) => b.value.length - a.value.length);
 
     let result = content;
@@ -789,6 +804,39 @@ export class CasesService {
     }
 
     return result;
+  }
+
+  private formatTemplateVariableValue(key: string, value: unknown): string {
+    const raw = String(value);
+    return key === 'complaint_date' ? this.formatComplaintDate(raw) : raw;
+  }
+
+  private formatComplaintDate(value: string): string {
+    const raw = String(value ?? '').trim();
+
+    if (!raw) {
+      return '';
+    }
+
+    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) {
+      return raw;
+    }
+
+    const [, year, month, day] = match;
+    const date = new Date(Number(year), Number(month) - 1, Number(day));
+
+    if (Number.isNaN(date.getTime())) {
+      return raw;
+    }
+
+    const formatted = new Intl.DateTimeFormat('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(date);
+
+    return `${formatted} г.`;
   }
   async updateCaseMeta(
     caseId: string,

@@ -72,6 +72,7 @@ class CasesService {
         if (!existing) {
             throw new Error('case not found');
         }
+        await nextcloud_client_1.nextcloudClient.deletePath(existing.nextcloud_case_folder);
         await postgres_1.postgres.query(`
       delete from cases
       where id = $1
@@ -90,7 +91,7 @@ class CasesService {
         if (!snapshot) {
             throw new Error('fsm not found');
         }
-        if (!['files_selected', 'text_ready', 'package_ready'].includes(snapshot.state)) {
+        if (!fsm_service_1.fsmService.isEditableState(snapshot.state)) {
             throw new Error(`invalid fsm state: ${snapshot.state}`);
         }
         if (!caseRow.template_id) {
@@ -123,7 +124,7 @@ class CasesService {
         insert into case_artifacts (case_id, artifact_type, file_path)
         values ($1, $2, $3)
         `, [caseId, 'generated_text', artifactPath]);
-            const fsm = await fsm_service_1.fsmService.transition(caseId, 'text_ready', {
+            const fsm = await fsm_service_1.fsmService.syncWorkingState(caseId, {
                 textReady: true,
                 textChecksum,
                 packageReady: false,
@@ -160,7 +161,7 @@ class CasesService {
         if (!snapshot) {
             throw new Error('fsm not found');
         }
-        if (!['text_ready', 'package_ready'].includes(snapshot.state)) {
+        if (!fsm_service_1.fsmService.isEditableState(snapshot.state)) {
             throw new Error(`invalid fsm state: ${snapshot.state}`);
         }
         const textArtifact = await this.getArtifactByType(caseId, 'generated_text');
@@ -214,7 +215,7 @@ class CasesService {
         insert into case_artifacts (case_id, artifact_type, file_path)
         values ($1, $2, $3)
         `, [caseId, 'submission_package', packagePath]);
-            const fsm = await fsm_service_1.fsmService.transition(caseId, 'package_ready', {
+            const fsm = await fsm_service_1.fsmService.syncWorkingState(caseId, {
                 packageReady: true,
                 packageChecksum,
                 lastErrorCode: null,
@@ -245,10 +246,92 @@ class CasesService {
             throw new Error('case not found');
         }
         const fsm = await fsm_service_1.fsmService.getSnapshot(caseId);
+        const files = await this.getCaseFiles(caseId);
         return {
             ok: true,
             case: caseRow,
-            fsm
+            fsm,
+            files
+        };
+    }
+    async prepareSubmit(caseId) {
+        const caseRow = await this.getCaseById(caseId);
+        if (!caseRow) {
+            throw new Error('case not found');
+        }
+        const snapshot = await fsm_service_1.fsmService.getSnapshot(caseId);
+        if (!snapshot) {
+            throw new Error('fsm not found');
+        }
+        if (snapshot.state !== 'package_ready') {
+            throw new Error(`invalid fsm state: ${snapshot.state}`);
+        }
+        const institution = caseRow.institution_id
+            ? await this.getInstitutionById(caseRow.institution_id)
+            : null;
+        if (!institution) {
+            throw new Error('institution not found');
+        }
+        const textArtifact = await this.getArtifactByType(caseId, 'generated_text');
+        if (!textArtifact) {
+            throw new Error('generated text artifact not found');
+        }
+        const selectedFiles = await this.getSelectedFiles(caseId);
+        if (selectedFiles.length === 0) {
+            throw new Error('no files selected');
+        }
+        const movedFiles = [];
+        for (const file of selectedFiles) {
+            const targetPath = this.buildResultFilePath(caseRow.nextcloud_result_folder, file.file_name);
+            if (file.file_path !== targetPath) {
+                await nextcloud_client_1.nextcloudClient.moveFile(file.file_path, targetPath);
+                movedFiles.push({
+                    id: file.id,
+                    nextPath: targetPath
+                });
+            }
+        }
+        if (movedFiles.length > 0) {
+            await postgres_1.postgres.query('begin');
+            try {
+                for (const movedFile of movedFiles) {
+                    await postgres_1.postgres.query(`
+            update case_files
+            set file_path = $3
+            where case_id = $1
+              and id = $2
+            `, [caseId, movedFile.id, movedFile.nextPath]);
+                }
+                await postgres_1.postgres.query('commit');
+            }
+            catch (error) {
+                await postgres_1.postgres.query('rollback');
+                throw error;
+            }
+        }
+        const refreshedFiles = await this.getSelectedFiles(caseId);
+        const textContent = await nextcloud_client_1.nextcloudClient.downloadTextFile(textArtifact.file_path);
+        const files = refreshedFiles.map((file) => ({
+            id: file.id,
+            fileName: file.file_name,
+            filePath: file.file_path,
+            mimeType: file.mime_type,
+            sizeBytes: file.size_bytes === null ? null : Number(file.size_bytes),
+            previewUrl: file.preview_url,
+            copyUrl: nextcloud_client_1.nextcloudClient.getFileUrl(file.file_path),
+            sortOrder: file.sort_order
+        }));
+        await this.logCaseAction(caseId, 'submit.prepared', {
+            movedFilesCount: movedFiles.length,
+            movedFileIds: movedFiles.map((file) => file.id),
+            resultFolder: caseRow.nextcloud_result_folder
+        });
+        return {
+            case: caseRow,
+            text: textContent,
+            submitUrl: institution.submit_url,
+            files,
+            fsm: snapshot
         };
     }
     async getCaseById(caseId) {
@@ -295,11 +378,13 @@ class CasesService {
         if (!snapshot) {
             throw new Error('fsm not found');
         }
-        if (!['text_ready', 'package_ready', 'files_selected'].includes(snapshot.state)) {
+        if (!fsm_service_1.fsmService.isEditableState(snapshot.state)) {
             throw new Error(`invalid fsm state: ${snapshot.state}`);
         }
         const artifactPath = `${caseRow.nextcloud_artifacts_folder}/complaint.txt`;
         const content = await nextcloud_client_1.nextcloudClient.downloadTextFile(artifactPath);
+        const variables = await this.getCaseVariables(caseId);
+        const templateContent = this.restoreTemplateVariables(content, variables);
         if (!content.trim()) {
             throw new Error('case text is empty');
         }
@@ -329,9 +414,17 @@ class CasesService {
       `, [
             templateName,
             caseRow.institution_id,
-            content,
-            JSON.stringify([]),
-            JSON.stringify({}),
+            templateContent,
+            JSON.stringify([
+                { key: 'complaint_date', label: 'Дата', type: 'date', required: false },
+                { key: 'address', label: 'Адрес', type: 'text', required: false },
+                { key: 'license_plate', label: 'Гос.номер', type: 'text', required: false }
+            ]),
+            JSON.stringify({
+                complaint_date: '',
+                address: '',
+                license_plate: ''
+            }),
             true
         ]);
         const template = result.rows[0];
@@ -367,6 +460,15 @@ class CasesService {
       `, [templateId]);
         return result.rows[0] ?? null;
     }
+    async getInstitutionById(institutionId) {
+        const result = await postgres_1.postgres.query(`
+      select id, name, submit_url
+      from institutions
+      where id = $1
+      limit 1
+      `, [institutionId]);
+        return result.rows[0] ?? null;
+    }
     async getCaseVariables(caseId) {
         const result = await postgres_1.postgres.query(`
       select var_key, var_value
@@ -397,6 +499,30 @@ class CasesService {
       `, [caseId]);
         return result.rows;
     }
+    buildResultFilePath(resultFolder, fileName) {
+        return `${resultFolder.replace(/\/+$/, '')}/${fileName}`;
+    }
+    async getCaseFiles(caseId) {
+        const result = await postgres_1.postgres.query(`
+      select
+        id,
+        case_id,
+        file_path,
+        file_name,
+        mime_type,
+        size_bytes,
+        checksum,
+        preview_url,
+        selected_for_submission,
+        sort_order,
+        source_mtime,
+        created_at
+      from case_files
+      where case_id = $1
+      order by selected_for_submission desc, sort_order asc nulls last, created_at asc
+      `, [caseId]);
+        return result.rows;
+    }
     async getArtifactByType(caseId, artifactType) {
         const result = await postgres_1.postgres.query(`
       select id, artifact_type, file_path, created_at
@@ -414,8 +540,60 @@ class CasesService {
             if (value === undefined || value === null) {
                 return '';
             }
-            return String(value);
+            return this.formatTemplateVariableValue(key, value);
         });
+    }
+    restoreTemplateVariables(content, variables) {
+        const replacements = [
+            { key: 'complaint_date', value: variables.complaint_date ?? '' },
+            { key: 'address', value: variables.address ?? '' },
+            { key: 'license_plate', value: variables.license_plate ?? '' }
+        ]
+            .filter((item) => item.value.trim().length > 0)
+            .flatMap((item) => {
+            if (item.key !== 'complaint_date') {
+                return [item];
+            }
+            const formattedValue = this.formatComplaintDate(item.value);
+            return [
+                item,
+                ...(formattedValue && formattedValue !== item.value
+                    ? [{ key: item.key, value: formattedValue }]
+                    : [])
+            ];
+        })
+            .sort((a, b) => b.value.length - a.value.length);
+        let result = content;
+        for (const item of replacements) {
+            const escaped = item.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            result = result.replace(new RegExp(escaped, 'g'), `{{${item.key}}}`);
+        }
+        return result;
+    }
+    formatTemplateVariableValue(key, value) {
+        const raw = String(value);
+        return key === 'complaint_date' ? this.formatComplaintDate(raw) : raw;
+    }
+    formatComplaintDate(value) {
+        const raw = String(value ?? '').trim();
+        if (!raw) {
+            return '';
+        }
+        const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!match) {
+            return raw;
+        }
+        const [, year, month, day] = match;
+        const date = new Date(Number(year), Number(month) - 1, Number(day));
+        if (Number.isNaN(date.getTime())) {
+            return raw;
+        }
+        const formatted = new Intl.DateTimeFormat('ru-RU', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        }).format(date);
+        return `${formatted} г.`;
     }
     async updateCaseMeta(caseId, body) {
         const existing = await this.getCaseById(caseId);

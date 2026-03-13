@@ -130,6 +130,40 @@ async function registerCasesRoutes(app) {
             return requestError(reply, error, statusCode);
         }
     });
+    app.post(`${env_1.env.API_BASE_PATH}/cases/:id/submit-prepare`, async (request, reply) => {
+        try {
+            const payload = await cases_service_1.casesService.prepareSubmit(request.params.id);
+            return reply.send({
+                ok: true,
+                case: payload.case,
+                text: payload.text,
+                submitUrl: payload.submitUrl,
+                files: payload.files,
+                fsm: payload.fsm
+            });
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            const statusCode = message === 'case not found'
+                ? 404
+                : message === 'fsm not found'
+                    ? 404
+                    : message === 'institution not found'
+                        ? 404
+                        : message === 'generated text artifact not found'
+                            ? 404
+                            : message === 'no files selected'
+                                ? 400
+                                : message.startsWith('invalid fsm state')
+                                    ? 409
+                                    : message.startsWith('Nextcloud MOVE failed')
+                                        ? 502
+                                        : message.startsWith('Nextcloud GET failed')
+                                            ? 404
+                                            : 500;
+            return requestError(reply, error, statusCode);
+        }
+    });
     app.delete(`${env_1.env.API_BASE_PATH}/cases/:id`, async (request, reply) => {
         try {
             const deleted = await cases_service_1.casesService.deleteCase(request.params.id);
@@ -140,7 +174,13 @@ async function registerCasesRoutes(app) {
             });
         }
         catch (error) {
-            return requestError(reply, error, 404);
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            const statusCode = message === 'case not found'
+                ? 404
+                : message.startsWith('Nextcloud DELETE failed')
+                    ? 502
+                    : 500;
+            return requestError(reply, error, statusCode);
         }
     });
     app.get(`${env_1.env.API_BASE_PATH}/cases/ping`, async () => {

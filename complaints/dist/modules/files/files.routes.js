@@ -78,14 +78,56 @@ async function registerFilesRoutes(app) {
                 });
             }
             const mimeType = file.mime_type || 'application/octet-stream';
-            if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) {
+            if (![
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+                'video/mp4',
+                'video/webm',
+                'video/quicktime',
+                'application/pdf'
+            ].includes(mimeType)) {
                 return reply.code(400).send({
                     ok: false,
-                    error: 'preview is supported only for images',
+                    error: 'preview is supported only for image, video and pdf files',
                 });
             }
             const buffer = await nextcloud_client_1.nextcloudClient.downloadBinaryFile(file.file_path);
             reply.header('Content-Type', mimeType);
+            reply.header('Content-Disposition', 'inline');
+            reply.header('Cache-Control', 'private, max-age=60');
+            return reply.send(buffer);
+        }
+        catch (error) {
+            request.log.error(error);
+            const message = error instanceof Error ? error.message : 'internal error';
+            const statusCode = message === 'file not found'
+                ? 404
+                : message.startsWith('Nextcloud GET failed')
+                    ? 404
+                    : 500;
+            return reply.code(statusCode).send({
+                ok: false,
+                error: message,
+            });
+        }
+    });
+    app.get(`${env_1.env.API_BASE_PATH}/cases/:id/files/:fileId/download`, async (request, reply) => {
+        try {
+            const caseId = request.params.id;
+            const fileId = request.params.fileId;
+            const file = await files_service_1.filesService.getCaseFileById(caseId, fileId);
+            if (!file) {
+                return reply.code(404).send({
+                    ok: false,
+                    error: 'file not found',
+                });
+            }
+            const buffer = await nextcloud_client_1.nextcloudClient.downloadBinaryFile(file.file_path);
+            const mimeType = file.mime_type || 'application/octet-stream';
+            const encodedFilename = encodeURIComponent(file.file_name || 'download.bin');
+            reply.header('Content-Type', mimeType);
+            reply.header('Content-Disposition', `attachment; filename*=UTF-8''${encodedFilename}`);
             reply.header('Cache-Control', 'private, max-age=60');
             return reply.send(buffer);
         }

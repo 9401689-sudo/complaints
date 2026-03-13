@@ -60,23 +60,10 @@ class CaseConfigService {
         if (!snapshot) {
             throw new Error('fsm not found');
         }
-        if (![
-            'awaiting_files',
-            'files_synced',
-            'files_selected',
-            'text_ready',
-            'package_ready'
-        ].includes(snapshot.state)) {
+        if (!fsm_service_1.fsmService.isEditableState(snapshot.state)) {
             throw new Error(`invalid fsm state: ${snapshot.state}`);
         }
-        const filesSelected = snapshot.context?.filesSelected ?? 0;
-        const filesTotal = snapshot.context?.filesTotal ?? 0;
-        const nextState = filesSelected > 0
-            ? 'files_selected'
-            : filesTotal > 0
-                ? 'files_synced'
-                : 'awaiting_files';
-        await fsm_service_1.fsmService.transition(caseId, nextState, {
+        await fsm_service_1.fsmService.syncWorkingState(caseId, {
             institutionId: institutionId ?? null,
             templateId: templateId ?? null,
             textReady: false,
@@ -84,7 +71,7 @@ class CaseConfigService {
             packageReady: false,
             packageChecksum: null,
             lastErrorCode: null,
-            lastErrorMessage: null,
+            lastErrorMessage: null
         });
         await cases_service_1.casesService.logCaseAction(caseId, 'case.config.updated', {
             institutionId: institutionId ?? null,

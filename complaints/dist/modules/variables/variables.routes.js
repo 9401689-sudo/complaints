@@ -37,9 +37,13 @@ async function registerVariablesRoutes(app) {
             const message = error instanceof Error ? error.message : 'internal error';
             const statusCode = message === 'case not found'
                 ? 404
-                : message.includes('required') || message.includes('cannot be empty')
-                    ? 400
-                    : 500;
+                : message === 'fsm not found'
+                    ? 404
+                    : message.startsWith('invalid fsm state')
+                        ? 409
+                        : message.includes('required') || message.includes('cannot be empty')
+                            ? 400
+                            : 500;
             return reply.code(statusCode).send({
                 ok: false,
                 error: message,

@@ -37,20 +37,20 @@ class TextService {
         if (!snapshot) {
             throw new Error('fsm not found');
         }
-        if (!['files_selected', 'text_ready', 'package_ready'].includes(snapshot.state)) {
+        if (!fsm_service_1.fsmService.isEditableState(snapshot.state)) {
             throw new Error(`invalid fsm state: ${snapshot.state}`);
         }
         const filePath = buildComplaintTextPath(caseRow.nextcloud_artifacts_folder);
         const content = body.content;
         const textChecksum = sha256(content);
         await nextcloud_client_1.nextcloudClient.uploadTextFile(filePath, content);
-        await fsm_service_1.fsmService.transition(caseId, 'text_ready', {
+        await fsm_service_1.fsmService.syncWorkingState(caseId, {
             textReady: true,
             textChecksum,
             packageReady: false,
             packageChecksum: null,
             lastErrorCode: null,
-            lastErrorMessage: null,
+            lastErrorMessage: null
         });
         await cases_service_1.casesService.logCaseAction(caseId, 'case.text.saved', {
             filePath,

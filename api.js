@@ -35,6 +35,31 @@ async function request(path, options = {}) {
   return payload;
 }
 
+async function requestBlob(path, options = {}) {
+  const url = `${API_BASE}${path}`;
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...(options.headers || {})
+    }
+  });
+
+  if (!response.ok) {
+    const message = `HTTP ${response.status}`;
+    const error = new Error(message);
+    error.status = response.status;
+    error.url = url;
+    throw error;
+  }
+
+  const contentDisposition = response.headers.get("content-disposition") || "";
+  const match = contentDisposition.match(/filename\*=UTF-8''([^;]+)|filename=\"?([^\";]+)\"?/i);
+  const filename = decodeURIComponent(match?.[1] || match?.[2] || "download.bin");
+  const blob = await response.blob();
+
+  return { blob, filename };
+}
+
 export const api = {
   listCases() {
     return request("/cases");
@@ -180,5 +205,9 @@ export const api = {
   
   getPackage(caseId) {
     return request(`/cases/${caseId}/package`);
+  },
+
+  downloadCaseFile(caseId, fileId) {
+    return requestBlob(`/cases/${caseId}/files/${fileId}/download`);
   }
 };

@@ -203,7 +203,15 @@ app.post<{ Params: { id: string } }>(
         deleted
       });
     } catch (error) {
-      return requestError(reply, error, 404);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      const statusCode =
+        message === 'case not found'
+          ? 404
+          : message.startsWith('Nextcloud DELETE failed')
+            ? 502
+            : 500;
+
+      return requestError(reply, error, statusCode);
     }
   });
 

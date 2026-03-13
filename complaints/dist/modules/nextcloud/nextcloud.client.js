@@ -20,6 +20,9 @@ function buildDavPath(relativePath) {
     const normalized = trimSlashes(relativePath);
     return `${env_1.env.NEXTCLOUD_BASE_URL}/remote.php/dav/files/${user}/${normalized}`;
 }
+function buildWebdavPublicUrl(relativePath) {
+    return buildDavPath(relativePath);
+}
 function getAuthHeader() {
     requireNextcloudEnv();
     const credentials = `${env_1.env.NEXTCLOUD_USERNAME}:${env_1.env.NEXTCLOUD_PASSWORD}`;
@@ -205,6 +208,39 @@ class NextcloudClient {
     async downloadJsonFile(filePath) {
         const text = await this.downloadTextFile(filePath);
         return JSON.parse(text);
+    }
+    async moveFile(sourcePath, destinationPath) {
+        requireNextcloudEnv();
+        const response = await fetch(buildDavPath(sourcePath), {
+            method: 'MOVE',
+            headers: {
+                Authorization: getAuthHeader(),
+                Destination: buildDavPath(destinationPath),
+                Overwrite: 'T'
+            }
+        });
+        if (response.status === 201 || response.status === 204) {
+            return;
+        }
+        const body = await response.text().catch(() => '');
+        throw new Error(`Nextcloud MOVE failed (${response.status}): ${body}`);
+    }
+    async deletePath(path) {
+        requireNextcloudEnv();
+        const response = await fetch(buildDavPath(path), {
+            method: 'DELETE',
+            headers: {
+                Authorization: getAuthHeader()
+            }
+        });
+        if (response.status === 204 || response.status === 404) {
+            return;
+        }
+        const body = await response.text().catch(() => '');
+        throw new Error(`Nextcloud DELETE failed (${response.status}): ${body}`);
+    }
+    getFileUrl(filePath) {
+        return buildWebdavPublicUrl(filePath);
     }
 }
 exports.NextcloudClient = NextcloudClient;

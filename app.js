@@ -120,6 +120,7 @@ const els = {
   btnPrepareSubmit: document.getElementById("btnPrepareSubmit"),
   btnCopySubmitText: document.getElementById("btnCopySubmitText"),
   btnCopySubmitUrl: document.getElementById("btnCopySubmitUrl"),
+  btnDownloadSubmitFiles: document.getElementById("btnDownloadSubmitFiles"),
   submitText: document.getElementById("submitText"),
   submitInstitutionUrl: document.getElementById("submitInstitutionUrl"),
   submitInstitutionUrlPretty: document.getElementById("submitInstitutionUrlPretty"),
@@ -155,6 +156,43 @@ els.templateVariableToolbar = document.getElementById("templateVariableToolbar")
 
 function getTodayInputValue() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function formatComplaintDate(value) {
+  const raw = String(value || "").trim();
+
+  if (!raw) {
+    return "";
+  }
+
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    return raw;
+  }
+
+  const [, year, month, day] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+
+  if (Number.isNaN(date.getTime())) {
+    return raw;
+  }
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(date) + " г.";
+}
+
+function getRenderableVariableValue(field, variables) {
+  const enabled = String(variables[field.enabledKey] ?? "true").toLowerCase() === "true";
+
+  if (!enabled) {
+    return "";
+  }
+
+  const rawValue = String(variables[field.key] ?? "");
+  return field.key === "complaint_date" ? formatComplaintDate(rawValue) : rawValue;
 }
 
 function getDefaultTemplateValues() {
@@ -303,8 +341,7 @@ function renderVariableToolbar(container, targetTextarea, mode = "token") {
 
       if (mode === "value") {
         const variables = normalizeVariableState(state.variables);
-        const enabled = String(variables[field.enabledKey] ?? "true").toLowerCase() === "true";
-        insertAtCursor(targetTextarea, enabled ? String(variables[field.key] ?? "") : "");
+        insertAtCursor(targetTextarea, getRenderableVariableValue(field, variables));
         return;
       }
 
@@ -419,8 +456,7 @@ function buildComputedTextPreview() {
   return template.body_template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key) => {
     const field = FIXED_VARIABLES.find((item) => item.key === key);
     if (field) {
-      const enabled = String(variables[field.enabledKey] ?? "true").toLowerCase() === "true";
-      return enabled ? String(variables[key] ?? "") : "";
+      return getRenderableVariableValue(field, variables);
     }
 
     return String(variables[key] ?? "");
@@ -872,6 +908,45 @@ function escapeHtml(value) {
 function shorten(value, max) {
   const str = String(value || "");
   return str.length > max ? `${str.slice(0, max)}…` : str;
+}
+
+function sanitizeFilename(value, fallback = "download.bin") {
+  const name = String(value || "").trim();
+  const cleaned = name.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").replace(/\s+$/g, "");
+  return cleaned || fallback;
+}
+
+async function downloadSubmitFiles() {
+  if (!state.currentCaseId) return;
+
+  const files = Array.isArray(state.submitData?.files) ? state.submitData.files : [];
+  if (!files.length) {
+    alert("Сначала подготовь отправку, чтобы появились файлы для скачивания.");
+    return;
+  }
+
+  if (typeof window.showDirectoryPicker !== "function") {
+    alert("Этот браузер не поддерживает выбор папки для массового скачивания. Лучше открыть сайт в актуальном Chrome или Edge.");
+    return;
+  }
+
+  const directoryHandle = await window.showDirectoryPicker({
+    id: `complaints-${state.currentCaseId}`,
+    mode: "readwrite"
+  });
+
+  for (const file of files) {
+    const { blob, filename } = await api.downloadCaseFile(state.currentCaseId, file.id);
+    const fileHandle = await directoryHandle.getFileHandle(
+      sanitizeFilename(filename || file.fileName, "file.bin"),
+      { create: true }
+    );
+    const writable = await fileHandle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+  }
+
+  alert(`Файлы сохранены в выбранную папку: ${files.length}`);
 }
 
 async function loadCases() {
@@ -1377,6 +1452,7 @@ if (els.casesSearchInput) {
   els.btnPrepareSubmit.addEventListener("click", () => handle(prepareSubmit));
   els.btnCopySubmitText.addEventListener("click", () => handle(() => copyToClipboard(els.submitText.value, "Текст жалобы скопирован")));
   els.btnCopySubmitUrl.addEventListener("click", () => handle(() => copyToClipboard(els.submitInstitutionUrl.value, "URL организации скопирован")));
+  els.btnDownloadSubmitFiles.addEventListener("click", () => handle(downloadSubmitFiles));
 }
 
 async function deleteTemplateFromList(templateId, templateName) {

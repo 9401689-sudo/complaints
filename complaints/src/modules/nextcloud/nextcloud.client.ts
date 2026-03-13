@@ -292,6 +292,24 @@ export class NextcloudClient {
     throw new Error(`Nextcloud MOVE failed (${response.status}): ${body}`);
   }
 
+  async deletePath(path: string): Promise<void> {
+    requireNextcloudEnv();
+
+    const response = await fetch(buildDavPath(path), {
+      method: 'DELETE',
+      headers: {
+        Authorization: getAuthHeader()
+      }
+    });
+
+    if (response.status === 204 || response.status === 404) {
+      return;
+    }
+
+    const body = await response.text().catch(() => '');
+    throw new Error(`Nextcloud DELETE failed (${response.status}): ${body}`);
+  }
+
   getFileUrl(filePath: string): string {
     return buildWebdavPublicUrl(filePath);
   }
