@@ -1,0 +1,280 @@
+import { postgres } from '../db/postgres';
+import { fsmService } from '../fsm/fsm.service';
+import { casesService } from '../cases/cases.service';
+import { nextcloudClient } from '../nextcloud/nextcloud.client';
+import {
+  CaseFileRecord,
+  SyncedCaseFile,
+  UpdateCaseFilesBody,
+  UpdateCaseFilesItem,
+  UpdateCaseFilesResult,
+} from './files.types';
+
+export class FilesService {
+  async getCaseFiles(caseId: string): Promise<CaseFileRecord[]> {
+    const result = await postgres.query<CaseFileRecord>(
+      `
+      select
+        id,
+        case_id,
+        file_path,
+        file_name,
+        mime_type,
+        size_bytes,
+        checksum,
+        preview_url,
+        selected_for_submission,
+        sort_order,
+        source_mtime,
+        created_at
+      from case_files
+      where case_id = $1
+      order by
+        selected_for_submission desc,
+        sort_order asc nulls last,
+        created_at asc
+      `,
+      [caseId]
+    );
+
+    return result.rows;
+  }
+
+  async syncCaseFiles(caseId: string) {
+    const caseRow = await casesService.getCaseById(caseId);
+
+    if (!caseRow) {
+      throw new Error('case not found');
+    }
+
+    const snapshot = await fsmService.getSnapshot(caseId);
+
+    if (!snapshot) {
+      throw new Error('fsm not found');
+    }
+
+    if (!fsmService.isEditableState(snapshot.state)) {
+      throw new Error(`invalid fsm state: ${snapshot.state}`);
+    }
+    const incomingFiles = await nextcloudClient.listFiles(caseRow.nextcloud_incoming_folder);
+
+    await postgres.query('begin');
+
+    try {
+      await this.upsertSyncedFiles(caseId, incomingFiles);
+
+      const files = await this.getCaseFiles(caseId);
+      const selectedFiles = files.filter((file) => file.selected_for_submission);
+      const selectedFileIds = selectedFiles.map((file) => file.id);
+
+      const fsm = await fsmService.syncWorkingState(caseId, {
+        filesTotal: files.length,
+        filesSelected: selectedFiles.length,
+        selectedFileIds,
+        textReady: snapshot.context.textReady,
+        textChecksum: snapshot.context.textChecksum,
+        packageReady: snapshot.context.packageReady,
+        packageChecksum: snapshot.context.packageChecksum,
+        lastErrorCode: null,
+        lastErrorMessage: null
+      });
+
+      await casesService.logCaseAction(caseId, 'files.synced', {
+        filesTotal: files.length,
+        filesSelected: selectedFiles.length,
+        incomingCount: incomingFiles.length,
+        incomingFiles: incomingFiles.map((file) => ({
+          filePath: file.filePath,
+          fileName: file.fileName,
+          mimeType: file.mimeType,
+          sizeBytes: file.sizeBytes,
+          sourceMtime: file.sourceMtime,
+        })),
+      });
+
+      await postgres.query('commit');
+
+      return {
+        case: caseRow,
+        files,
+        fsm,
+      };
+    } catch (error) {
+      await postgres.query('rollback');
+
+      try {
+        await fsmService.transition(caseId, 'files_sync_failed', {
+          lastErrorCode: 'FILES_SYNC_FAILED',
+          lastErrorMessage: error instanceof Error ? error.message : 'files sync failed',
+        });
+      } catch {
+        // ignore secondary FSM errors
+      }
+
+      throw error;
+    }
+  }
+
+  async updateSelectedFiles(caseId: string, body: UpdateCaseFilesBody): Promise<UpdateCaseFilesResult> {
+    if (!body?.files || !Array.isArray(body.files) || body.files.length === 0) {
+      throw new Error('files array is required');
+    }
+
+    const caseRow = await casesService.getCaseById(caseId);
+    if (!caseRow) {
+      throw new Error('case not found');
+    }
+
+    const snapshot = await fsmService.getSnapshot(caseId);
+    if (!snapshot) {
+      throw new Error('fsm not found');
+    }
+
+    if (!fsmService.isEditableState(snapshot.state)) {
+      throw new Error(`invalid fsm state: ${snapshot.state}`);
+    }
+
+    const existingFilesResult = await postgres.query<{ id: string }>(
+      `
+      select id
+      from case_files
+      where case_id = $1
+      `,
+      [caseId]
+    );
+
+    const existingIds = new Set<string>(existingFilesResult.rows.map((row) => row.id));
+
+    for (const item of body.files) {
+      if (!item.fileId) {
+        throw new Error('fileId is required');
+      }
+
+      if (!existingIds.has(item.fileId)) {
+        throw new Error(`file does not belong to case: ${item.fileId}`);
+      }
+
+      if (item.sortOrder !== undefined && item.sortOrder !== null) {
+        if (!Number.isInteger(item.sortOrder) || item.sortOrder < 0) {
+          throw new Error(`invalid sortOrder for file: ${item.fileId}`);
+        }
+      }
+    }
+
+    await postgres.query('begin');
+
+    try {
+      for (const item of body.files) {
+        await this.applyFileSelection(caseId, item);
+      }
+
+      const files = await this.getCaseFiles(caseId);
+      const selectedFiles = files.filter((file) => file.selected_for_submission);
+      const selectedFileIds = selectedFiles.map((file) => file.id);
+
+      await fsmService.syncWorkingState(caseId, {
+        filesTotal: files.length,
+        filesSelected: selectedFiles.length,
+        selectedFileIds,
+        textReady: false,
+        textChecksum: null,
+        packageReady: false,
+        packageChecksum: null,
+        lastErrorCode: null,
+        lastErrorMessage: null
+      });
+
+      await casesService.logCaseAction(caseId, 'files.selection.updated', {
+        files: body.files,
+        selectedCount: selectedFiles.length,
+        selectedFileIds,
+      });
+
+      await postgres.query('commit');
+
+      return {
+        caseId,
+        selectedCount: selectedFiles.length,
+        files,
+      };
+    } catch (error) {
+      await postgres.query('rollback');
+      throw error;
+    }
+  }
+
+  private async upsertSyncedFiles(caseId: string, files: SyncedCaseFile[]): Promise<void> {
+    for (const file of files) {
+      await postgres.query(
+        `
+        insert into case_files (
+          case_id,
+          file_path,
+          file_name,
+          mime_type,
+          size_bytes,
+          checksum,
+          preview_url,
+          source_mtime
+        )
+        values ($1, $2, $3, $4, $5, $6, $7, $8::timestamptz)
+        on conflict do nothing
+        `,
+        [
+          caseId,
+          file.filePath,
+          file.fileName,
+          file.mimeType,
+          file.sizeBytes,
+          file.checksum ?? null,
+          file.previewUrl ?? null,
+          file.sourceMtime,
+        ]
+      );
+    }
+  }
+
+  private async applyFileSelection(caseId: string, item: UpdateCaseFilesItem): Promise<void> {
+    const sortOrder = item.selected ? (item.sortOrder ?? 0) : 0;
+
+    await postgres.query(
+      `
+      update case_files
+      set
+        selected_for_submission = $3,
+        sort_order = $4
+      where case_id = $1
+        and id = $2
+      `,
+      [caseId, item.fileId, item.selected, sortOrder]
+    );
+  }
+  async getCaseFileById(caseId: string, fileId: string): Promise<CaseFileRecord | null> {
+    const result = await postgres.query<CaseFileRecord>(
+      `
+      select
+        id,
+        case_id,
+        file_path,
+        file_name,
+        mime_type,
+        size_bytes,
+        checksum,
+        preview_url,
+        selected_for_submission,
+        sort_order,
+        source_mtime,
+        created_at
+      from case_files
+      where case_id = $1
+        and id = $2
+      limit 1
+      `,
+      [caseId, fileId]
+    );
+
+    return result.rows[0] ?? null;
+  }
+}
+
+export const filesService = new FilesService();

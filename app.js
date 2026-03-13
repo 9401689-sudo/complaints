@@ -1,0 +1,1167 @@
+import { api } from "./api.js";
+
+const state = {
+  currentScreen: "dashboard",
+  currentCaseId: null,
+  currentCase: null,
+  currentCaseFiles: [],
+  institutions: [],
+  templates: [],
+  cases: [],
+  casesSearch: "",
+  variables: {},
+  packageData: null,
+  submitData: null,
+  textContent: "",
+  editingInstitutionId: null,
+  editingTemplateId: null,
+};
+
+const els = {
+  screens: [...document.querySelectorAll("[data-screen-panel]")],
+  navButtons: [...document.querySelectorAll(".nav-btn")],
+  tabButtons: [...document.querySelectorAll(".tab-btn")],
+  tabPanels: [...document.querySelectorAll("[data-tab-panel]")],
+
+  btnRefreshCases: document.getElementById("btnRefreshCases"),
+  btnCreateCase: document.getElementById("btnCreateCase"),
+  casesList: document.getElementById("casesList"),
+
+  btnRefreshInstitutions: document.getElementById("btnRefreshInstitutions"),
+  btnToggleInstitutionForm: document.getElementById("btnToggleInstitutionForm"),
+  btnCreateInstitution: document.getElementById("btnCreateInstitution"),
+  btnCancelInstitution: document.getElementById("btnCancelInstitution"),
+  btnCancelTemplate: document.getElementById("btnCancelTemplate"),
+  institutionFormPanel: document.getElementById("institutionFormPanel"),
+  institutionsList: document.getElementById("institutionsList"),
+  institutionName: document.getElementById("institutionName"),
+  institutionSubmitUrl: document.getElementById("institutionSubmitUrl"),
+  institutionMaxAttachments: document.getElementById("institutionMaxAttachments"),
+  institutionMaxTextLength: document.getElementById("institutionMaxTextLength"),
+  institutionAcceptedFormats: document.getElementById("institutionAcceptedFormats"),
+  institutionActive: document.getElementById("institutionActive"),
+
+  btnRefreshTemplates: document.getElementById("btnRefreshTemplates"),
+  btnToggleTemplateForm: document.getElementById("btnToggleTemplateForm"),
+  btnCreateTemplate: document.getElementById("btnCreateTemplate"),
+  templateFormPanel: document.getElementById("templateFormPanel"),
+  templatesList: document.getElementById("templatesList"),
+  templateName: document.getElementById("templateName"),
+  templateInstitutionSelect: document.getElementById("templateInstitutionSelect"),
+  templateBody: document.getElementById("templateBody"),
+  templateVariablesSchema: document.getElementById("templateVariablesSchema"),
+  templateDefaultValues: document.getElementById("templateDefaultValues"),
+  templateActive: document.getElementById("templateActive"),
+
+  btnBackToCases: document.getElementById("btnBackToCases"),
+  btnReloadCase: document.getElementById("btnReloadCase"),
+  workspaceTitle: document.getElementById("workspaceTitle"),
+  workspaceSubtitle: document.getElementById("workspaceSubtitle"),
+  summaryCaseId: document.getElementById("summaryCaseId"),
+  summaryCaseNumber: document.getElementById("summaryCaseNumber"),
+  summaryFsm: document.getElementById("summaryFsm"),
+  summaryFilesSelected: document.getElementById("summaryFilesSelected"),
+  summaryTextReady: document.getElementById("summaryTextReady"),
+  summaryPackageReady: document.getElementById("summaryPackageReady"),
+
+  workspaceFilesList: document.getElementById("workspaceFilesList"),
+  btnSyncFiles: document.getElementById("btnSyncFiles"),
+  btnSaveFiles: document.getElementById("btnSaveFiles"),
+
+  caseInstitutionSelect: document.getElementById("caseInstitutionSelect"),
+  caseTemplateSelect: document.getElementById("caseTemplateSelect"),
+  btnSaveCaseConfig: document.getElementById("btnSaveCaseConfig"),
+  btnLoadVariables: document.getElementById("btnLoadVariables"),
+  btnSaveVariables: document.getElementById("btnSaveVariables"),
+  variablesForm: document.getElementById("variablesForm"),
+  variablesEmptyState: document.getElementById("variablesEmptyState"),
+
+  caseTitle: document.getElementById("caseTitle"),
+  caseDescription: document.getElementById("caseDescription"),
+  btnSaveCaseMeta: document.getElementById("btnSaveCaseMeta"),
+
+  btnLoadText: document.getElementById("btnLoadText"),
+  btnGenerateText: document.getElementById("btnGenerateText"),
+  btnSaveText: document.getElementById("btnSaveText"),
+  caseTextEditor: document.getElementById("caseTextEditor"),
+
+  btnLoadPackage: document.getElementById("btnLoadPackage"),
+  btnBuildPackage: document.getElementById("btnBuildPackage"),
+  packageViewer: document.getElementById("packageViewer"),
+  btnPrepareSubmit: document.getElementById("btnPrepareSubmit"),
+  btnCopySubmitText: document.getElementById("btnCopySubmitText"),
+  btnCopySubmitUrl: document.getElementById("btnCopySubmitUrl"),
+  submitText: document.getElementById("submitText"),
+  submitInstitutionUrl: document.getElementById("submitInstitutionUrl"),
+  submitInstitutionUrlPretty: document.getElementById("submitInstitutionUrlPretty"),
+  submitFilesList: document.getElementById("submitFilesList"),
+  submitStatus: document.getElementById("submitStatus"),
+
+  imageModal: document.getElementById("imageModal"),
+  imageModalBackdrop: document.getElementById("imageModalBackdrop"),
+  btnCloseImageModal: document.getElementById("btnCloseImageModal"),
+  imageModalImg: document.getElementById("imageModalImg"),
+
+  caseTitle: document.getElementById("caseTitle"),
+  caseDescription: document.getElementById("caseDescription"),
+  caseNumberReadonly: document.getElementById("caseNumberReadonly"),
+  caseInstitutionNameReadonly: document.getElementById("caseInstitutionNameReadonly"),
+  caseTemplateNameReadonly: document.getElementById("caseTemplateNameReadonly"),
+  caseFsmReadonly: document.getElementById("caseFsmReadonly"),
+  btnSaveCaseMeta: document.getElementById("btnSaveCaseMeta"),
+  btnSaveAsTemplate: document.getElementById("btnSaveAsTemplate"),
+
+  btnShowRuntimeLog: document.getElementById("btnShowRuntimeLog"),
+  runtimeLogModal: document.getElementById("runtimeLogModal"),
+  runtimeLogBackdrop: document.getElementById("runtimeLogBackdrop"),
+  btnCloseRuntimeLog: document.getElementById("btnCloseRuntimeLog"),
+  casesSearchInput: document.getElementById("casesSearchInput"),
+
+  runtimeLog: document.getElementById("runtimeLog")
+};
+
+function openRuntimeLogModal() {
+  els.runtimeLogModal.classList.remove("hidden");
+}
+
+function closeRuntimeLogModal() {
+  els.runtimeLogModal.classList.add("hidden");
+}
+
+async function copyToClipboard(text, successMessage = "Скопировано") {
+  await navigator.clipboard.writeText(String(text || ""));
+  alert(successMessage);
+}
+
+function logRuntime(title, payload) {
+  const message = typeof payload === "string" ? payload : JSON.stringify(payload, null, 2);
+  els.runtimeLog.textContent = `[${new Date().toISOString()}] ${title}\n\n${message}`;
+}
+
+function setScreen(name) {
+  state.currentScreen = name;
+  els.screens.forEach((screen) => {
+    screen.classList.toggle("hidden", screen.dataset.screenPanel !== name);
+  });
+  els.navButtons.forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.screen === name);
+  });
+}
+
+function setWorkspaceTab(name) {
+  els.tabButtons.forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.tab === name);
+  });
+  els.tabPanels.forEach((panel) => {
+    panel.classList.toggle("hidden", panel.dataset.tabPanel !== name);
+  });
+}
+
+function resetInstitutionForm() {
+  state.editingInstitutionId = null;
+  els.institutionName.value = "";
+  els.institutionSubmitUrl.value = "";
+  els.institutionMaxAttachments.value = "5";
+  els.institutionMaxTextLength.value = "4000";
+  els.institutionAcceptedFormats.value = "image/jpeg,image/png";
+  els.institutionActive.checked = true;
+  els.btnCreateInstitution.textContent = "Сохранить организацию";
+}
+
+function resetTemplateForm() {
+  state.editingTemplateId = null;
+  els.templateName.value = "";
+  els.templateInstitutionSelect.value = "";
+  els.templateBody.value = "";
+  els.templateVariablesSchema.value = `[
+  { "key": "address", "label": "Адрес", "type": "text", "required": true }
+]`;
+  els.templateDefaultValues.value = "{}";
+  els.templateActive.checked = true;
+  els.btnCreateTemplate.textContent = "Сохранить шаблон";
+}
+
+function openInstitutionEdit(item) {
+  state.editingInstitutionId = item.id;
+  els.institutionName.value = item.name || "";
+  els.institutionSubmitUrl.value = item.submit_url || "";
+  els.institutionMaxAttachments.value = String(item.max_attachments ?? 5);
+  els.institutionMaxTextLength.value = String(item.max_text_length ?? 4000);
+  els.institutionAcceptedFormats.value = Array.isArray(item.accepted_formats)
+    ? item.accepted_formats.join(",")
+    : "image/jpeg,image/png";
+  els.institutionActive.checked = Boolean(item.active);
+  els.btnCreateInstitution.textContent = "Сохранить изменения";
+  els.institutionFormPanel.classList.remove("hidden");
+  setScreen("institutions");
+}
+
+function openTemplateEdit(item) {
+  state.editingTemplateId = item.id;
+  els.templateName.value = item.name || "";
+  els.templateInstitutionSelect.value = item.institution_id || "";
+  els.templateBody.value = item.body_template || "";
+  els.templateVariablesSchema.value = JSON.stringify(item.variables_schema ?? [], null, 2);
+  els.templateDefaultValues.value = JSON.stringify(item.default_values ?? {}, null, 2);
+  els.templateActive.checked = Boolean(item.active);
+  els.btnCreateTemplate.textContent = "Сохранить изменения";
+  els.templateFormPanel.classList.remove("hidden");
+  setScreen("templates");
+}
+
+function getPreviewUrl(caseId, fileId) {
+  return `https://complaints-api.doorsvip.ru/complaints/api/cases/${caseId}/files/${fileId}/preview`;
+}
+
+function isImageMime(mimeType) {
+  return ["image/jpeg", "image/png", "image/webp"].includes(mimeType || "");
+}
+
+function openImageModal(src) {
+  els.imageModalImg.src = src;
+  els.imageModal.classList.remove("hidden");
+}
+
+function closeImageModal() {
+  els.imageModal.classList.add("hidden");
+  els.imageModalImg.src = "";
+}
+
+function getCaseStatusBadges(item) {
+  const badges = [];
+
+  if (!item.institution_id) {
+    badges.push({ text: "NO INSTITUTION", cls: "warn" });
+  }
+
+  if (!item.template_id) {
+    badges.push({ text: "NO TEMPLATE", cls: "warn" });
+  }
+
+  if (item.template_id && !item.submission_number) {
+    badges.push({ text: "CONFIGURED", cls: "info" });
+  }
+
+  if (item.submission_number) {
+    badges.push({ text: "SUBMITTED", cls: "ready" });
+  }
+
+  return badges;
+}
+
+function renderCases() {
+  const query = (state.casesSearch || "").trim().toLowerCase();
+
+  const filteredCases = state.cases.filter((item) => {
+    if (!query) return true;
+
+    const haystack = [
+      item.title || "",
+      item.description || "",
+      item.case_number || "",
+      item.institution_name || "",
+      item.template_name || ""
+    ].join(" ").toLowerCase();
+
+    return haystack.includes(query);
+  });
+
+  if (!filteredCases.length) {
+    els.casesList.innerHTML = '<div class="notice">Ничего не найдено.</div>';
+    return;
+  }
+
+  els.casesList.innerHTML = filteredCases.map((item) => {
+    const badges = getCaseStatusBadges(item)
+      .map((badge) => `<span class="status-badge ${badge.cls}">${escapeHtml(badge.text)}</span>`)
+      .join("");
+
+    return `
+      <div class="table-row cases-row">
+        <div>
+          <div class="row-title">${escapeHtml(item.title || "Без названия")}</div>
+          <div class="row-meta">${escapeHtml(item.description || "")}</div>
+          <div class="status-badges">${badges}</div>
+        </div>
+        <div>
+          <div class="row-meta">Case</div>
+          <div>${escapeHtml(item.case_number)}</div>
+        </div>
+        <div>
+          <div class="row-meta">Организация</div>
+          <div>${escapeHtml(item.institution_name || "—")}</div>
+        </div>
+        <div>
+          <div class="row-meta">Шаблон</div>
+          <div>${escapeHtml(item.template_name || "—")}</div>
+        </div>
+        <div>
+          <div class="row-meta">updated_at</div>
+          <div>${escapeHtml(item.updated_at || "—")}</div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" data-open-case-id="${item.id}">Открыть</button>
+          <button class="btn btn-secondary" data-delete-case-id="${item.id}" data-delete-case-number="${item.case_number}">Удалить</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  document.querySelectorAll("[data-open-case-id]").forEach((btn) => {
+    btn.addEventListener("click", () => handle(() => openCase(btn.dataset.openCaseId)));
+  });
+
+  document.querySelectorAll("[data-delete-case-id]").forEach((btn) => {
+    btn.addEventListener("click", () => handle(() => deleteCaseFromList(
+      btn.dataset.deleteCaseId,
+      btn.dataset.deleteCaseNumber
+    )));
+  });
+}
+
+function renderInstitutions() {
+  if (!state.institutions.length) {
+    els.institutionsList.innerHTML = '<div class="notice">Организаций пока нет.</div>';
+  } else {
+    els.institutionsList.innerHTML = state.institutions.map((item) => `
+      <div class="table-row compact-4">
+        <div>
+          <div class="row-title">${escapeHtml(item.name)}</div>
+          <div class="row-meta">${escapeHtml(item.id)}</div>
+        </div>
+        <div>${escapeHtml(item.submit_url)}</div>
+        <div>${item.active ? "active" : "inactive"}</div>
+        <div class="actions">
+          <button class="btn btn-secondary" data-edit-institution-id="${item.id}">Редактировать</button>
+          <button class="btn btn-secondary" data-delete-institution-id="${item.id}" data-delete-institution-name="${escapeHtml(item.name)}">Удалить</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  document.querySelectorAll("[data-edit-institution-id]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const item = state.institutions.find((x) => x.id === btn.dataset.editInstitutionId);
+      if (item) openInstitutionEdit(item);
+    });
+  });
+  document.querySelectorAll("[data-delete-institution-id]").forEach((btn) => {
+  btn.addEventListener("click", () => handle(() => deleteInstitutionFromList(
+    btn.dataset.deleteInstitutionId,
+    btn.dataset.deleteInstitutionName
+  )));
+});
+
+  fillInstitutionSelects();
+}
+
+function renderTemplates() {
+  if (!state.templates.length) {
+    els.templatesList.innerHTML = '<div class="notice">Шаблонов пока нет.</div>';
+  } else {
+    els.templatesList.innerHTML = state.templates.map((item) => `
+      <div class="table-row compact-4">
+        <div>
+          <div class="row-title">${escapeHtml(item.name)}</div>
+          <div class="row-meta">${escapeHtml(item.id)}</div>
+        </div>
+        <div>${escapeHtml(item.institution_id || "—")}</div>
+        <div>${item.active ? "active" : "inactive"}</div>
+       <div class="actions">
+         <button class="btn btn-secondary" data-edit-template-id="${item.id}">Редактировать</button>
+         <button class="btn btn-secondary" data-delete-template-id="${item.id}" data-delete-template-name="${escapeHtml(item.name)}">Удалить</button>
+       </div>
+      </div>
+    `).join("");
+  }
+
+  document.querySelectorAll("[data-edit-template-id]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const item = state.templates.find((x) => x.id === btn.dataset.editTemplateId);
+      if (item) openTemplateEdit(item);
+    });
+  });
+  document.querySelectorAll("[data-delete-template-id]").forEach((btn) => {
+  btn.addEventListener("click", () => handle(() => deleteTemplateFromList(
+    btn.dataset.deleteTemplateId,
+    btn.dataset.deleteTemplateName
+  )));
+});
+
+  fillTemplateSelect();
+}
+
+function fillInstitutionSelects() {
+  const options = ['<option value="">— не выбрано —</option>']
+    .concat(state.institutions.map((item) => `<option value="${item.id}">${escapeHtml(item.name)}</option>`))
+    .join("");
+
+  els.templateInstitutionSelect.innerHTML = options;
+  els.caseInstitutionSelect.innerHTML = options;
+}
+
+function fillTemplateSelect() {
+  const options = ['<option value="">— не выбрано —</option>']
+    .concat(state.templates.map((item) => `<option value="${item.id}">${escapeHtml(item.name)}</option>`))
+    .join("");
+
+  els.caseTemplateSelect.innerHTML = options;
+}
+
+function getCurrentTemplate() {
+  const templateId = state.currentCase?.case?.template_id || "";
+  return state.templates.find((item) => item.id === templateId) || null;
+}
+
+function getVariableInputMarkup(field, value) {
+  const type = String(field?.type || "text").toLowerCase();
+  const key = String(field?.key || "");
+  const label = String(field?.label || key || "Переменная");
+  const required = Boolean(field?.required);
+  const placeholder = field?.placeholder ? ` placeholder="${escapeHtml(field.placeholder)}"` : "";
+
+  if (type === "textarea") {
+    return `
+      <div class="field full">
+        <label for="var-${escapeHtml(key)}">${escapeHtml(label)}${required ? " *" : ""}</label>
+        <textarea id="var-${escapeHtml(key)}" data-variable-key="${escapeHtml(key)}"${placeholder}>${escapeHtml(value ?? "")}</textarea>
+      </div>
+    `;
+  }
+
+  if (type === "checkbox" || type === "boolean") {
+    const checked = String(value).toLowerCase() === "true" ? "checked" : "";
+    return `
+      <div class="field checkbox-field full">
+        <label><input type="checkbox" data-variable-key="${escapeHtml(key)}" ${checked} /> ${escapeHtml(label)}${required ? " *" : ""}</label>
+      </div>
+    `;
+  }
+
+  const inputType = ["number", "date", "email"].includes(type) ? type : "text";
+  return `
+    <div class="field">
+      <label for="var-${escapeHtml(key)}">${escapeHtml(label)}${required ? " *" : ""}</label>
+      <input id="var-${escapeHtml(key)}" type="${inputType}" data-variable-key="${escapeHtml(key)}" value="${escapeHtml(value ?? "")}"${placeholder} />
+    </div>
+  `;
+}
+
+function renderVariablesForm() {
+  const template = getCurrentTemplate();
+
+  if (!state.currentCaseId) {
+    els.variablesForm.innerHTML = "";
+    els.variablesEmptyState.textContent = "Сначала откройте кейс.";
+    els.variablesEmptyState.classList.remove("hidden");
+    return;
+  }
+
+  if (!template) {
+    els.variablesForm.innerHTML = "";
+    els.variablesEmptyState.textContent = "Сначала выберите шаблон в конфигурации кейса.";
+    els.variablesEmptyState.classList.remove("hidden");
+    return;
+  }
+
+  const schema = Array.isArray(template.variables_schema) ? template.variables_schema : [];
+  const defaults = template.default_values && typeof template.default_values === "object"
+    ? template.default_values
+    : {};
+
+  if (schema.length === 0) {
+    els.variablesForm.innerHTML = "";
+    els.variablesEmptyState.textContent = "У выбранного шаблона нет описанных переменных. Можно переходить к тексту.";
+    els.variablesEmptyState.classList.remove("hidden");
+    return;
+  }
+
+  els.variablesEmptyState.classList.add("hidden");
+  els.variablesEmptyState.textContent = "";
+  els.variablesForm.innerHTML = schema
+    .filter((field) => field && typeof field === "object" && field.key)
+    .map((field) => {
+      const key = String(field.key);
+      const value = state.variables[key] ?? defaults[key] ?? "";
+      return getVariableInputMarkup(field, value);
+    })
+    .join("");
+}
+
+async function saveCaseMeta() {
+  if (!state.currentCaseId) return;
+
+  return withButtonLoading(els.btnSaveCaseMeta, "Сохранение...", async () => {
+    const payload = {
+      title: els.caseTitle.value.trim(),
+      description: els.caseDescription.value.trim()
+    };
+
+    const data = await api.updateCaseMeta(state.currentCaseId, payload);
+
+    logRuntime("save case meta", data);
+
+    alert("Карточка кейса сохранена");
+
+    await reloadCurrentCase();
+  });
+}
+
+function renderWorkspaceSummary() {
+  const caseData = state.currentCase?.case || {};
+  const fsm = state.currentCase?.fsm || {};
+  const ctx = fsm.context || {};
+
+  const institution = state.institutions.find((x) => x.id === caseData.institution_id);
+  const template = state.templates.find((x) => x.id === caseData.template_id);
+
+  els.workspaceTitle.textContent = caseData.title
+    ? `${caseData.title}`
+    : (caseData.case_number ? `Кейс ${caseData.case_number}` : "Кейс");
+
+  els.workspaceSubtitle.textContent = caseData.description || state.currentCaseId || "";
+
+  els.summaryCaseId.textContent = caseData.id || "—";
+  els.summaryCaseNumber.textContent = caseData.case_number || "—";
+  els.summaryFsm.textContent = fsm.state || "—";
+  els.summaryFilesSelected.textContent = String(ctx.filesSelected ?? 0);
+  els.summaryTextReady.textContent = String(ctx.textReady ?? false);
+  els.summaryPackageReady.textContent = String(ctx.packageReady ?? false);
+
+  els.caseInstitutionSelect.value = caseData.institution_id || "";
+  els.caseTemplateSelect.value = caseData.template_id || "";
+
+  els.caseTitle.value = caseData.title || "";
+  els.caseDescription.value = caseData.description || "";
+  els.caseNumberReadonly.value = caseData.case_number || "";
+  els.caseInstitutionNameReadonly.value = institution?.name || "—";
+  els.caseTemplateNameReadonly.value = template?.name || "—";
+  els.caseFsmReadonly.value = fsm.state || "—";
+  renderVariablesForm();
+}
+
+function renderWorkspaceFiles() {
+  if (!state.currentCaseFiles.length) {
+    els.workspaceFilesList.innerHTML = '<div class="notice">Файлы ещё не синхронизированы.</div>';
+    return;
+  }
+
+  const sorted = [...state.currentCaseFiles].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+  els.workspaceFilesList.innerHTML = sorted.map((file, index) => {
+    const thumb = isImageMime(file.mime_type)
+      ? `<img class="image-thumb" data-preview-file-id="${file.id}" src="${getPreviewUrl(state.currentCaseId, file.id)}" alt="${escapeHtml(file.file_name || "image")}" />`
+      : `<div class="file-thumb"></div>`;
+
+    return `
+      <div class="file-card">
+        ${thumb}
+        <div>
+          <div class="row-title">${escapeHtml(file.file_name || "unnamed")}</div>
+          <div class="row-meta">${escapeHtml(file.mime_type || "unknown")} · ${file.size_bytes || 0} bytes</div>
+        </div>
+        <input class="file-order" type="number" min="0" value="${file.sort_order ?? index}" data-file-order-id="${file.id}" />
+        <label><input type="checkbox" data-file-selected-id="${file.id}" ${file.selected_for_submission ? "checked" : ""} /> выбрать</label>
+      </div>
+    `;
+  }).join("");
+
+  document.querySelectorAll("[data-preview-file-id]").forEach((img) => {
+    img.addEventListener("click", () => {
+      openImageModal(getPreviewUrl(state.currentCaseId, img.dataset.previewFileId));
+    });
+  });
+}
+
+function renderText() {
+  els.caseTextEditor.value = state.textContent || "";
+}
+
+function renderPackage() {
+  els.packageViewer.textContent = JSON.stringify(state.packageData || {}, null, 2);
+}
+
+function formatUrlPreview(value, max = 88) {
+  const url = String(value || "").trim();
+  if (!url) return "—";
+
+  try {
+    const parsed = new URL(url);
+    const compact = `${parsed.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+    return shorten(compact, max);
+  } catch {
+    return shorten(url, max);
+  }
+}
+
+function renderSubmit() {
+  const submit = state.submitData || {};
+  const files = Array.isArray(submit.files) ? submit.files : [];
+
+  els.submitText.value = submit.text || "";
+  els.submitInstitutionUrl.value = submit.submitUrl || "";
+  els.submitInstitutionUrlPretty.textContent = submit.submitUrl
+    ? formatUrlPreview(submit.submitUrl, 120)
+    : "";
+  els.submitInstitutionUrlPretty.classList.toggle("hidden", !submit.submitUrl);
+
+  if (submit.preparedAt) {
+    els.submitStatus.textContent = `Submit подготовлен ${submit.preparedAt}. Выбранные файлы уже перенесены в папку result и готовы к копированию.`;
+    els.submitStatus.classList.remove("hidden");
+  } else {
+    els.submitStatus.textContent = "";
+    els.submitStatus.classList.add("hidden");
+  }
+
+  if (!files.length) {
+    els.submitFilesList.innerHTML = '<div class="notice">Файлы для submit ещё не подготовлены.</div>';
+    return;
+  }
+
+  els.submitFilesList.innerHTML = files.map((file) => {
+    const thumb = isImageMime(file.mimeType)
+      ? `<img class="image-thumb" data-submit-preview-url="${getPreviewUrl(state.currentCaseId, file.id)}" src="${getPreviewUrl(state.currentCaseId, file.id)}" alt="${escapeHtml(file.fileName || "image")}" />`
+      : `<div class="file-thumb"></div>`;
+
+    return `
+      <div class="file-card">
+        ${thumb}
+        <div>
+          <div class="row-title">${escapeHtml(file.fileName || "unnamed")}</div>
+          <div class="row-meta">${escapeHtml(file.mimeType || "unknown")} · ${file.sizeBytes || 0} bytes</div>
+          <div class="row-meta">${escapeHtml(file.filePath || "")}</div>
+          <div class="url-preview file-url-preview">${escapeHtml(formatUrlPreview(file.copyUrl, 100))}</div>
+        </div>
+        <button class="btn btn-secondary" data-copy-file-url="${escapeHtml(file.copyUrl)}">Скопировать URL</button>
+      </div>
+    `;
+  }).join("");
+
+  document.querySelectorAll("[data-submit-preview-url]").forEach((img) => {
+    img.addEventListener("click", () => openImageModal(img.dataset.submitPreviewUrl));
+  });
+
+  document.querySelectorAll("[data-copy-file-url]").forEach((button) => {
+    button.addEventListener("click", () => {
+      handle(() => copyToClipboard(button.dataset.copyFileUrl, "URL файла скопирован"));
+    });
+  });
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function shorten(value, max) {
+  const str = String(value || "");
+  return str.length > max ? `${str.slice(0, max)}…` : str;
+}
+
+async function loadCases() {
+  const data = await api.listCases();
+  state.cases = data.cases || [];
+  renderCases();
+  logRuntime("list cases", data);
+}
+
+async function createCase() {
+  return withButtonLoading(els.btnCreateCase, "Создание...", async () => {
+    const data = await api.createCase();
+    logRuntime("create case", data);
+
+    await loadCases();
+
+    const newCaseId = data?.case?.id || data?.id || null;
+    const newCaseNumber = data?.case?.case_number || data?.caseNumber || "новый кейс";
+
+    if (newCaseId) {
+      alert(`Кейс создан: ${newCaseNumber}`);
+      await openCase(newCaseId);
+      setScreen("case-workspace");
+      setWorkspaceTab("config");
+      return;
+    }
+
+    alert(`Кейс создан: ${newCaseNumber}`);
+  });
+}
+
+async function loadInstitutions() {
+  const data = await api.listInstitutions();
+  state.institutions = data.institutions || [];
+  renderInstitutions();
+  logRuntime("list institutions", data);
+}
+
+async function createInstitution() {
+  return withButtonLoading(els.btnCreateInstitution, "Сохранение...", async () => {
+    const payload = {
+      name: els.institutionName.value.trim(),
+      submitUrl: els.institutionSubmitUrl.value.trim(),
+      maxAttachments: Number(els.institutionMaxAttachments.value || 5),
+      maxTextLength: Number(els.institutionMaxTextLength.value || 4000),
+      acceptedFormats: els.institutionAcceptedFormats.value.split(",").map((x) => x.trim()).filter(Boolean),
+      active: els.institutionActive.checked
+    };
+
+    let data;
+    if (state.editingInstitutionId) {
+      data = await api.updateInstitution(state.editingInstitutionId, payload);
+      logRuntime("update institution", data);
+      alert("Организация обновлена");
+    } else {
+      data = await api.createInstitution(payload);
+      logRuntime("create institution", data);
+      alert("Организация создана");
+    }
+
+    resetInstitutionForm();
+    els.institutionFormPanel.classList.add("hidden");
+    await loadInstitutions();
+  });
+}
+
+async function loadTemplates() {
+  const data = await api.listTemplates();
+  state.templates = data.templates || [];
+  renderTemplates();
+  logRuntime("list templates", data);
+}
+
+async function createTemplate() {
+  return withButtonLoading(els.btnCreateTemplate, "Сохранение...", async () => {
+    const payload = {
+      name: els.templateName.value.trim(),
+      institutionId: els.templateInstitutionSelect.value || null,
+      bodyTemplate: els.templateBody.value,
+      variablesSchema: JSON.parse(els.templateVariablesSchema.value || "[]"),
+      defaultValues: JSON.parse(els.templateDefaultValues.value || "{}"),
+      active: els.templateActive.checked
+    };
+
+    let data;
+    if (state.editingTemplateId) {
+      data = await api.updateTemplate(state.editingTemplateId, payload);
+      logRuntime("update template", data);
+      alert("Шаблон обновлён");
+    } else {
+      data = await api.createTemplate(payload);
+      logRuntime("create template", data);
+      alert("Шаблон создан");
+    }
+
+    resetTemplateForm();
+    els.templateFormPanel.classList.add("hidden");
+    await loadTemplates();
+  });
+}
+
+async function openCase(caseId) {
+  state.currentCaseId = caseId;
+  const data = await api.getCase(caseId);
+  state.currentCase = data;
+  state.currentCaseFiles = data.files || [];
+  state.variables = {};
+  state.packageData = null;
+  state.submitData = null;
+  state.textContent = "";
+
+  renderWorkspaceSummary();
+  renderWorkspaceFiles();
+  renderText();
+  renderPackage();
+  renderSubmit();
+
+  setScreen("case-workspace");
+  setWorkspaceTab("config");
+  logRuntime("open case", data);
+}
+
+async function reloadCurrentCase() {
+  if (!state.currentCaseId) return;
+
+  await Promise.all([
+    loadInstitutions(),
+    loadTemplates()
+  ]);
+
+  await openCase(state.currentCaseId);
+}
+
+async function syncFiles() {
+  if (!state.currentCaseId) return;
+
+  return withButtonLoading(els.btnSyncFiles, "Синхронизация...", async () => {
+    const data = await api.syncFiles(state.currentCaseId);
+  state.currentCase = { case: data.case, fsm: data.fsm };
+    state.currentCaseFiles = data.files || [];
+    state.submitData = null;
+    renderWorkspaceSummary();
+    renderWorkspaceFiles();
+    logRuntime("sync files", data);
+  });
+}
+
+function collectFileSelectionPayload() {
+  return state.currentCaseFiles.map((file, index) => {
+    const orderInput = document.querySelector(`[data-file-order-id="${file.id}"]`);
+    const selectedInput = document.querySelector(`[data-file-selected-id="${file.id}"]`);
+    return {
+      fileId: file.id,
+      selected: Boolean(selectedInput?.checked),
+      sortOrder: Number(orderInput?.value ?? index)
+    };
+  });
+}
+
+async function saveFiles() {
+  if (!state.currentCaseId) return;
+
+  return withButtonLoading(els.btnSaveFiles, "Сохранение...", async () => {
+    const payload = collectFileSelectionPayload();
+    const data = await api.updateFiles(state.currentCaseId, payload);
+    state.currentCase = { case: data.case, fsm: data.fsm };
+    state.currentCaseFiles = data.files || state.currentCaseFiles;
+    state.submitData = null;
+    renderWorkspaceSummary();
+    renderWorkspaceFiles();
+    logRuntime("save files", data);
+    alert("Выбор файлов сохранён");
+  });
+}
+
+async function saveCaseConfig() {
+  if (!state.currentCaseId) return;
+
+  return withButtonLoading(els.btnSaveCaseConfig, "Сохранение...", async () => {
+    const payload = {
+      institutionId: els.caseInstitutionSelect.value || null,
+      templateId: els.caseTemplateSelect.value || null
+    };
+
+    const data = await api.updateCaseConfig(state.currentCaseId, payload);
+    logRuntime("save case config", data);
+
+    await reloadCurrentCase();
+    alert("Конфигурация кейса сохранена");
+    setWorkspaceTab("variables");
+    await loadVariables().catch(() => {});
+  });
+}
+
+async function loadVariables() {
+  if (!state.currentCaseId) return;
+  if (!state.currentCase?.case?.template_id) {
+    state.variables = {};
+    renderVariablesForm();
+    return;
+  }
+  const data = await api.getVariables(state.currentCaseId);
+  state.variables = data.variables || {};
+  renderVariablesForm();
+  logRuntime("get variables", data);
+}
+
+async function saveVariables() {
+  if (!state.currentCaseId) return;
+
+  const payload = {};
+  document.querySelectorAll("[data-variable-key]").forEach((input) => {
+    payload[input.dataset.variableKey] = input.type === "checkbox" ? String(Boolean(input.checked)) : input.value;
+  });
+
+  const data = await api.saveVariables(state.currentCaseId, payload);
+  state.variables = data.variables || {};
+  state.submitData = null;
+  renderVariablesForm();
+  logRuntime("save variables", data);
+
+  alert("Переменные сохранены");
+  await reloadCurrentCase();
+  setWorkspaceTab("text");
+}
+
+async function generateText() {
+  if (!state.currentCaseId) return;
+
+  return withButtonLoading(els.btnGenerateText, "Генерация...", async () => {
+    const data = await api.generateText(state.currentCaseId);
+    state.textContent = data.text || "";
+    state.currentCase = { case: data.case, fsm: data.fsm };
+    state.submitData = null;
+
+    renderWorkspaceSummary();
+    renderText();
+    logRuntime("generate text", data);
+
+    alert("Текст сгенерирован");
+    setWorkspaceTab("text");
+  });
+}
+
+async function loadText() {
+  if (!state.currentCaseId) return;
+  const data = await api.getText(state.currentCaseId);
+  state.textContent = data.content || "";
+  renderText();
+  logRuntime("get text", data);
+}
+
+async function saveText() {
+  if (!state.currentCaseId) return;
+  const data = await api.saveText(state.currentCaseId, els.caseTextEditor.value);
+  state.textContent = data.content || "";
+  state.submitData = null;
+  renderText();
+  logRuntime("save text", data);
+  await reloadCurrentCase();
+}
+
+async function buildPackage() {
+  if (!state.currentCaseId) return;
+
+  return withButtonLoading(els.btnBuildPackage, "Сборка...", async () => {
+    const data = await api.buildPackage(state.currentCaseId);
+    state.packageData = data.package || {};
+    state.currentCase = { case: data.case, fsm: data.fsm };
+
+    renderWorkspaceSummary();
+    renderPackage();
+    logRuntime("build package", data);
+
+    alert("Пакет собран");
+    setWorkspaceTab("submit");
+    await prepareSubmit();
+  });
+}
+
+async function loadPackage() {
+  if (!state.currentCaseId) return;
+  const data = await api.getPackage(state.currentCaseId);
+  state.packageData = data.package || {};
+  renderPackage();
+  logRuntime("get package", data);
+}
+
+async function prepareSubmit() {
+  if (!state.currentCaseId) return;
+
+  return withButtonLoading(els.btnPrepareSubmit, "Подготовка...", async () => {
+    const data = await api.prepareSubmit(state.currentCaseId);
+    const preparedAt = new Date().toLocaleString("ru-RU");
+    state.submitData = {
+      text: data.text || "",
+      submitUrl: data.submitUrl || "",
+      files: data.files || [],
+      preparedAt
+    };
+    state.currentCase = { case: data.case, fsm: data.fsm };
+    state.currentCaseFiles = data.files?.map((file) => {
+      const existing = state.currentCaseFiles.find((item) => item.id === file.id);
+      return {
+        ...(existing || {}),
+        id: file.id,
+        file_name: file.fileName,
+        file_path: file.filePath,
+        mime_type: file.mimeType,
+        size_bytes: file.sizeBytes,
+        sort_order: file.sortOrder,
+        selected_for_submission: true
+      };
+    }) || state.currentCaseFiles;
+
+    renderWorkspaceSummary();
+    renderWorkspaceFiles();
+    renderSubmit();
+    logRuntime("prepare submit", data);
+  });
+}
+
+async function deleteCaseFromList(caseId, caseNumber) {
+  const confirmed = window.confirm(`Удалить кейс ${caseNumber}?`);
+  if (!confirmed) return;
+
+  const data = await api.deleteCase(caseId);
+  logRuntime("delete case", data);
+
+  if (state.currentCaseId === caseId) {
+    state.currentCaseId = null;
+    state.currentCase = null;
+    state.currentCaseFiles = [];
+    state.variables = {};
+    state.packageData = null;
+    state.textContent = "";
+    setScreen("dashboard");
+  }
+
+  alert(`Кейс удалён: ${caseNumber}`);
+  await loadCases();
+}
+
+async function saveCaseAsTemplate() {
+  if (!state.currentCaseId) return;
+
+  return withButtonLoading(els.btnSaveAsTemplate, "Сохранение...", async () => {
+    const data = await api.saveCaseAsTemplate(state.currentCaseId);
+    logRuntime("save case as template", data);
+
+    alert(`Создан новый шаблон: ${data?.template?.name || "без названия"}`);
+
+    await loadTemplates();
+  });
+}
+
+async function deleteInstitutionFromList(institutionId, institutionName) {
+  const confirmed = window.confirm(`Удалить организацию "${institutionName}"?`);
+  if (!confirmed) return;
+
+  const data = await api.deleteInstitution(institutionId);
+  logRuntime("delete institution", data);
+
+  alert(`Организация удалена: ${institutionName}`);
+  await loadInstitutions();
+}
+
+async function withButtonLoading(button, loadingText, fn) {
+  if (!button) {
+    return fn();
+  }
+
+  if (button.disabled) {
+    return;
+  }
+
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = loadingText;
+
+  try {
+    return await fn();
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+}
+
+function bindEvents() {
+  els.navButtons.forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      setScreen(btn.dataset.screen);
+      if (btn.dataset.screen === "dashboard") await loadCases();
+      if (btn.dataset.screen === "institutions") await loadInstitutions();
+      if (btn.dataset.screen === "templates") await loadTemplates();
+    });
+  });
+
+  els.btnSaveAsTemplate.onclick = () => handle(saveCaseAsTemplate);
+
+  els.btnSaveCaseMeta.addEventListener("click", () => handle(saveCaseMeta));
+  els.btnCloseImageModal.addEventListener("click", closeImageModal);
+  els.imageModalBackdrop.addEventListener("click", closeImageModal);
+  els.btnShowRuntimeLog.addEventListener("click", openRuntimeLogModal);
+  els.btnCloseRuntimeLog.addEventListener("click", closeRuntimeLogModal);
+  els.runtimeLogBackdrop.addEventListener("click", closeRuntimeLogModal);
+if (els.casesSearchInput) {
+  els.casesSearchInput.addEventListener("input", (event) => {
+    state.casesSearch = event.target.value || "";
+    renderCases();
+  });
+}
+  els.tabButtons.forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      setWorkspaceTab(btn.dataset.tab);
+      if (btn.dataset.tab === "variables") await loadVariables().catch(() => {});
+      if (btn.dataset.tab === "text") await loadText().catch(() => {});
+      if (btn.dataset.tab === "package") await loadPackage().catch(() => {});
+      if (btn.dataset.tab === "submit") await prepareSubmit().catch(() => {});
+    });
+  });
+
+  els.btnCancelInstitution.addEventListener("click", () => {
+    resetInstitutionForm();
+    els.institutionFormPanel.classList.add("hidden");
+  });
+
+  els.btnCancelTemplate.addEventListener("click", () => {
+    resetTemplateForm();
+    els.templateFormPanel.classList.add("hidden");
+  });
+
+  els.btnRefreshCases.addEventListener("click", () => handle(loadCases));
+  els.btnCreateCase.addEventListener("click", () => handle(createCase));
+
+  els.btnRefreshInstitutions.addEventListener("click", () => handle(loadInstitutions));
+  els.btnToggleInstitutionForm.addEventListener("click", () => {
+    resetInstitutionForm();
+    els.institutionFormPanel.classList.remove("hidden");
+  });
+
+  els.btnCreateInstitution.addEventListener("click", () => handle(createInstitution));
+
+  els.btnRefreshTemplates.addEventListener("click", () => handle(loadTemplates));
+  els.btnToggleTemplateForm.addEventListener("click", () => {
+    resetTemplateForm();
+    els.templateFormPanel.classList.remove("hidden");
+  });
+  
+  els.btnCreateTemplate.addEventListener("click", () => handle(createTemplate));
+
+  els.btnBackToCases.addEventListener("click", async () => {
+    setScreen("dashboard");
+    await handle(loadCases);
+  });
+  els.btnReloadCase.addEventListener("click", () => handle(reloadCurrentCase));
+
+  els.btnSyncFiles.addEventListener("click", () => handle(syncFiles));
+  els.btnSaveFiles.addEventListener("click", () => handle(saveFiles));
+  els.btnSaveCaseConfig.addEventListener("click", () => handle(saveCaseConfig));
+  els.btnLoadVariables.addEventListener("click", () => handle(loadVariables));
+  els.btnSaveVariables.addEventListener("click", () => handle(saveVariables));
+  els.btnLoadText.addEventListener("click", () => handle(loadText));
+  els.btnGenerateText.addEventListener("click", () => handle(generateText));
+  els.btnSaveText.addEventListener("click", () => handle(saveText));
+  els.btnLoadPackage.addEventListener("click", () => handle(loadPackage));
+  els.btnBuildPackage.addEventListener("click", () => handle(buildPackage));
+  els.btnPrepareSubmit.addEventListener("click", () => handle(prepareSubmit));
+  els.btnCopySubmitText.addEventListener("click", () => handle(() => copyToClipboard(els.submitText.value, "Текст жалобы скопирован")));
+  els.btnCopySubmitUrl.addEventListener("click", () => handle(() => copyToClipboard(els.submitInstitutionUrl.value, "URL организации скопирован")));
+}
+
+async function deleteTemplateFromList(templateId, templateName) {
+  const confirmed = window.confirm(`Удалить шаблон "${templateName}"?`);
+  if (!confirmed) return;
+
+  const data = await api.deleteTemplate(templateId);
+  logRuntime("delete template", data);
+
+  alert(`Шаблон удалён: ${templateName}`);
+  await loadTemplates();
+}
+
+async function handle(fn) {
+  try {
+    await fn();
+  } catch (error) {
+    logRuntime("error", error?.payload || error?.message || String(error));
+    alert(error?.message || "Unknown error");
+  }
+}
+
+async function bootstrap() {
+  bindEvents();
+  await loadInstitutions();
+  await loadTemplates();
+  await loadCases();
+  setScreen("dashboard");
+  setWorkspaceTab("config");
+}
+
+bootstrap().catch((error) => {
+  logRuntime("bootstrap error", error?.message || String(error));
+  alert(error?.message || "Bootstrap error");
+});

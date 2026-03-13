@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Complaints MVP</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <h1>Complaints MVP</h1>
+          <p>Операторское рабочее место</p>
+        </div>
+
+        <nav class="sidebar-nav">
+          <button class="nav-btn active" data-screen="dashboard" type="button">Кейсы</button>
+          <button class="nav-btn" data-screen="institutions" type="button">Организации</button>
+          <button class="nav-btn" data-screen="templates" type="button">Шаблоны</button>
+        </nav>
+      </aside>
+
+      <main class="main-content">
+        <section class="screen" data-screen-panel="dashboard">
+          <div class="page-header">
+            <div>
+              <h2>Кейсы</h2>
+              <p>Создание, список и открытие кейса</p>
+            </div>
+         <div class="actions">
+  <button class="btn btn-secondary" id="btnShowRuntimeLog">Показать лог</button>
+  <button class="btn btn-secondary" id="btnRefreshCases">Обновить</button>
+  <button class="btn btn-primary" id="btnCreateCase">Создать кейс</button>
+</div>
+          </div>
+<div class="panel">
+  <div class="form-grid">
+    <div class="field full">
+      <label for="casesSearchInput">Поиск по кейсам</label>
+      <input id="casesSearchInput" placeholder="Название, CASE-номер, организация, шаблон..." />
+    </div>
+  </div>
+</div>
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Список кейсов</h3>
+            </div>
+            <div id="casesList" class="table-like"></div>
+          </div>
+        </section>
+
+        <section class="screen hidden" data-screen-panel="institutions">
+          <div class="page-header">
+            <div>
+              <h2>Организации</h2>
+              <p>Справочник учреждений для подачи жалоб</p>
+            </div>
+            <div class="actions">
+              <button class="btn btn-secondary" id="btnRefreshInstitutions">Обновить</button>
+              <button class="btn btn-primary" id="btnToggleInstitutionForm">Новая организация</button>
+            </div>
+          </div>
+          <div class="panel hidden" id="institutionFormPanel">
+            <div class="panel-header">
+              <h3>Создать организацию</h3>
+            </div>
+
+            <div class="form-grid">
+              <div class="field">
+                <label for="institutionName">Название</label>
+                <input id="institutionName" />
+              </div>
+              <div class="field">
+                <label for="institutionSubmitUrl">URL подачи</label>
+                <input id="institutionSubmitUrl" />
+              </div>
+              <div class="field">
+                <label for="institutionMaxAttachments">Макс. вложений</label>
+                <input id="institutionMaxAttachments" type="number" value="5" />
+              </div>
+              <div class="field">
+                <label for="institutionMaxTextLength">Макс. длина текста</label>
+                <input id="institutionMaxTextLength" type="number" value="4000" />
+              </div>
+              <div class="field full">
+                <label for="institutionAcceptedFormats">Форматы через запятую</label>
+                <input id="institutionAcceptedFormats" value="image/jpeg,image/png" />
+              </div>
+              <div class="field checkbox-field full">
+                <label><input id="institutionActive" type="checkbox" checked /> Активна</label>
+              </div>
+            </div>
+
+           <div class="actions top-space">
+             <button class="btn btn-primary" id="btnCreateInstitution">Сохранить организацию</button>
+             <button class="btn btn-secondary" id="btnCancelInstitution">Отмена</button>
+           </div>
+        </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Список организаций</h3>
+            </div>
+            <div id="institutionsList" class="table-like"></div>
+          </div>
+        </section>
+
+        <section class="screen hidden" data-screen-panel="templates">
+          <div class="page-header">
+            <div>
+              <h2>Шаблоны</h2>
+              <p>Шаблоны генерации текста жалобы</p>
+            </div>
+            <div class="actions">
+              <button class="btn btn-secondary" id="btnRefreshTemplates">Обновить</button>
+              <button class="btn btn-primary" id="btnToggleTemplateForm">Новый шаблон</button>
+            </div>
+          </div>
+
+          <div class="panel hidden" id="templateFormPanel">
+            <div class="panel-header">
+              <h3>Создать шаблон</h3>
+            </div>
+
+            <div class="form-grid">
+              <div class="field">
+                <label for="templateName">Название</label>
+                <input id="templateName" />
+              </div>
+              <div class="field">
+                <label for="templateInstitutionSelect">Организация</label>
+                <select id="templateInstitutionSelect"></select>
+              </div>
+              <div class="field full">
+                <label for="templateBody">Текст шаблона</label>
+                <textarea id="templateBody"></textarea>
+              </div>
+              <div class="field full">
+                <label for="templateVariablesSchema">variablesSchema (JSON)</label>
+                <textarea id="templateVariablesSchema">[
+  { "key": "address", "label": "Адрес", "type": "text", "required": true }
+]</textarea>
+              </div>
+              <div class="field full">
+                <label for="templateDefaultValues">defaultValues (JSON)</label>
+                <textarea id="templateDefaultValues">{}</textarea>
+              </div>
+              <div class="field checkbox-field full">
+                <label><input id="templateActive" type="checkbox" checked /> Активен</label>
+              </div>
+            </div>
+
+            <div class="actions top-space">
+              <button class="btn btn-primary" id="btnCreateTemplate">Сохранить шаблон</button>
+              <button class="btn btn-secondary" id="btnCancelTemplate">Отмена</button>
+            </div>
+        </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Список шаблонов</h3>
+            </div>
+            <div id="templatesList" class="table-like"></div>
+          </div>
+        </section>
+
+        <section class="screen hidden" data-screen-panel="case-workspace">
+          <div class="page-header">
+            <div>
+              <h2 id="workspaceTitle">Кейс</h2>
+              <p id="workspaceSubtitle">Рабочее пространство кейса</p>
+            </div>
+            <div class="actions">
+              <button class="btn btn-secondary" id="btnBackToCases">Назад к кейсам</button>
+              <button class="btn btn-secondary" id="btnReloadCase">Обновить кейс</button>
+            </div>
+          </div>
+
+          <div class="panel case-summary-panel">
+            <div class="case-summary-grid">
+              <div class="summary-card"><div class="summary-label">Case ID</div><div class="summary-value" id="summaryCaseId">—</div></div>
+              <div class="summary-card"><div class="summary-label">Case Number</div><div class="summary-value" id="summaryCaseNumber">—</div></div>
+              <div class="summary-card"><div class="summary-label">FSM</div><div class="summary-value" id="summaryFsm">—</div></div>
+              <div class="summary-card"><div class="summary-label">Выбрано файлов</div><div class="summary-value" id="summaryFilesSelected">0</div></div>
+              <div class="summary-card"><div class="summary-label">Text Ready</div><div class="summary-value" id="summaryTextReady">false</div></div>
+              <div class="summary-card"><div class="summary-label">Package Ready</div><div class="summary-value" id="summaryPackageReady">false</div></div>
+            </div>
+          </div>
+<div class="panel">
+  <div class="panel-header">
+    <h3>Карточка кейса</h3>
+  </div>
+
+  <div class="form-grid">
+    <div class="field full">
+      <label for="caseTitle">Название кейса</label>
+      <input id="caseTitle" />
+    </div>
+
+    <div class="field full">
+      <label for="caseDescription">Описание кейса</label>
+      <textarea id="caseDescription"></textarea>
+    </div>
+
+    <div class="field">
+      <label>Case number</label>
+      <input id="caseNumberReadonly" readonly />
+    </div>
+
+    <div class="field">
+      <label>Организация</label>
+      <input id="caseInstitutionNameReadonly" readonly />
+    </div>
+
+    <div class="field">
+      <label>Шаблон</label>
+      <input id="caseTemplateNameReadonly" readonly />
+    </div>
+
+    <div class="field">
+      <label>FSM</label>
+      <input id="caseFsmReadonly" readonly />
+    </div>
+  </div>
+
+  <div class="actions top-space">
+    <button class="btn btn-secondary" id="btnSaveCaseMeta">Сохранить карточку кейса</button>
+  </div>
+</div>
+<div class="workspace-tabs">
+  <button class="tab-btn active" data-tab="config" type="button">Config</button>
+  <button class="tab-btn" data-tab="variables" type="button">Variables</button>
+  <button class="tab-btn" data-tab="text" type="button">Text</button>
+  <button class="tab-btn" data-tab="files" type="button">Files</button>
+  <button class="tab-btn" data-tab="package" type="button">Package</button>
+  <button class="tab-btn" data-tab="submit" type="button">Submit</button>
+</div>
+          <div class="workspace-tab-panel hidden" data-tab-panel="config">
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Конфигурация кейса</h3>
+              </div>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="caseInstitutionSelect">Организация</label>
+                  <select id="caseInstitutionSelect"></select>
+                </div>
+                <div class="field">
+                  <label for="caseTemplateSelect">Шаблон</label>
+                  <select id="caseTemplateSelect"></select>
+                </div>
+              </div>
+              <div class="actions top-space">
+                <button class="btn btn-primary" id="btnSaveCaseConfig">Сохранить config</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="workspace-tab-panel hidden" data-tab-panel="variables">
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Переменные шаблона</h3>
+                <div class="actions">
+                  <button class="btn btn-secondary" id="btnLoadVariables">Открыть переменные</button>
+                  <button class="btn btn-primary" id="btnSaveVariables">Сохранить переменные</button>
+                </div>
+              </div>
+              <div class="notice">
+                Изменение переменных сбрасывает готовый текст и пакет, чтобы их можно было безопасно собрать заново.
+              </div>
+              <div id="variablesEmptyState" class="notice hidden"></div>
+              <div id="variablesForm" class="form-grid"></div>
+            </div>
+          </div>
+
+          <div class="workspace-tab-panel hidden" data-tab-panel="text">
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Текст жалобы</h3>
+ <div class="actions">
+  <button class="btn btn-secondary" id="btnLoadText">Открыть текст</button>
+  <button class="btn btn-secondary" id="btnGenerateText">Сгенерировать текст</button>
+  <button class="btn btn-secondary" id="btnSaveAsTemplate">Сохранить как шаблон</button>
+  <button class="btn btn-primary" id="btnSaveText">Сохранить текст</button>
+</div>
+<div class="notice">
+  Сгенерировать текст — взять текущий шаблон кейса и заново сформировать complaint.txt.
+  Сохранить как шаблон — создать новый шаблон из текущего текста кейса.
+</div>
+</div>
+              <textarea id="caseTextEditor" class="large-textarea"></textarea>
+            </div>
+          </div>
+ 
+          <div class="workspace-tab-panel" data-tab-panel="files">
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Файлы</h3>
+                <div class="actions">
+                  <button class="btn btn-secondary" id="btnSyncFiles">Sync files</button>
+                  <button class="btn btn-primary" id="btnSaveFiles">Сохранить выбор</button>
+                </div>
+              </div>
+              <div class="notice">Загрузка самих файлов идёт в Nextcloud. Здесь — синхронизация и выбор вложений.</div>
+              <div id="workspaceFilesList" class="files-grid"></div>
+            </div>
+          </div>
+
+          <div class="workspace-tab-panel hidden" data-tab-panel="package">
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Пакет подачи</h3>
+                <div class="actions">
+                  <button class="btn btn-secondary" id="btnLoadPackage">Открыть package</button>
+                  <button class="btn btn-primary" id="btnBuildPackage">Build package</button>
+                </div>
+              </div>
+              <pre id="packageViewer" class="json-viewer">{}</pre>
+            </div>
+          </div>
+
+          <div class="workspace-tab-panel hidden" data-tab-panel="submit">
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Submit</h3>
+                <div class="actions">
+                  <button class="btn btn-secondary" id="btnPrepareSubmit">Подготовить Submit</button>
+                </div>
+              </div>
+              <div class="notice">
+                При подготовке к submit выбранные файлы переносятся в папку `result` в Nextcloud и здесь появляются URL для копирования.
+              </div>
+              <div id="submitStatus" class="submit-status hidden"></div>
+
+              <div class="submit-section">
+                <div class="panel-header">
+                  <h4>Текст жалобы</h4>
+                  <button class="btn btn-secondary" id="btnCopySubmitText">Скопировать</button>
+                </div>
+                <textarea id="submitText" class="large-textarea" readonly></textarea>
+              </div>
+
+              <div class="submit-section">
+                <div class="panel-header">
+                  <h4>URL организации</h4>
+                  <button class="btn btn-secondary" id="btnCopySubmitUrl">Скопировать</button>
+                </div>
+                <input id="submitInstitutionUrl" readonly />
+                <div id="submitInstitutionUrlPretty" class="url-preview hidden"></div>
+              </div>
+
+              <div class="submit-section">
+                <div class="panel-header">
+                  <h4>Файлы для отправки</h4>
+                </div>
+                <div id="submitFilesList" class="files-grid"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        
+<div id="imageModal" class="image-modal hidden">
+  <div class="image-modal-backdrop" id="imageModalBackdrop"></div>
+  <div class="image-modal-content">
+    <button class="image-modal-close" id="btnCloseImageModal" type="button">×</button>
+    <img id="imageModalImg" class="image-modal-img" alt="preview" />
+  </div>
+</div>
+
+<div id="runtimeLogModal" class="image-modal hidden">
+  <div class="image-modal-backdrop" id="runtimeLogBackdrop"></div>
+  <div class="image-modal-content runtime-log-modal-content">
+    <button class="image-modal-close" id="btnCloseRuntimeLog" type="button">×</button>
+    <div class="panel runtime-log-panel">
+      <div class="panel-header">
+        <h3>Runtime log</h3>
+      </div>
+      <pre id="runtimeLog">Готово.</pre>
+    </div>
+  </div>
+</div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

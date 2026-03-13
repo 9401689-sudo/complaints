@@ -1,0 +1,28 @@
+{
+  "name": "complaints-backend",
+  "version": "1.0.0",
+  "description": "MVP backend for complaints workflow",
+  "main": "dist/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@fastify/formbody": "^8.0.2",
+    "dotenv": "^16.4.7",
+    "fast-xml-parser": "^5.5.1",
+    "fastify": "^5.8.2",
+    "ioredis": "^5.4.2",
+    "pg": "^8.20.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/pg": "^8.18.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.8.2"
+  }
+}
