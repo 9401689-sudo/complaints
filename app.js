@@ -103,6 +103,7 @@ const els = {
   textVariableToolbar: document.getElementById("textVariableToolbar"),
 
   btnBuildPackage: document.getElementById("btnBuildPackage"),
+  btnDownloadSubmitText: document.getElementById("btnDownloadSubmitText"),
   btnCopySubmitText: document.getElementById("btnCopySubmitText"),
   btnCopySubmitUrl: document.getElementById("btnCopySubmitUrl"),
   btnDownloadSubmitFiles: document.getElementById("btnDownloadSubmitFiles"),
@@ -1139,6 +1140,19 @@ function triggerBrowserDownload(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function downloadSubmitText() {
+  const content = String(els.submitText?.value || "").trim();
+
+  if (!content) {
+    alert("Текст жалобы пока пустой.");
+    return;
+  }
+
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const caseNumber = state.currentCase?.case?.case_number || "complaint";
+  triggerBrowserDownload(blob, `${caseNumber}-complaint.txt`);
+}
+
 async function downloadSubmitFile(fileId, fallbackName) {
   if (!state.currentCaseId) return;
 
@@ -1637,6 +1651,7 @@ if (els.casesSearchInput) {
   els.btnSaveVariables.addEventListener("click", () => handle(saveVariables));
   els.btnSaveText.addEventListener("click", () => handle(saveText));
   els.btnBuildPackage.addEventListener("click", () => handle(buildPackage));
+  els.btnDownloadSubmitText.addEventListener("click", downloadSubmitText);
   els.btnCopySubmitText.addEventListener("click", () => handle(() => copyToClipboard(els.submitText.value, "Текст жалобы скопирован")));
   els.btnCopySubmitUrl.addEventListener("click", () => handle(() => copyToClipboard(els.submitInstitutionUrl.value, "URL организации скопирован")));
   els.btnDownloadSubmitFiles.addEventListener("click", () => handle(downloadSubmitFiles));
