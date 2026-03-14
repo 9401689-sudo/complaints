@@ -132,6 +132,23 @@ export class NextcloudClient {
     };
   }
 
+  async moveRootFilesToIncoming(incomingFolder: string): Promise<SyncedCaseFile[]> {
+    requireNextcloudEnv();
+
+    const rootFolder = `/${trimSlashes(env.NEXTCLOUD_ROOT_PATH!)}`;
+    const rootFiles = await this.listFiles(rootFolder);
+
+    for (const file of rootFiles) {
+      const destinationPath = `${incomingFolder.replace(/\/+$/, '')}/${file.fileName}`;
+      await this.moveFile(file.filePath, destinationPath);
+    }
+
+    return rootFiles.map((file) => ({
+      ...file,
+      filePath: `${incomingFolder.replace(/\/+$/, '')}/${file.fileName}`
+    }));
+  }
+
   async listFiles(folderPath: string): Promise<SyncedCaseFile[]> {
     requireNextcloudEnv();
 

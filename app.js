@@ -49,13 +49,11 @@ const els = {
   tabButtons: [...document.querySelectorAll(".tab-btn")],
   tabPanels: [...document.querySelectorAll("[data-tab-panel]")],
 
-  btnRefreshCases: document.getElementById("btnRefreshCases"),
   btnCreateCase: document.getElementById("btnCreateCase"),
   casesList: document.getElementById("casesList"),
   casesInstitutionFilter: document.getElementById("casesInstitutionFilter"),
   btnResetCaseFilters: document.getElementById("btnResetCaseFilters"),
 
-  btnRefreshInstitutions: document.getElementById("btnRefreshInstitutions"),
   btnToggleInstitutionForm: document.getElementById("btnToggleInstitutionForm"),
   btnCreateInstitution: document.getElementById("btnCreateInstitution"),
   btnCancelInstitution: document.getElementById("btnCancelInstitution"),
@@ -68,7 +66,6 @@ const els = {
   institutionMaxTextLength: document.getElementById("institutionMaxTextLength"),
   institutionAcceptedFormats: document.getElementById("institutionAcceptedFormats"),
 
-  btnRefreshTemplates: document.getElementById("btnRefreshTemplates"),
   btnToggleTemplateForm: document.getElementById("btnToggleTemplateForm"),
   btnCreateTemplate: document.getElementById("btnCreateTemplate"),
   templateFormPanel: document.getElementById("templateFormPanel"),
@@ -102,7 +99,6 @@ const els = {
   caseTextEditor: document.getElementById("caseTextEditor"),
   textVariableToolbar: document.getElementById("textVariableToolbar"),
 
-  btnBuildPackage: document.getElementById("btnBuildPackage"),
   btnDownloadSubmitText: document.getElementById("btnDownloadSubmitText"),
   btnCopySubmitText: document.getElementById("btnCopySubmitText"),
   btnCopySubmitUrl: document.getElementById("btnCopySubmitUrl"),
@@ -128,7 +124,6 @@ const els = {
   btnSaveCaseMeta: document.getElementById("btnSaveCaseMeta"),
   btnSaveAsTemplate: document.getElementById("btnSaveAsTemplate"),
 
-  btnShowRuntimeLog: document.getElementById("btnShowRuntimeLog"),
   runtimeLogModal: document.getElementById("runtimeLogModal"),
   runtimeLogBackdrop: document.getElementById("runtimeLogBackdrop"),
   btnCloseRuntimeLog: document.getElementById("btnCloseRuntimeLog"),
@@ -895,7 +890,7 @@ function renderWorkspaceFiles() {
   const allFiles = [...state.currentCaseFiles];
 
   if (!allFiles.length) {
-    els.workspaceFilesList.innerHTML = '<div class="notice">Файлы ещё не синхронизированы. Нажми "Sync files", чтобы получить содержимое папки incoming.</div>';
+    els.workspaceFilesList.innerHTML = '<div class="notice">Файлы в incoming пока не найдены.</div>';
     return;
   }
 
@@ -1417,14 +1412,20 @@ async function loadResultFiles() {
 async function buildPackage() {
   if (!state.currentCaseId) return;
 
-  return withButtonLoading(els.btnBuildPackage, "Сборка...", async () => {
+  return withButtonLoading(null, "Сборка...", async () => {
     const data = await api.buildPackage(state.currentCaseId);
     state.currentCase = { case: data.case, fsm: data.fsm };
     renderWorkspaceSummary();
     logRuntime("build package", data);
     await prepareSubmit();
-    setWorkspaceTab("submit");
   });
+}
+
+async function openSubmitTab() {
+  if (!state.currentCaseId) return;
+
+  setWorkspaceTab("submit");
+  await buildPackage();
 }
 
 async function prepareSubmit() {
@@ -1569,7 +1570,9 @@ function bindEvents() {
     syncModalSelectionState(fileId, els.imageModalSelectedCheckbox.checked);
     renderWorkspaceFiles();
   });
-  els.btnShowRuntimeLog.addEventListener("click", openRuntimeLogModal);
+  if (els.btnShowRuntimeLog) {
+    els.btnShowRuntimeLog.addEventListener("click", openRuntimeLogModal);
+  }
   els.btnCloseRuntimeLog.addEventListener("click", closeRuntimeLogModal);
   els.runtimeLogBackdrop.addEventListener("click", closeRuntimeLogModal);
 if (els.casesSearchInput) {
@@ -1596,6 +1599,11 @@ if (els.casesSearchInput) {
       if (state.currentWorkspaceTab === "submit" && btn.dataset.tab !== "submit") {
         await handle(persistSubmitMetaIfNeeded);
       }
+      if (btn.dataset.tab === "submit") {
+        await handle(openSubmitTab);
+        return;
+      }
+
       setWorkspaceTab(btn.dataset.tab);
       if (btn.dataset.tab === "variables") await loadVariables().catch(() => {});
       if (btn.dataset.tab === "text") await loadText().catch(() => {});
@@ -1614,10 +1622,8 @@ if (els.casesSearchInput) {
     els.templateFormPanel.classList.add("hidden");
   });
 
-  els.btnRefreshCases.addEventListener("click", () => handle(loadCases));
   els.btnCreateCase.addEventListener("click", () => handle(createCase));
 
-  els.btnRefreshInstitutions.addEventListener("click", () => handle(loadInstitutions));
   els.btnToggleInstitutionForm.addEventListener("click", () => {
     resetInstitutionForm();
     els.institutionFormPanel.classList.remove("hidden");
@@ -1625,7 +1631,6 @@ if (els.casesSearchInput) {
 
   els.btnCreateInstitution.addEventListener("click", () => handle(createInstitution));
 
-  els.btnRefreshTemplates.addEventListener("click", () => handle(loadTemplates));
   els.btnToggleTemplateForm.addEventListener("click", () => {
     resetTemplateForm();
     els.templateFormPanel.classList.remove("hidden");
@@ -1650,7 +1655,6 @@ if (els.casesSearchInput) {
   els.btnSaveFilesSelection.addEventListener("click", () => handle(saveFiles));
   els.btnSaveVariables.addEventListener("click", () => handle(saveVariables));
   els.btnSaveText.addEventListener("click", () => handle(saveText));
-  els.btnBuildPackage.addEventListener("click", () => handle(buildPackage));
   els.btnDownloadSubmitText.addEventListener("click", downloadSubmitText);
   els.btnCopySubmitText.addEventListener("click", () => handle(() => copyToClipboard(els.submitText.value, "Текст жалобы скопирован")));
   els.btnCopySubmitUrl.addEventListener("click", () => handle(async () => {

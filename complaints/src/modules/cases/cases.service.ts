@@ -74,6 +74,7 @@ export class CasesService {
   async createCase(): Promise<CreateCaseResponse> {
     const caseNumber = await this.generateCaseNumber();
     const folders = await nextcloudClient.createCaseFolders(caseNumber);
+    const adoptedFiles = await nextcloudClient.moveRootFilesToIncoming(folders.incoming);
 
     const insertResult = await postgres.query<CaseRecord>(
       `
@@ -135,7 +136,11 @@ export class CasesService {
       nextcloudCaseFolder: caseRow.nextcloud_case_folder,
       nextcloudIncomingFolder: caseRow.nextcloud_incoming_folder,
       nextcloudArtifactsFolder: caseRow.nextcloud_artifacts_folder,
-      nextcloudResultFolder: caseRow.nextcloud_result_folder
+      nextcloudResultFolder: caseRow.nextcloud_result_folder,
+      adoptedIncomingFiles: adoptedFiles.map((file) => ({
+        fileName: file.fileName,
+        filePath: file.filePath
+      }))
     });
 
     return {
