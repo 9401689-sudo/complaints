@@ -917,10 +917,9 @@ function renderWorkspaceFiles() {
         <div class="file-card-main">
           <div class="row-title">${escapeHtml(file.file_name || "unnamed")}</div>
           <div class="row-meta">${escapeHtml(file.mime_type || "unknown")} · ${file.size_bytes || 0} bytes</div>
-          <div class="row-meta" data-file-status-id="${file.id}">${isSelected ? `В подаче · порядок ${file.sort_order ?? index}` : "Не выбран для подачи"}</div>
+          <div class="row-meta" data-file-status-id="${file.id}" data-file-order-value="${file.sort_order ?? index}">${isSelected ? `В подаче · порядок ${file.sort_order ?? index}` : "Не выбран для подачи"}</div>
         </div>
         <div class="file-card-controls">
-          <input class="file-order" type="number" min="0" value="${file.sort_order ?? index}" data-file-order-id="${file.id}" />
           <label class="file-select-toggle"><input type="checkbox" data-file-selected-id="${file.id}" ${isSelected ? "checked" : ""} /> В подачу</label>
         </div>
       </div>
@@ -933,7 +932,7 @@ function renderWorkspaceFiles() {
       const fileId = checkbox.dataset.fileSelectedId;
       const card = checkbox.closest(".file-card");
       const status = els.workspaceFilesList.querySelector(`[data-file-status-id="${fileId}"]`);
-      const orderInput = els.workspaceFilesList.querySelector(`[data-file-order-id="${fileId}"]`);
+      const orderValue = Number(status?.dataset.fileOrderValue ?? 0);
 
       syncModalSelectionState(fileId, checkbox.checked);
 
@@ -943,7 +942,7 @@ function renderWorkspaceFiles() {
 
       if (status) {
         status.textContent = checkbox.checked
-          ? `В подаче · порядок ${orderInput?.value || 0}`
+          ? `В подаче · порядок ${orderValue}`
           : "Не выбран для подачи";
       }
     });
@@ -1295,12 +1294,11 @@ async function syncFiles() {
 
 function collectFileSelectionPayload() {
   return state.currentCaseFiles.map((file, index) => {
-    const orderInput = els.workspaceFilesList.querySelector(`[data-file-order-id="${file.id}"]`);
     const selectedInput = els.workspaceFilesList.querySelector(`[data-file-selected-id="${file.id}"]`);
     return {
       fileId: file.id,
       selected: Boolean(selectedInput?.checked),
-      sortOrder: Number(orderInput?.value ?? index)
+      sortOrder: Number(file.sort_order ?? index)
     };
   });
 }
