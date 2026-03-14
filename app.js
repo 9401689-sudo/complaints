@@ -1290,7 +1290,6 @@ async function syncFiles() {
     renderWorkspaceSummary();
     renderWorkspaceFiles();
     logRuntime("sync files", data);
-    alert(`Синхронизация завершена: ${state.currentCaseFiles.length} файлов`);
   });
 }
 
@@ -1390,6 +1389,8 @@ async function saveText() {
   renderText();
   logRuntime("save text", data);
   await reloadCurrentCase();
+  setWorkspaceTab("files");
+  await syncFiles().catch(() => {});
 }
 
 async function loadResultFiles() {
@@ -1586,6 +1587,7 @@ if (els.casesSearchInput) {
       setWorkspaceTab(btn.dataset.tab);
       if (btn.dataset.tab === "variables") await loadVariables().catch(() => {});
       if (btn.dataset.tab === "text") await loadText().catch(() => {});
+      if (btn.dataset.tab === "files") await syncFiles().catch(() => {});
       if (btn.dataset.tab === "result") await loadResultFiles().catch(() => {});
     });
   });
@@ -1633,7 +1635,6 @@ if (els.casesSearchInput) {
     await handle(reloadCurrentCase);
   });
 
-  els.btnSyncFiles.addEventListener("click", () => handle(syncFiles));
   els.btnSaveFilesSelection.addEventListener("click", () => handle(saveFiles));
   els.btnSaveVariables.addEventListener("click", () => handle(saveVariables));
   els.btnSaveText.addEventListener("click", () => handle(saveText));
