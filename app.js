@@ -1299,6 +1299,7 @@ async function openCase(caseId) {
 
   setScreen("case-workspace");
   setWorkspaceTab("variables");
+  await loadVariables().catch(() => {});
   logRuntime("open case", data);
 }
 
