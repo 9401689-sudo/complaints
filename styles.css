@@ -99,12 +99,14 @@ pre {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   border-color: transparent;
   color: #fffdfa;
+  text-align: center;
 }
 
 .tab-btn[data-tab="submit"].active {
   background: linear-gradient(135deg, #7d6b58, #a78d6d);
   border-color: transparent;
   box-shadow: 0 10px 24px rgba(141,123,104,.22);
+  text-align: center;
 }
 
 .main-content {
@@ -665,6 +667,13 @@ textarea {
   display: grid;
   gap: 12px;
   margin-top: 18px;
+}
+
+.inline-field-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
 }
 
 .progress-status {
