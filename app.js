@@ -572,7 +572,13 @@ function buildComputedTextPreview() {
     return "";
   }
 
-  const variables = normalizeVariableState(state.variables);
+  const variables = normalizeVariableState({
+    ...(template.default_values && typeof template.default_values === "object"
+      ? template.default_values
+      : {}),
+    ...(state.variables || {})
+  });
+
   return template.body_template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key) => {
     const field = FIXED_VARIABLES.find((item) => item.key === key);
     if (field) {
@@ -799,7 +805,10 @@ function renderVariablesForm() {
     .map((field) => {
       const value = current[field.key] ?? defaults[field.key] ?? "";
       const enabled = String(current[field.enabledKey] ?? defaults[field.enabledKey] ?? "true").toLowerCase() === "true";
-      const inputType = field.type === "date" ? "date" : "text";
+      const inputType = "text";
+      const extraAttrs = field.key === "complaint_date"
+        ? 'placeholder="дд.мм.гггг" inputmode="numeric" maxlength="10"'
+        : "";
 
       return `
         <div class="variable-item">
@@ -813,12 +822,29 @@ function renderVariablesForm() {
           </div>
           <div class="field">
             <label for="var-${escapeHtml(field.key)}">Значение</label>
-            <input id="var-${escapeHtml(field.key)}" type="${inputType}" data-variable-input-key="${escapeHtml(field.key)}" value="${escapeHtml(value)}" />
+            <input id="var-${escapeHtml(field.key)}" type="${inputType}" data-variable-input-key="${escapeHtml(field.key)}" value="${escapeHtml(value)}" ${extraAttrs} />
           </div>
         </div>
       `;
     })
     .join("");
+
+  const complaintDateInput = els.variablesForm.querySelector('[data-variable-input-key="complaint_date"]');
+  if (complaintDateInput) {
+    complaintDateInput.addEventListener("input", () => applyDateMask(complaintDateInput));
+    complaintDateInput.addEventListener("blur", () => {
+      complaintDateInput.value = complaintDateInput.value.trim();
+      applyDateMask(complaintDateInput);
+      if (!complaintDateInput.value) {
+        return;
+      }
+      try {
+        complaintDateInput.value = parseStrictDisplayDate(complaintDateInput.value, "Дата");
+      } catch {
+        // Keep masked value visible; full validation error is shown on save.
+      }
+    });
+  }
 }
 
 async function saveCaseMeta() {
@@ -1351,12 +1377,16 @@ async function saveVariables() {
     const valueInput = els.variablesForm.querySelector(`[data-variable-input-key="${field.key}"]`);
     const enabledInput = els.variablesForm.querySelector(`[data-variable-enabled-key="${field.enabledKey}"]`);
     const enabled = Boolean(enabledInput?.checked);
-    const rawValue = valueInput?.value || (field.key === "complaint_date" ? getTodayInputValue() : "");
+    const fallbackValue = field.key === "complaint_date" ? formatDateForInput(new Date()) : "";
+    const rawValue = valueInput?.value || fallbackValue;
+    const normalizedValue = field.key === "complaint_date"
+      ? parseStrictDisplayDate(rawValue, "Дата")
+      : rawValue;
 
     payload[field.enabledKey] = String(enabled);
-    payload[field.key] = enabled ? rawValue : "";
+    payload[field.key] = enabled ? normalizedValue : "";
     normalized[field.enabledKey] = String(enabled);
-    normalized[field.key] = rawValue;
+    normalized[field.key] = normalizedValue;
   });
 
   const data = await api.saveVariables(state.currentCaseId, payload);
@@ -1373,13 +1403,15 @@ async function saveVariables() {
 async function loadText() {
   if (!state.currentCaseId) return;
 
-  if (state.currentCase?.case?.template_id && !Object.keys(state.variables || {}).length) {
+  if (state.currentCase?.case?.template_id) {
     await loadVariables().catch(() => {});
   }
 
   try {
     const data = await api.getText(state.currentCaseId);
-    state.textContent = data.content || buildComputedTextPreview();
+    state.textContent = typeof data.content === "string"
+      ? data.content
+      : buildComputedTextPreview();
     renderText();
     logRuntime("get text", data);
   } catch {
