@@ -32,6 +32,12 @@
   <button class="btn btn-primary" id="btnCreateCase">Создать кейс</button>
 </div>
           </div>
+          <div id="createCaseProgress" class="progress-status hidden" aria-live="polite">
+            <div id="createCaseProgressLabel" class="progress-status-label">Создаём кейс...</div>
+            <div class="progress-status-track">
+              <div class="progress-status-bar"></div>
+            </div>
+          </div>
 <div class="panel">
   <div class="form-grid cases-filters">
     <div class="field">
@@ -254,6 +260,12 @@
                   <button class="btn btn-primary" id="btnSaveFilesSelection">Сохранить выбор</button>
                 </div>
               </div>
+              <div id="filesSyncProgress" class="progress-status hidden" aria-live="polite">
+                <div id="filesSyncProgressLabel" class="progress-status-label">Синхронизируем файлы...</div>
+                <div class="progress-status-track">
+                  <div class="progress-status-bar"></div>
+                </div>
+              </div>
               <div id="workspaceFilesList" class="files-grid"></div>
             </div>
           </div>
@@ -262,6 +274,13 @@
             <div class="panel">
               <div class="panel-header">
                 <h3>Отправка</h3>
+              </div>
+
+              <div id="submitProgress" class="progress-status hidden" aria-live="polite">
+                <div id="submitProgressLabel" class="progress-status-label">Подготовка отправки...</div>
+                <div class="progress-status-track">
+                  <div class="progress-status-bar"></div>
+                </div>
               </div>
 
               <div class="form-grid">

@@ -95,6 +95,18 @@ pre {
   border-color: var(--line-strong);
 }
 
+.tab-btn[data-tab="submit"] {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+  color: #fffdfa;
+}
+
+.tab-btn[data-tab="submit"].active {
+  background: linear-gradient(135deg, #7d6b58, #a78d6d);
+  border-color: transparent;
+  box-shadow: 0 10px 24px rgba(141,123,104,.22);
+}
+
 .main-content {
   padding: 24px;
   display: flex;
@@ -653,6 +665,47 @@ textarea {
   display: grid;
   gap: 12px;
   margin-top: 18px;
+}
+
+.progress-status {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line-strong);
+  background: rgba(179,154,122,.12);
+}
+
+.progress-status-label {
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+}
+
+.progress-status-track {
+  width: 100%;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(141,123,104,.18);
+}
+
+.progress-status-bar {
+  width: 36%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  animation: submit-progress-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes submit-progress-slide {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
 }
 
 .submit-status {

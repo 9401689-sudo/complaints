@@ -50,6 +50,8 @@ const els = {
   tabPanels: [...document.querySelectorAll("[data-tab-panel]")],
 
   btnCreateCase: document.getElementById("btnCreateCase"),
+  createCaseProgress: document.getElementById("createCaseProgress"),
+  createCaseProgressLabel: document.getElementById("createCaseProgressLabel"),
   casesList: document.getElementById("casesList"),
   casesInstitutionFilter: document.getElementById("casesInstitutionFilter"),
   btnResetCaseFilters: document.getElementById("btnResetCaseFilters"),
@@ -81,7 +83,8 @@ const els = {
   workspaceSubtitle: document.getElementById("workspaceSubtitle"),
 
   workspaceFilesList: document.getElementById("workspaceFilesList"),
-  btnSyncFiles: document.getElementById("btnSyncFiles"),
+  filesSyncProgress: document.getElementById("filesSyncProgress"),
+  filesSyncProgressLabel: document.getElementById("filesSyncProgressLabel"),
   btnSaveFilesSelection: document.getElementById("btnSaveFilesSelection"),
 
   caseInstitutionSelect: document.getElementById("caseInstitutionSelect"),
@@ -105,6 +108,8 @@ const els = {
   btnDownloadSubmitFiles: document.getElementById("btnDownloadSubmitFiles"),
   submitRegistrationDate: document.getElementById("submitRegistrationDate"),
   submitRegistrationNumber: document.getElementById("submitRegistrationNumber"),
+  submitProgress: document.getElementById("submitProgress"),
+  submitProgressLabel: document.getElementById("submitProgressLabel"),
   submitText: document.getElementById("submitText"),
   submitInstitutionUrl: document.getElementById("submitInstitutionUrl"),
   submitInstitutionUrlPretty: document.getElementById("submitInstitutionUrlPretty"),
@@ -143,6 +148,22 @@ function formatDateForInput(date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const year = String(date.getFullYear());
   return `${day}.${month}.${year}`;
+}
+
+function normalizeDisplayDate(value) {
+  const raw = String(value || "").trim();
+
+  if (!raw) {
+    return "";
+  }
+
+  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch;
+    return `${day}.${month}.${year}`;
+  }
+
+  return maskDateInputValue(raw);
 }
 
 function maskDateInputValue(value) {
@@ -286,7 +307,7 @@ function normalizeVariableState(variables = {}) {
     }
 
     if (field.key === "complaint_date") {
-      normalized[field.key] = maskDateInputValue(normalized[field.key]);
+      normalized[field.key] = normalizeDisplayDate(normalized[field.key]);
     }
   }
 
@@ -878,7 +899,6 @@ async function saveCaseMeta() {
       await loadVariables().catch(() => {});
     }
 
-    alert("Карточка кейса сохранена");
   });
 }
 
@@ -1039,6 +1059,27 @@ function renderSubmit() {
   });
 }
 
+function setProgress(container, labelNode, visible, label) {
+  if (!container || !labelNode) {
+    return;
+  }
+
+  container.classList.toggle("hidden", !visible);
+  labelNode.textContent = label;
+}
+
+function setSubmitProgress(visible, label = "Подготовка отправки...") {
+  setProgress(els.submitProgress, els.submitProgressLabel, visible, label);
+}
+
+function setCreateCaseProgress(visible, label = "Создаём кейс...") {
+  setProgress(els.createCaseProgress, els.createCaseProgressLabel, visible, label);
+}
+
+function setFilesSyncProgress(visible, label = "Синхронизируем файлы...") {
+  setProgress(els.filesSyncProgress, els.filesSyncProgressLabel, visible, label);
+}
+
 function renderResultFiles() {
   if (!state.resultFiles.length) {
     els.resultFilesList.innerHTML = '<div class="notice">В папке result пока нет файлов.</div>';
@@ -1147,7 +1188,6 @@ async function downloadSubmitFiles() {
     await writable.close();
   }
 
-  alert(`Файлы сохранены в выбранную папку: ${files.length}`);
 }
 
 function triggerBrowserDownload(blob, filename) {
@@ -1192,23 +1232,23 @@ async function loadCases() {
 
 async function createCase() {
   return withButtonLoading(els.btnCreateCase, "Создание...", async () => {
-    const data = await api.createCase();
-    logRuntime("create case", data);
+    setCreateCaseProgress(true, "Создаём кейс и переносим файлы...");
+    try {
+      const data = await api.createCase();
+      logRuntime("create case", data);
 
-    await loadCases();
+      await loadCases();
 
-    const newCaseId = data?.case?.id || data?.id || null;
-    const newCaseNumber = data?.case?.case_number || data?.caseNumber || "новый кейс";
+      const newCaseId = data?.case?.id || data?.id || null;
 
-    if (newCaseId) {
-      alert(`Кейс создан: ${newCaseNumber}`);
-      await openCase(newCaseId);
-      setScreen("case-workspace");
-      setWorkspaceTab("variables");
-      return;
+      if (newCaseId) {
+        await openCase(newCaseId);
+        setScreen("case-workspace");
+        setWorkspaceTab("variables");
+      }
+    } finally {
+      setCreateCaseProgress(false);
     }
-
-    alert(`Кейс создан: ${newCaseNumber}`);
   });
 }
 
@@ -1233,11 +1273,9 @@ async function createInstitution() {
     if (state.editingInstitutionId) {
       data = await api.updateInstitution(state.editingInstitutionId, payload);
       logRuntime("update institution", data);
-      alert("Организация обновлена");
     } else {
       data = await api.createInstitution(payload);
       logRuntime("create institution", data);
-      alert("Организация создана");
     }
 
     resetInstitutionForm();
@@ -1267,11 +1305,9 @@ async function createTemplate() {
     if (state.editingTemplateId) {
       data = await api.updateTemplate(state.editingTemplateId, payload);
       logRuntime("update template", data);
-      alert("Шаблон обновлён");
     } else {
       data = await api.createTemplate(payload);
       logRuntime("create template", data);
-      alert("Шаблон создан");
     }
 
     resetTemplateForm();
@@ -1317,14 +1353,19 @@ async function reloadCurrentCase() {
 async function syncFiles() {
   if (!state.currentCaseId) return;
 
-  return withButtonLoading(els.btnSyncFiles, "Синхронизация...", async () => {
-    const data = await api.syncFiles(state.currentCaseId);
-    state.currentCase = { case: data.case, fsm: data.fsm };
-    state.currentCaseFiles = data.files || [];
-    state.submitData = null;
-    renderWorkspaceSummary();
-    renderWorkspaceFiles();
-    logRuntime("sync files", data);
+  return withButtonLoading(null, "Синхронизация...", async () => {
+    setFilesSyncProgress(true, "Синхронизируем файлы из incoming...");
+    try {
+      const data = await api.syncFiles(state.currentCaseId);
+      state.currentCase = { case: data.case, fsm: data.fsm };
+      state.currentCaseFiles = data.files || [];
+      state.submitData = null;
+      renderWorkspaceSummary();
+      renderWorkspaceFiles();
+      logRuntime("sync files", data);
+    } finally {
+      setFilesSyncProgress(false);
+    }
   });
 }
 
@@ -1351,7 +1392,6 @@ async function saveFiles() {
     renderWorkspaceSummary();
     renderWorkspaceFiles();
     logRuntime("save files", data);
-    alert("Выбор файлов сохранён");
   });
 }
 
@@ -1396,7 +1436,6 @@ async function saveVariables() {
   renderVariablesForm();
   logRuntime("save variables", data);
 
-  alert("Переменные сохранены");
   await reloadCurrentCase();
   setWorkspaceTab("text");
 }
@@ -1446,11 +1485,16 @@ async function buildPackage() {
   if (!state.currentCaseId) return;
 
   return withButtonLoading(null, "Сборка...", async () => {
-    const data = await api.buildPackage(state.currentCaseId);
-    state.currentCase = { case: data.case, fsm: data.fsm };
-    renderWorkspaceSummary();
-    logRuntime("build package", data);
-    await prepareSubmit();
+    setSubmitProgress(true, "Собираем пакет...");
+    try {
+      const data = await api.buildPackage(state.currentCaseId);
+      state.currentCase = { case: data.case, fsm: data.fsm };
+      renderWorkspaceSummary();
+      logRuntime("build package", data);
+      await prepareSubmit();
+    } finally {
+      setSubmitProgress(false);
+    }
   });
 }
 
@@ -1458,41 +1502,51 @@ async function openSubmitTab() {
   if (!state.currentCaseId) return;
 
   setWorkspaceTab("submit");
-  await buildPackage();
+  setSubmitProgress(true, "Подготавливаем отправку...");
+  try {
+    await buildPackage();
+  } finally {
+    setSubmitProgress(false);
+  }
 }
 
 async function prepareSubmit() {
   if (!state.currentCaseId) return;
 
   return withButtonLoading(null, "Подготовка...", async () => {
-    const data = await api.prepareSubmit(state.currentCaseId);
-    const preparedAt = new Date().toLocaleString("ru-RU");
-    state.submitData = {
-      text: data.text || "",
-      submitUrl: data.submitUrl || "",
-      files: data.files || [],
-      preparedAt
-    };
-    state.currentCase = { case: data.case, fsm: data.fsm };
-    state.currentCaseFiles = data.files?.map((file) => {
-      const existing = state.currentCaseFiles.find((item) => item.id === file.id);
-      return {
-        ...(existing || {}),
-        id: file.id,
-        file_name: file.fileName,
-        file_path: file.filePath,
-        mime_type: file.mimeType,
-        size_bytes: file.sizeBytes,
-        sort_order: file.sortOrder,
-        selected_for_submission: true
+    setSubmitProgress(true, "Перемещаем файлы и готовим отправку...");
+    try {
+      const data = await api.prepareSubmit(state.currentCaseId);
+      const preparedAt = new Date().toLocaleString("ru-RU");
+      state.submitData = {
+        text: data.text || "",
+        submitUrl: data.submitUrl || "",
+        files: data.files || [],
+        preparedAt
       };
-    }) || state.currentCaseFiles;
+      state.currentCase = { case: data.case, fsm: data.fsm };
+      state.currentCaseFiles = data.files?.map((file) => {
+        const existing = state.currentCaseFiles.find((item) => item.id === file.id);
+        return {
+          ...(existing || {}),
+          id: file.id,
+          file_name: file.fileName,
+          file_path: file.filePath,
+          mime_type: file.mimeType,
+          size_bytes: file.sizeBytes,
+          sort_order: file.sortOrder,
+          selected_for_submission: true
+        };
+      }) || state.currentCaseFiles;
 
-    renderWorkspaceSummary();
-    renderWorkspaceFiles();
-    renderSubmit();
-    await loadResultFiles().catch(() => {});
-    logRuntime("prepare submit", data);
+      renderWorkspaceSummary();
+      renderWorkspaceFiles();
+      renderSubmit();
+      await loadResultFiles().catch(() => {});
+      logRuntime("prepare submit", data);
+    } finally {
+      setSubmitProgress(false);
+    }
   });
 }
 
@@ -1514,7 +1568,6 @@ async function deleteCaseFromList(caseId, caseNumber) {
     setScreen("dashboard");
   }
 
-  alert(`Кейс удалён: ${caseNumber}`);
   await loadCases();
 }
 
@@ -1524,8 +1577,6 @@ async function saveCaseAsTemplate() {
   return withButtonLoading(els.btnSaveAsTemplate, "Сохранение...", async () => {
     const data = await api.saveCaseAsTemplate(state.currentCaseId);
     logRuntime("save case as template", data);
-
-    alert(`Создан новый шаблон: ${data?.template?.name || "без названия"}`);
 
     await loadTemplates();
   });
@@ -1538,7 +1589,6 @@ async function deleteInstitutionFromList(institutionId, institutionName) {
   const data = await api.deleteInstitution(institutionId);
   logRuntime("delete institution", data);
 
-  alert(`Организация удалена: ${institutionName}`);
   await loadInstitutions();
 }
 
@@ -1710,7 +1760,6 @@ async function deleteTemplateFromList(templateId, templateName) {
   const data = await api.deleteTemplate(templateId);
   logRuntime("delete template", data);
 
-  alert(`Шаблон удалён: ${templateName}`);
   await loadTemplates();
 }
 
