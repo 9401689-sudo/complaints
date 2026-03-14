@@ -1653,7 +1653,16 @@ if (els.casesSearchInput) {
   els.btnBuildPackage.addEventListener("click", () => handle(buildPackage));
   els.btnDownloadSubmitText.addEventListener("click", downloadSubmitText);
   els.btnCopySubmitText.addEventListener("click", () => handle(() => copyToClipboard(els.submitText.value, "Текст жалобы скопирован")));
-  els.btnCopySubmitUrl.addEventListener("click", () => handle(() => copyToClipboard(els.submitInstitutionUrl.value, "URL организации скопирован")));
+  els.btnCopySubmitUrl.addEventListener("click", () => handle(async () => {
+    const url = String(els.submitInstitutionUrl.value || "").trim();
+
+    if (!url) {
+      alert("URL организации пока пустой.");
+      return;
+    }
+
+    window.open(url, "_blank", "noopener,noreferrer");
+  }));
   els.btnDownloadSubmitFiles.addEventListener("click", () => handle(downloadSubmitFiles));
 }
 
