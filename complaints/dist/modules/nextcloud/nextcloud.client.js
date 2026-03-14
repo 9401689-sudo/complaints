@@ -45,6 +45,23 @@ async function mkcol(relativePath) {
     const body = await response.text().catch(() => '');
     throw new Error(`Nextcloud MKCOL failed (${response.status}): ${body}`);
 }
+async function pathExists(relativePath) {
+    const response = await fetch(buildDavPath(relativePath), {
+        method: 'PROPFIND',
+        headers: {
+            Authorization: getAuthHeader(),
+            Depth: '0'
+        }
+    });
+    if (response.status === 404) {
+        return false;
+    }
+    if (response.ok || response.status === 207) {
+        return true;
+    }
+    const body = await response.text().catch(() => '');
+    throw new Error(`Nextcloud PROPFIND failed (${response.status}): ${body}`);
+}
 function normalizeToArray(value) {
     if (!value)
         return [];
@@ -149,6 +166,10 @@ class NextcloudClient {
             });
         }
         return files;
+    }
+    async pathExists(filePath) {
+        requireNextcloudEnv();
+        return pathExists(filePath);
     }
     async uploadTextFile(filePath, content) {
         requireNextcloudEnv();

@@ -433,9 +433,13 @@ export class CasesService {
 
     for (const file of selectedFiles) {
       const targetPath = this.buildArtifactFilePath(caseRow.nextcloud_artifacts_folder, file.file_name);
+      const actualSourcePath = await this.resolveSelectedFileSourcePath(caseRow, file.file_path, file.file_name, targetPath);
+
+      if (actualSourcePath !== targetPath) {
+        await nextcloudClient.moveFile(actualSourcePath, targetPath);
+      }
 
       if (file.file_path !== targetPath) {
-        await nextcloudClient.moveFile(file.file_path, targetPath);
         movedFiles.push({
           id: file.id,
           nextPath: targetPath
@@ -718,6 +722,45 @@ export class CasesService {
 
   private buildArtifactFilePath(artifactsFolder: string, fileName: string): string {
     return `${artifactsFolder.replace(/\/+$/, '')}/${fileName}`;
+  }
+
+  private buildIncomingFilePath(incomingFolder: string, fileName: string): string {
+    return `${incomingFolder.replace(/\/+$/, '')}/${fileName}`;
+  }
+
+  private buildResultFilePath(resultFolder: string, fileName: string): string {
+    return `${resultFolder.replace(/\/+$/, '')}/${fileName}`;
+  }
+
+  private async resolveSelectedFileSourcePath(
+    caseRow: CaseRecord,
+    currentPath: string,
+    fileName: string,
+    artifactTargetPath: string
+  ): Promise<string> {
+    if (currentPath === artifactTargetPath) {
+      return artifactTargetPath;
+    }
+
+    if (await nextcloudClient.pathExists(currentPath)) {
+      return currentPath;
+    }
+
+    if (await nextcloudClient.pathExists(artifactTargetPath)) {
+      return artifactTargetPath;
+    }
+
+    const incomingPath = this.buildIncomingFilePath(caseRow.nextcloud_incoming_folder, fileName);
+    if (incomingPath !== currentPath && await nextcloudClient.pathExists(incomingPath)) {
+      return incomingPath;
+    }
+
+    const resultPath = this.buildResultFilePath(caseRow.nextcloud_result_folder, fileName);
+    if (await nextcloudClient.pathExists(resultPath)) {
+      return resultPath;
+    }
+
+    return currentPath;
   }
 
   private async getCaseFiles(caseId: string): Promise<CaseFileRow[]> {

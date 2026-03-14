@@ -284,8 +284,11 @@ class CasesService {
         const movedFiles = [];
         for (const file of selectedFiles) {
             const targetPath = this.buildArtifactFilePath(caseRow.nextcloud_artifacts_folder, file.file_name);
+            const actualSourcePath = await this.resolveSelectedFileSourcePath(caseRow, file.file_path, file.file_name, targetPath);
+            if (actualSourcePath !== targetPath) {
+                await nextcloud_client_1.nextcloudClient.moveFile(actualSourcePath, targetPath);
+            }
             if (file.file_path !== targetPath) {
-                await nextcloud_client_1.nextcloudClient.moveFile(file.file_path, targetPath);
                 movedFiles.push({
                     id: file.id,
                     nextPath: targetPath
@@ -502,6 +505,32 @@ class CasesService {
     }
     buildArtifactFilePath(artifactsFolder, fileName) {
         return `${artifactsFolder.replace(/\/+$/, '')}/${fileName}`;
+    }
+    buildIncomingFilePath(incomingFolder, fileName) {
+        return `${incomingFolder.replace(/\/+$/, '')}/${fileName}`;
+    }
+    buildResultFilePath(resultFolder, fileName) {
+        return `${resultFolder.replace(/\/+$/, '')}/${fileName}`;
+    }
+    async resolveSelectedFileSourcePath(caseRow, currentPath, fileName, artifactTargetPath) {
+        if (currentPath === artifactTargetPath) {
+            return artifactTargetPath;
+        }
+        if (await nextcloud_client_1.nextcloudClient.pathExists(currentPath)) {
+            return currentPath;
+        }
+        if (await nextcloud_client_1.nextcloudClient.pathExists(artifactTargetPath)) {
+            return artifactTargetPath;
+        }
+        const incomingPath = this.buildIncomingFilePath(caseRow.nextcloud_incoming_folder, fileName);
+        if (incomingPath !== currentPath && await nextcloud_client_1.nextcloudClient.pathExists(incomingPath)) {
+            return incomingPath;
+        }
+        const resultPath = this.buildResultFilePath(caseRow.nextcloud_result_folder, fileName);
+        if (await nextcloud_client_1.nextcloudClient.pathExists(resultPath)) {
+            return resultPath;
+        }
+        return currentPath;
     }
     async getCaseFiles(caseId) {
         const result = await postgres_1.postgres.query(`
