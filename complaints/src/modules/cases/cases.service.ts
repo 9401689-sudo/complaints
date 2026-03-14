@@ -844,7 +844,7 @@ export class CasesService {
   }
 
   private renderTemplate(template: string, variables: Record<string, unknown>): string {
-    return template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key: string) => {
+    const rendered = template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key: string) => {
       const value = variables[key];
 
       if (value === undefined || value === null) {
@@ -853,6 +853,8 @@ export class CasesService {
 
       return this.formatTemplateVariableValue(key, value);
     });
+
+    return this.collapseDuplicateDateSuffixes(rendered);
   }
 
   private restoreTemplateVariables(content: string, variables: Record<string, string>): string {
@@ -918,6 +920,13 @@ export class CasesService {
     }).format(date);
 
     return `${formatted} г.`;
+  }
+
+  private collapseDuplicateDateSuffixes(text: string): string {
+    return String(text ?? '').replace(
+      /(\d{1,2}\s+[А-Яа-яЁё]+\s+\d{4})\s*г\.\s*г\./g,
+      '$1 г.'
+    );
   }
   async updateCaseMeta(
     caseId: string,

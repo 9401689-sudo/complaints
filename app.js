@@ -265,6 +265,13 @@ function formatComplaintDate(value) {
   }).format(date) + " г.";
 }
 
+function collapseDuplicateDateSuffixes(text) {
+  return String(text || "").replace(
+    /(\d{1,2}\s+[А-Яа-яЁё]+\s+\d{4})\s*г\.\s*г\./g,
+    "$1 г."
+  );
+}
+
 function getRenderableVariableValue(field, variables) {
   const enabled = String(variables[field.enabledKey] ?? "true").toLowerCase() === "true";
 
@@ -599,7 +606,7 @@ function buildComputedTextPreview() {
     ...(state.variables || {})
   });
 
-  return template.body_template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key) => {
+  const rendered = template.body_template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key) => {
     const field = FIXED_VARIABLES.find((item) => item.key === key);
     if (field) {
       return getRenderableVariableValue(field, variables);
@@ -607,6 +614,8 @@ function buildComputedTextPreview() {
 
     return String(variables[key] ?? "");
   });
+
+  return collapseDuplicateDateSuffixes(rendered);
 }
 
 function getCaseStatusBadges(item) {
