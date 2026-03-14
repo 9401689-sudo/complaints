@@ -78,7 +78,6 @@ const els = {
   templateDefaultValues: document.getElementById("templateDefaultValues"),
 
   btnBackToCases: document.getElementById("btnBackToCases"),
-  btnReloadCase: document.getElementById("btnReloadCase"),
   workspaceTitle: document.getElementById("workspaceTitle"),
   workspaceSubtitle: document.getElementById("workspaceSubtitle"),
 
@@ -1728,13 +1727,6 @@ if (els.casesSearchInput) {
     setScreen("dashboard");
     await handle(loadCases);
   });
-  els.btnReloadCase.addEventListener("click", async () => {
-    if (state.currentWorkspaceTab === "submit") {
-      await handle(persistSubmitMetaIfNeeded);
-    }
-    await handle(reloadCurrentCase);
-  });
-
   els.btnSaveFilesSelection.addEventListener("click", () => handle(saveFiles));
   els.btnSaveVariables.addEventListener("click", () => handle(saveVariables));
   els.btnSaveText.addEventListener("click", () => handle(saveText));
