@@ -74,7 +74,6 @@ const els = {
   templateFormPanel: document.getElementById("templateFormPanel"),
   templatesList: document.getElementById("templatesList"),
   templateName: document.getElementById("templateName"),
-  templateInstitutionSelect: document.getElementById("templateInstitutionSelect"),
   templateBody: document.getElementById("templateBody"),
   templateVariablesSchema: document.getElementById("templateVariablesSchema"),
   templateDefaultValues: document.getElementById("templateDefaultValues"),
@@ -310,7 +309,6 @@ function resetInstitutionForm() {
 function resetTemplateForm() {
   state.editingTemplateId = null;
   els.templateName.value = "";
-  els.templateInstitutionSelect.value = "";
   els.templateBody.value = "";
   els.btnCreateTemplate.textContent = "Сохранить шаблон";
 }
@@ -332,7 +330,6 @@ function openInstitutionEdit(item) {
 function openTemplateEdit(item) {
   state.editingTemplateId = item.id;
   els.templateName.value = item.name || "";
-  els.templateInstitutionSelect.value = item.institution_id || "";
   els.templateBody.value = item.body_template || "";
   els.btnCreateTemplate.textContent = "Сохранить изменения";
   els.templateFormPanel.classList.remove("hidden");
@@ -648,7 +645,6 @@ function renderTemplates() {
           <div class="row-title">${escapeHtml(item.name)}</div>
           <div class="row-meta">${escapeHtml(item.id)}</div>
         </div>
-        <div>${escapeHtml(state.institutions.find((institution) => institution.id === item.institution_id)?.name || "—")}</div>
        <div class="actions">
          <button class="btn btn-primary" data-edit-template-id="${item.id}">Редактировать</button>
          <button class="btn btn-secondary" data-delete-template-id="${item.id}" data-delete-template-name="${escapeHtml(item.name)}">Удалить</button>
@@ -678,7 +674,6 @@ function fillInstitutionSelects() {
     .concat(state.institutions.map((item) => `<option value="${item.id}">${escapeHtml(item.name)}</option>`))
     .join("");
 
-  els.templateInstitutionSelect.innerHTML = options;
   els.caseInstitutionSelect.innerHTML = options;
 }
 
@@ -1140,7 +1135,7 @@ async function createTemplate() {
   return withButtonLoading(els.btnCreateTemplate, "Сохранение...", async () => {
     const payload = {
       name: els.templateName.value.trim(),
-      institutionId: els.templateInstitutionSelect.value || null,
+      institutionId: null,
       bodyTemplate: els.templateBody.value,
       variablesSchema: getTemplateVariablesSchema(),
       defaultValues: getDefaultTemplateValues()
