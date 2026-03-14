@@ -5,7 +5,6 @@ export interface TemplateRecord {
   body_template: string;
   variables_schema: unknown[];
   default_values: Record<string, unknown>;
-  active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -16,7 +15,6 @@ export interface CreateTemplateBody {
   bodyTemplate: string;
   variablesSchema?: unknown[];
   defaultValues?: Record<string, unknown>;
-  active?: boolean;
 }
 
 export interface UpdateTemplateBody {
@@ -25,5 +23,4 @@ export interface UpdateTemplateBody {
   bodyTemplate?: string;
   variablesSchema?: unknown[];
   defaultValues?: Record<string, unknown>;
-  active?: boolean;
 }

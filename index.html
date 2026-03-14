@@ -35,10 +35,18 @@
 </div>
           </div>
 <div class="panel">
-  <div class="form-grid">
-    <div class="field full">
+  <div class="form-grid cases-filters">
+    <div class="field">
       <label for="casesSearchInput">Поиск по кейсам</label>
       <input id="casesSearchInput" placeholder="Название, CASE-номер, организация, шаблон..." />
+    </div>
+    <div class="field">
+      <label for="casesInstitutionFilter">Организация</label>
+      <select id="casesInstitutionFilter"></select>
+    </div>
+    <div class="field filter-actions">
+      <label>&nbsp;</label>
+      <button class="btn btn-secondary" id="btnResetCaseFilters" type="button">Сбросить фильтры</button>
     </div>
   </div>
 </div>
@@ -86,9 +94,6 @@
               <div class="field full">
                 <label for="institutionAcceptedFormats">Форматы через запятую</label>
                 <input id="institutionAcceptedFormats" value="image/jpeg,image/png" />
-              </div>
-              <div class="field checkbox-field full">
-                <label><input id="institutionActive" type="checkbox" checked /> Активна</label>
               </div>
             </div>
 
@@ -140,9 +145,6 @@
                 <label for="templateBody">Текст шаблона</label>
                 <textarea id="templateBody"></textarea>
               </div>
-              <div class="field checkbox-field full">
-                <label><input id="templateActive" type="checkbox" checked /> Активен</label>
-              </div>
             </div>
 
             <div class="actions top-space">
@@ -193,6 +195,11 @@
     </div>
 
     <div class="field">
+      <label for="caseDate">Дата</label>
+      <input id="caseDate" placeholder="дд.мм.гггг" />
+    </div>
+
+    <div class="field">
       <label for="caseInstitutionSelect">Организация</label>
       <select id="caseInstitutionSelect"></select>
     </div>
@@ -211,8 +218,8 @@
   <button class="tab-btn active" data-tab="variables" type="button">Переменные</button>
   <button class="tab-btn" data-tab="text" type="button">Текст</button>
   <button class="tab-btn" data-tab="files" type="button">Файлы</button>
-  <button class="tab-btn" data-tab="package" type="button">Пакет подачи</button>
-  <button class="tab-btn" data-tab="submit" type="button" disabled>Отправка</button>
+  <button class="tab-btn" data-tab="submit" type="button">Отправка</button>
+  <button class="tab-btn hidden" data-tab="result" type="button">Результат</button>
 </div>
           <div class="workspace-tab-panel" data-tab-panel="variables">
             <div class="panel">
@@ -261,22 +268,24 @@
             </div>
           </div>
 
-          <div class="workspace-tab-panel hidden" data-tab-panel="package">
-            <div class="panel">
-              <div class="panel-header">
-                <h3>Пакет подачи</h3>
-                <div class="actions">
-                  <button class="btn btn-primary" id="btnBuildPackage">Подготовить отправку</button>
-                </div>
-              </div>
-              <div id="packageViewer" class="package-viewer"></div>
-            </div>
-          </div>
-
           <div class="workspace-tab-panel hidden" data-tab-panel="submit">
             <div class="panel">
               <div class="panel-header">
                 <h3>Отправка</h3>
+                <div class="actions">
+                  <button class="btn btn-primary" id="btnBuildPackage">Подготовить отправку</button>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="field">
+                  <label for="submitRegistrationDate">Дата регистрации</label>
+                  <input id="submitRegistrationDate" placeholder="дд.мм.гггг" />
+                </div>
+                <div class="field">
+                  <label for="submitRegistrationNumber">Номер</label>
+                  <input id="submitRegistrationNumber" />
+                </div>
               </div>
 
               <div class="submit-section">
@@ -303,6 +312,15 @@
                 </div>
                 <div id="submitFilesList" class="files-grid"></div>
               </div>
+            </div>
+          </div>
+
+          <div class="workspace-tab-panel hidden" data-tab-panel="result">
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Результат</h3>
+              </div>
+              <div id="resultFilesList" class="files-grid"></div>
             </div>
           </div>
         </section>

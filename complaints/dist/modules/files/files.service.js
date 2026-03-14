@@ -9,24 +9,26 @@ class FilesService {
     async getCaseFiles(caseId) {
         const result = await postgres_1.postgres.query(`
       select
-        id,
-        case_id,
-        file_path,
-        file_name,
-        mime_type,
-        size_bytes,
-        checksum,
-        preview_url,
-        selected_for_submission,
-        sort_order,
-        source_mtime,
-        created_at
-      from case_files
-      where case_id = $1
+        cf.id,
+        cf.case_id,
+        cf.file_path,
+        cf.file_name,
+        cf.mime_type,
+        cf.size_bytes,
+        cf.checksum,
+        cf.preview_url,
+        cf.selected_for_submission,
+        cf.sort_order,
+        cf.source_mtime,
+        cf.created_at
+      from case_files cf
+      join cases c on c.id = cf.case_id
+      where cf.case_id = $1
+        and not (cf.file_path like c.nextcloud_result_folder || '/%')
       order by
-        selected_for_submission desc,
-        sort_order asc nulls last,
-        created_at asc
+        cf.selected_for_submission desc,
+        cf.sort_order asc nulls last,
+        cf.created_at asc
       `, [caseId]);
         return result.rows;
     }
@@ -135,7 +137,7 @@ class FilesService {
                 if (existingFile &&
                     existingFile.selected_for_submission &&
                     !item.selected &&
-                    existingFile.file_path.startsWith(caseRow.nextcloud_result_folder.replace(/\/+$/, '') + '/')) {
+                    existingFile.file_path.startsWith(caseRow.nextcloud_artifacts_folder.replace(/\/+$/, '') + '/')) {
                     const incomingPath = `${caseRow.nextcloud_incoming_folder.replace(/\/+$/, '')}/${existingFile.file_name}`;
                     await nextcloud_client_1.nextcloudClient.moveFile(existingFile.file_path, incomingPath);
                     await postgres_1.postgres.query(`
@@ -180,6 +182,31 @@ class FilesService {
     }
     async upsertSyncedFiles(caseId, files) {
         for (const file of files) {
+            const updated = await postgres_1.postgres.query(`
+        update case_files
+        set
+          file_name = $3,
+          mime_type = $4,
+          size_bytes = $5,
+          checksum = $6,
+          preview_url = $7,
+          source_mtime = $8::timestamptz
+        where case_id = $1
+          and file_path = $2
+        returning id
+        `, [
+                caseId,
+                file.filePath,
+                file.fileName,
+                file.mimeType,
+                file.sizeBytes,
+                file.checksum ?? null,
+                file.previewUrl ?? null,
+                file.sourceMtime
+            ]);
+            if (updated.rows[0]) {
+                continue;
+            }
             await postgres_1.postgres.query(`
         insert into case_files (
           case_id,
@@ -192,7 +219,6 @@ class FilesService {
           source_mtime
         )
         values ($1, $2, $3, $4, $5, $6, $7, $8::timestamptz)
-        on conflict do nothing
         `, [
                 caseId,
                 file.filePath,
@@ -237,6 +263,98 @@ class FilesService {
       limit 1
       `, [caseId, fileId]);
         return result.rows[0] ?? null;
+    }
+    async syncResultFiles(caseId) {
+        const caseRow = await cases_service_1.casesService.getCaseById(caseId);
+        if (!caseRow) {
+            throw new Error('case not found');
+        }
+        const resultFiles = await nextcloud_client_1.nextcloudClient.listFiles(caseRow.nextcloud_result_folder);
+        await postgres_1.postgres.query('begin');
+        try {
+            const resultFolderPrefix = `${caseRow.nextcloud_result_folder.replace(/\/+$/, '')}/`;
+            const currentPaths = new Set(resultFiles.map((file) => file.filePath));
+            await postgres_1.postgres.query(`
+        delete from case_files
+        where case_id = $1
+          and file_path like $2
+          and file_path <> all($3::text[])
+        `, [caseId, `${resultFolderPrefix}%`, Array.from(currentPaths)]);
+            for (const file of resultFiles) {
+                const updated = await postgres_1.postgres.query(`
+          update case_files
+          set
+            file_name = $3,
+            mime_type = $4,
+            size_bytes = $5,
+            preview_url = $6,
+            source_mtime = $7::timestamptz,
+            selected_for_submission = false,
+            sort_order = 0
+          where case_id = $1
+            and file_path = $2
+          returning *
+          `, [
+                    caseId,
+                    file.filePath,
+                    file.fileName,
+                    file.mimeType,
+                    file.sizeBytes,
+                    file.previewUrl ?? null,
+                    file.sourceMtime
+                ]);
+                if (updated.rows[0]) {
+                    continue;
+                }
+                await postgres_1.postgres.query(`
+          insert into case_files (
+            case_id,
+            file_path,
+            file_name,
+            mime_type,
+            size_bytes,
+            preview_url,
+            source_mtime,
+            selected_for_submission,
+            sort_order
+          )
+          values ($1, $2, $3, $4, $5, $6, $7::timestamptz, false, 0)
+          `, [
+                    caseId,
+                    file.filePath,
+                    file.fileName,
+                    file.mimeType,
+                    file.sizeBytes,
+                    file.previewUrl ?? null,
+                    file.sourceMtime
+                ]);
+            }
+            const synced = await postgres_1.postgres.query(`
+        select
+          id,
+          case_id,
+          file_path,
+          file_name,
+          mime_type,
+          size_bytes,
+          checksum,
+          preview_url,
+          selected_for_submission,
+          sort_order,
+          source_mtime,
+          created_at
+        from case_files
+        where case_id = $1
+          and file_path like $2
+        order by created_at asc
+        `, [caseId, `${resultFolderPrefix}%`]);
+            await postgres_1.postgres.query('commit');
+            return synced.rows;
+        }
+        catch (error) {
+            await postgres_1.postgres.query('rollback');
+            throw error;
+        }
     }
 }
 exports.FilesService = FilesService;

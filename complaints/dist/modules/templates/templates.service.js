@@ -12,7 +12,6 @@ class TemplatesService {
         body_template,
         variables_schema,
         default_values,
-        active,
         created_at,
         updated_at
       from templates
@@ -29,7 +28,6 @@ class TemplatesService {
         body_template,
         variables_schema,
         default_values,
-        active,
         created_at,
         updated_at
       from templates
@@ -44,7 +42,6 @@ class TemplatesService {
         const institutionId = body.institutionId ?? null;
         const variablesSchema = body.variablesSchema ?? [];
         const defaultValues = body.defaultValues ?? {};
-        const active = body.active ?? true;
         if (!name) {
             throw new Error('name is required');
         }
@@ -65,10 +62,9 @@ class TemplatesService {
         institution_id,
         body_template,
         variables_schema,
-        default_values,
-        active
+        default_values
       )
-      values ($1, $2, $3, $4::jsonb, $5::jsonb, $6)
+      values ($1, $2, $3, $4::jsonb, $5::jsonb)
       returning
         id,
         name,
@@ -76,7 +72,6 @@ class TemplatesService {
         body_template,
         variables_schema,
         default_values,
-        active,
         created_at,
         updated_at
       `, [
@@ -85,7 +80,6 @@ class TemplatesService {
             bodyTemplate,
             JSON.stringify(variablesSchema),
             JSON.stringify(defaultValues),
-            active,
         ]);
         return result.rows[0];
     }
@@ -99,7 +93,6 @@ class TemplatesService {
         const bodyTemplate = body.bodyTemplate !== undefined ? body.bodyTemplate.trim() : existing.body_template;
         const variablesSchema = body.variablesSchema !== undefined ? body.variablesSchema : existing.variables_schema;
         const defaultValues = body.defaultValues !== undefined ? body.defaultValues : existing.default_values;
-        const active = body.active !== undefined ? body.active : existing.active;
         if (!name) {
             throw new Error('name is required');
         }
@@ -122,7 +115,6 @@ class TemplatesService {
         body_template = $4,
         variables_schema = $5::jsonb,
         default_values = $6::jsonb,
-        active = $7,
         updated_at = now()
       where id = $1
       returning
@@ -132,7 +124,6 @@ class TemplatesService {
         body_template,
         variables_schema,
         default_values,
-        active,
         created_at,
         updated_at
       `, [
@@ -142,7 +133,6 @@ class TemplatesService {
             bodyTemplate,
             JSON.stringify(variablesSchema),
             JSON.stringify(defaultValues),
-            active,
         ]);
         return result.rows[0];
     }

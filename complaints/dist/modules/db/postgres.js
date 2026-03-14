@@ -10,5 +10,6 @@ exports.pg = new pg_1.Pool({
     user: env_1.env.POSTGRES_USER,
     password: env_1.env.POSTGRES_PASSWORD,
     ssl: env_1.env.POSTGRES_SSL ? { rejectUnauthorized: false } : false,
+    options: env_1.env.POSTGRES_SCHEMA ? `-c search_path=${env_1.env.POSTGRES_SCHEMA},public` : undefined
 });
 exports.postgres = exports.pg;

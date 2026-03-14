@@ -1,4 +1,18 @@
+create schema if not exists complaints;
+set search_path to complaints, public;
+
 create extension if not exists "uuid-ossp";
+
+alter sequence if exists public.complaints_case_number_seq set schema complaints;
+alter function if exists public.next_case_number() set schema complaints;
+alter function if exists public.set_updated_at() set schema complaints;
+alter table if exists public.institutions set schema complaints;
+alter table if exists public.templates set schema complaints;
+alter table if exists public.cases set schema complaints;
+alter table if exists public.case_variables set schema complaints;
+alter table if exists public.case_files set schema complaints;
+alter table if exists public.case_artifacts set schema complaints;
+alter table if exists public.case_logs set schema complaints;
 
 create sequence if not exists complaints_case_number_seq start 1;
 
@@ -21,7 +35,6 @@ create table if not exists institutions (
   max_attachments integer not null default 5,
   max_text_length integer not null default 4000,
   accepted_formats jsonb not null default '["image/jpeg","image/png"]'::jsonb,
-  active boolean not null default true,
   created_at timestamptz not null default now()
 );
 
@@ -32,7 +45,6 @@ create table if not exists templates (
   body_template text not null,
   variables_schema jsonb not null default '[]'::jsonb,
   default_values jsonb not null default '{}'::jsonb,
-  active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -50,6 +62,8 @@ create table if not exists cases (
   nextcloud_result_folder text not null,
 
   submission_number text,
+  case_date text not null default to_char(now(), 'DD.MM.YYYY'),
+  registration_date text,
   submitted_at timestamptz,
 
   created_at timestamptz not null default now(),
@@ -58,6 +72,16 @@ create table if not exists cases (
 
 alter table cases add column if not exists title text;
 alter table cases add column if not exists description text;
+alter table cases add column if not exists case_date text;
+alter table cases alter column case_date set default to_char(now(), 'DD.MM.YYYY');
+update cases
+set case_date = to_char(created_at, 'DD.MM.YYYY')
+where coalesce(nullif(trim(case_date), ''), '') = '';
+alter table cases alter column case_date set not null;
+alter table cases add column if not exists registration_date text;
+
+alter table institutions drop column if exists active;
+alter table templates drop column if exists active;
 
 create table if not exists case_variables (
   id uuid primary key default uuid_generate_v4(),

@@ -9,12 +9,14 @@ const state = {
   templates: [],
   cases: [],
   casesSearch: "",
+  casesInstitutionFilter: "",
   variables: {},
-  packageData: null,
   submitData: null,
+  resultFiles: [],
   textContent: "",
   editingInstitutionId: null,
   editingTemplateId: null,
+  currentWorkspaceTab: "variables",
 };
 
 const FIXED_VARIABLES = [
@@ -50,6 +52,8 @@ const els = {
   btnRefreshCases: document.getElementById("btnRefreshCases"),
   btnCreateCase: document.getElementById("btnCreateCase"),
   casesList: document.getElementById("casesList"),
+  casesInstitutionFilter: document.getElementById("casesInstitutionFilter"),
+  btnResetCaseFilters: document.getElementById("btnResetCaseFilters"),
 
   btnRefreshInstitutions: document.getElementById("btnRefreshInstitutions"),
   btnToggleInstitutionForm: document.getElementById("btnToggleInstitutionForm"),
@@ -63,7 +67,6 @@ const els = {
   institutionMaxAttachments: document.getElementById("institutionMaxAttachments"),
   institutionMaxTextLength: document.getElementById("institutionMaxTextLength"),
   institutionAcceptedFormats: document.getElementById("institutionAcceptedFormats"),
-  institutionActive: document.getElementById("institutionActive"),
 
   btnRefreshTemplates: document.getElementById("btnRefreshTemplates"),
   btnToggleTemplateForm: document.getElementById("btnToggleTemplateForm"),
@@ -75,7 +78,6 @@ const els = {
   templateBody: document.getElementById("templateBody"),
   templateVariablesSchema: document.getElementById("templateVariablesSchema"),
   templateDefaultValues: document.getElementById("templateDefaultValues"),
-  templateActive: document.getElementById("templateActive"),
 
   btnBackToCases: document.getElementById("btnBackToCases"),
   btnReloadCase: document.getElementById("btnReloadCase"),
@@ -94,6 +96,7 @@ const els = {
 
   caseTitle: document.getElementById("caseTitle"),
   caseDescription: document.getElementById("caseDescription"),
+  caseDate: document.getElementById("caseDate"),
   btnSaveCaseMeta: document.getElementById("btnSaveCaseMeta"),
 
   btnSaveText: document.getElementById("btnSaveText"),
@@ -101,14 +104,16 @@ const els = {
   textVariableToolbar: document.getElementById("textVariableToolbar"),
 
   btnBuildPackage: document.getElementById("btnBuildPackage"),
-  packageViewer: document.getElementById("packageViewer"),
   btnCopySubmitText: document.getElementById("btnCopySubmitText"),
   btnCopySubmitUrl: document.getElementById("btnCopySubmitUrl"),
   btnDownloadSubmitFiles: document.getElementById("btnDownloadSubmitFiles"),
+  submitRegistrationDate: document.getElementById("submitRegistrationDate"),
+  submitRegistrationNumber: document.getElementById("submitRegistrationNumber"),
   submitText: document.getElementById("submitText"),
   submitInstitutionUrl: document.getElementById("submitInstitutionUrl"),
   submitInstitutionUrlPretty: document.getElementById("submitInstitutionUrlPretty"),
   submitFilesList: document.getElementById("submitFilesList"),
+  resultFilesList: document.getElementById("resultFilesList"),
 
   imageModal: document.getElementById("imageModal"),
   imageModalBackdrop: document.getElementById("imageModalBackdrop"),
@@ -236,6 +241,16 @@ function updateDeviceMode() {
   document.body.classList.toggle("is-mobile", isMobileViewport());
 }
 
+function saveCaseFiltersToSession() {
+  sessionStorage.setItem("complaints_cases_search", state.casesSearch || "");
+  sessionStorage.setItem("complaints_cases_institution_filter", state.casesInstitutionFilter || "");
+}
+
+function loadCaseFiltersFromSession() {
+  state.casesSearch = sessionStorage.getItem("complaints_cases_search") || "";
+  state.casesInstitutionFilter = sessionStorage.getItem("complaints_cases_institution_filter") || "";
+}
+
 function setScreen(name) {
   state.currentScreen = name;
   els.screens.forEach((screen) => {
@@ -247,9 +262,7 @@ function setScreen(name) {
 }
 
 function setWorkspaceTab(name) {
-  if (name === "submit" && !canOpenSubmitTab()) {
-    return;
-  }
+  state.currentWorkspaceTab = name;
 
   els.tabButtons.forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.tab === name);
@@ -260,17 +273,28 @@ function setWorkspaceTab(name) {
 }
 
 function canOpenSubmitTab() {
-  return Boolean(state.submitData?.preparedAt);
+  return true;
 }
 
 function updateWorkspaceTabAvailability() {
+  const hasResultFiles = state.resultFiles.length > 0;
+  let switchedTab = false;
+
+  if (!hasResultFiles && state.currentWorkspaceTab === "result") {
+    state.currentWorkspaceTab = "submit";
+    switchedTab = true;
+  }
+
   els.tabButtons.forEach((btn) => {
-    if (btn.dataset.tab === "submit") {
-      btn.disabled = !canOpenSubmitTab();
-    } else {
-      btn.disabled = false;
+    btn.disabled = false;
+    if (btn.dataset.tab === "result") {
+      btn.classList.toggle("hidden", !hasResultFiles);
     }
   });
+
+  if (switchedTab) {
+    setWorkspaceTab("submit");
+  }
 }
 
 function resetInstitutionForm() {
@@ -280,7 +304,6 @@ function resetInstitutionForm() {
   els.institutionMaxAttachments.value = "5";
   els.institutionMaxTextLength.value = "4000";
   els.institutionAcceptedFormats.value = "image/jpeg,image/png";
-  els.institutionActive.checked = true;
   els.btnCreateInstitution.textContent = "Сохранить организацию";
 }
 
@@ -289,7 +312,6 @@ function resetTemplateForm() {
   els.templateName.value = "";
   els.templateInstitutionSelect.value = "";
   els.templateBody.value = "";
-  els.templateActive.checked = true;
   els.btnCreateTemplate.textContent = "Сохранить шаблон";
 }
 
@@ -302,7 +324,6 @@ function openInstitutionEdit(item) {
   els.institutionAcceptedFormats.value = Array.isArray(item.accepted_formats)
     ? item.accepted_formats.join(",")
     : "image/jpeg,image/png";
-  els.institutionActive.checked = Boolean(item.active);
   els.btnCreateInstitution.textContent = "Сохранить изменения";
   els.institutionFormPanel.classList.remove("hidden");
   setScreen("institutions");
@@ -313,7 +334,6 @@ function openTemplateEdit(item) {
   els.templateName.value = item.name || "";
   els.templateInstitutionSelect.value = item.institution_id || "";
   els.templateBody.value = item.body_template || "";
-  els.templateActive.checked = Boolean(item.active);
   els.btnCreateTemplate.textContent = "Сохранить изменения";
   els.templateFormPanel.classList.remove("hidden");
   setScreen("templates");
@@ -447,6 +467,14 @@ function bindPreviewOpeners(root = document) {
       openImageModal(getPreviewUrl(state.currentCaseId, file.id), file.mime_type, file.file_name, file.id);
     });
   });
+
+  root.querySelectorAll("[data-result-preview-file-id]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const file = state.resultFiles.find((item) => item.id === node.dataset.resultPreviewFileId);
+      if (!file) return;
+      openImageModal(getPreviewUrl(state.currentCaseId, file.id), file.mime_type, file.file_name, null);
+    });
+  });
 }
 
 function syncModalSelectionState(fileId, selected) {
@@ -501,8 +529,13 @@ function getCaseStatusBadges(item) {
 
 function renderCases() {
   const query = (state.casesSearch || "").trim().toLowerCase();
+  const institutionFilter = state.casesInstitutionFilter || "";
 
   const filteredCases = state.cases.filter((item) => {
+    if (institutionFilter && item.institution_id !== institutionFilter) {
+      return false;
+    }
+
     if (!query) return true;
 
     const haystack = [
@@ -546,8 +579,8 @@ function renderCases() {
           <div>${escapeHtml(item.template_name || "—")}</div>
         </div>
         <div>
-          <div class="row-meta">updated_at</div>
-          <div>${escapeHtml(item.updated_at || "—")}</div>
+          <div class="row-meta">Дата</div>
+          <div>${escapeHtml(item.case_date || "—")}</div>
         </div>
         <div class="actions">
           <button class="btn btn-primary" data-open-case-id="${item.id}">Открыть</button>
@@ -574,13 +607,12 @@ function renderInstitutions() {
     els.institutionsList.innerHTML = '<div class="notice">Организаций пока нет.</div>';
   } else {
     els.institutionsList.innerHTML = state.institutions.map((item) => `
-      <div class="table-row compact-4">
+      <div class="table-row compact-3">
         <div>
           <div class="row-title">${escapeHtml(item.name)}</div>
           <div class="row-meta">${escapeHtml(item.id)}</div>
         </div>
         <div>${escapeHtml(item.submit_url)}</div>
-        <div>${item.active ? "active" : "inactive"}</div>
         <div class="actions">
           <button class="btn btn-primary" data-edit-institution-id="${item.id}">Редактировать</button>
           <button class="btn btn-secondary" data-delete-institution-id="${item.id}" data-delete-institution-name="${escapeHtml(item.name)}">Удалить</button>
@@ -603,6 +635,7 @@ function renderInstitutions() {
 });
 
   fillInstitutionSelects();
+  renderCaseFilters();
 }
 
 function renderTemplates() {
@@ -610,13 +643,12 @@ function renderTemplates() {
     els.templatesList.innerHTML = '<div class="notice">Шаблонов пока нет.</div>';
   } else {
     els.templatesList.innerHTML = state.templates.map((item) => `
-      <div class="table-row compact-4">
+      <div class="table-row compact-3">
         <div>
           <div class="row-title">${escapeHtml(item.name)}</div>
           <div class="row-meta">${escapeHtml(item.id)}</div>
         </div>
-        <div>${escapeHtml(item.institution_id || "—")}</div>
-        <div>${item.active ? "active" : "inactive"}</div>
+        <div>${escapeHtml(state.institutions.find((institution) => institution.id === item.institution_id)?.name || "—")}</div>
        <div class="actions">
          <button class="btn btn-primary" data-edit-template-id="${item.id}">Редактировать</button>
          <button class="btn btn-secondary" data-delete-template-id="${item.id}" data-delete-template-name="${escapeHtml(item.name)}">Удалить</button>
@@ -720,17 +752,16 @@ async function saveCaseMeta() {
     const previousTemplateId = state.currentCase?.case?.template_id || null;
     const metaPayload = {
       title: els.caseTitle.value.trim(),
-      description: els.caseDescription.value.trim()
+      description: els.caseDescription.value.trim(),
+      caseDate: els.caseDate.value.trim()
     };
     const configPayload = {
       institutionId: els.caseInstitutionSelect.value || null,
       templateId: els.caseTemplateSelect.value || null
     };
 
-    const [metaData, configData] = await Promise.all([
-      api.updateCaseMeta(state.currentCaseId, metaPayload),
-      api.updateCaseConfig(state.currentCaseId, configPayload)
-    ]);
+    const configData = await api.updateCaseConfig(state.currentCaseId, configPayload);
+    const metaData = await api.updateCaseMeta(state.currentCaseId, metaPayload);
 
     logRuntime("save case meta", metaData);
     logRuntime("save case config", configData);
@@ -748,6 +779,16 @@ async function saveCaseMeta() {
   });
 }
 
+function renderCaseFilters() {
+  const options = ['<option value="">Все организации</option>']
+    .concat(state.institutions.map((item) => `<option value="${item.id}">${escapeHtml(item.name)}</option>`))
+    .join("");
+
+  els.casesInstitutionFilter.innerHTML = options;
+  els.casesInstitutionFilter.value = state.casesInstitutionFilter || "";
+  els.casesSearchInput.value = state.casesSearch || "";
+}
+
 function renderWorkspaceSummary() {
   const caseData = state.currentCase?.case || {};
 
@@ -763,6 +804,7 @@ function renderWorkspaceSummary() {
   els.caseTitle.value = caseData.title || "";
   els.caseDescription.value = caseData.description || "";
   els.caseNumberReadonly.value = caseData.case_number || "";
+  els.caseDate.value = caseData.case_date || "";
   updateWorkspaceTabAvailability();
   renderVariablesForm();
 }
@@ -831,46 +873,6 @@ function renderText() {
   els.caseTextEditor.value = state.textContent || "";
 }
 
-function renderPackage() {
-  const packageData = state.packageData || {};
-  const attachments = Array.isArray(packageData.attachments) ? packageData.attachments : [];
-  const institution = state.institutions.find((item) => item.id === packageData?.case?.institutionId);
-  const template = state.templates.find((item) => item.id === packageData?.case?.templateId);
-
-  if (!packageData.case) {
-    els.packageViewer.innerHTML = '<div class="notice">Пакет ещё не собран.</div>';
-    return;
-  }
-
-  els.packageViewer.innerHTML = `
-    <div class="package-section">
-      <h4>Основная информация</h4>
-      <div class="package-grid">
-        <div class="package-item"><div class="summary-label">Кейс</div><div class="summary-value">${escapeHtml(packageData.case.caseNumber || "—")}</div></div>
-        <div class="package-item"><div class="summary-label">Организация</div><div class="summary-value">${escapeHtml(institution?.name || "—")}</div></div>
-        <div class="package-item"><div class="summary-label">Шаблон</div><div class="summary-value">${escapeHtml(template?.name || "—")}</div></div>
-        <div class="package-item"><div class="summary-label">Выбрано файлов</div><div class="summary-value">${attachments.length}</div></div>
-      </div>
-    </div>
-    <div class="package-section">
-      <h4>Текст жалобы</h4>
-      <div class="package-item">${escapeHtml(shorten(packageData?.text?.content || "", 700))}</div>
-    </div>
-    <div class="package-section">
-      <h4>Вложения</h4>
-      <div class="package-grid">
-        ${attachments.map((item) => `
-          <div class="package-item">
-            <div class="row-title">${escapeHtml(item.fileName || "unnamed")}</div>
-            <div class="row-meta">${escapeHtml(item.mimeType || "unknown")} · ${item.sizeBytes || 0} bytes</div>
-            <div class="row-meta">${escapeHtml(item.filePath || "")}</div>
-          </div>
-        `).join("") || '<div class="notice">Вложений нет.</div>'}
-      </div>
-    </div>
-  `;
-}
-
 function formatUrlPreview(value, max = 88) {
   const url = String(value || "").trim();
   if (!url) return "—";
@@ -887,7 +889,10 @@ function formatUrlPreview(value, max = 88) {
 function renderSubmit() {
   const submit = state.submitData || {};
   const files = Array.isArray(submit.files) ? submit.files : [];
+  const caseData = state.currentCase?.case || {};
 
+  els.submitRegistrationDate.value = caseData.registration_date || "";
+  els.submitRegistrationNumber.value = caseData.submission_number || "";
   els.submitText.value = submit.text || "";
   els.submitInstitutionUrl.value = submit.submitUrl || "";
   els.submitInstitutionUrlPretty.textContent = submit.submitUrl
@@ -932,6 +937,34 @@ function renderSubmit() {
   });
 }
 
+function renderResultFiles() {
+  if (!state.resultFiles.length) {
+    els.resultFilesList.innerHTML = '<div class="notice">В папке result пока нет файлов.</div>';
+    return;
+  }
+
+  els.resultFilesList.innerHTML = state.resultFiles.map((file) => `
+    <div class="file-card">
+      ${getPreviewMarkup(file, { attrName: "data-result-preview-file-id" })}
+      <div class="file-card-main">
+        <div class="row-title">${escapeHtml(file.file_name || "unnamed")}</div>
+        <div class="row-meta">${escapeHtml(file.mime_type || "unknown")} · ${file.size_bytes || 0} bytes</div>
+        <div class="row-meta">${escapeHtml(file.file_path || "")}</div>
+      </div>
+      <div class="file-card-controls">
+        <button class="btn btn-secondary" data-download-result-file-id="${file.id}" data-download-result-file-name="${escapeHtml(file.file_name || "file.bin")}">Скачать</button>
+      </div>
+    </div>
+  `).join("");
+
+  bindPreviewOpeners(els.resultFilesList);
+  els.resultFilesList.querySelectorAll("[data-download-result-file-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      handle(() => downloadSubmitFile(button.dataset.downloadResultFileId, button.dataset.downloadResultFileName));
+    });
+  });
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -950,6 +983,32 @@ function sanitizeFilename(value, fallback = "download.bin") {
   const name = String(value || "").trim();
   const cleaned = name.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").replace(/\s+$/g, "");
   return cleaned || fallback;
+}
+
+async function persistSubmitMetaIfNeeded() {
+  if (!state.currentCaseId) return;
+
+  const caseData = state.currentCase?.case || {};
+  const nextRegistrationDate = (els.submitRegistrationDate?.value || "").trim();
+  const nextSubmissionNumber = (els.submitRegistrationNumber?.value || "").trim();
+
+  if (
+    (caseData.registration_date || "") === nextRegistrationDate &&
+    (caseData.submission_number || "") === nextSubmissionNumber
+  ) {
+    return;
+  }
+
+  const data = await api.updateCaseMeta(state.currentCaseId, {
+    registrationDate: nextRegistrationDate,
+    submissionNumber: nextSubmissionNumber
+  });
+
+  state.currentCase = {
+    ...(state.currentCase || {}),
+    case: data.case
+  };
+  renderWorkspaceSummary();
 }
 
 async function downloadSubmitFiles() {
@@ -1008,6 +1067,7 @@ async function downloadSubmitFile(fileId, fallbackName) {
 async function loadCases() {
   const data = await api.listCases();
   state.cases = data.cases || [];
+  renderCaseFilters();
   renderCases();
   logRuntime("list cases", data);
 }
@@ -1049,7 +1109,6 @@ async function createInstitution() {
       maxAttachments: Number(els.institutionMaxAttachments.value || 5),
       maxTextLength: Number(els.institutionMaxTextLength.value || 4000),
       acceptedFormats: els.institutionAcceptedFormats.value.split(",").map((x) => x.trim()).filter(Boolean),
-      active: els.institutionActive.checked
     };
 
     let data;
@@ -1084,8 +1143,7 @@ async function createTemplate() {
       institutionId: els.templateInstitutionSelect.value || null,
       bodyTemplate: els.templateBody.value,
       variablesSchema: getTemplateVariablesSchema(),
-      defaultValues: getDefaultTemplateValues(),
-      active: els.templateActive.checked
+      defaultValues: getDefaultTemplateValues()
     };
 
     let data;
@@ -1111,15 +1169,16 @@ async function openCase(caseId) {
   state.currentCase = data;
   state.currentCaseFiles = data.files || [];
   state.variables = {};
-  state.packageData = null;
   state.submitData = null;
+  state.resultFiles = [];
   state.textContent = "";
 
   renderWorkspaceSummary();
   renderWorkspaceFiles();
   renderText();
-  renderPackage();
   renderSubmit();
+  renderResultFiles();
+  await loadResultFiles().catch(() => {});
 
   setScreen("case-workspace");
   setWorkspaceTab("variables");
@@ -1250,19 +1309,23 @@ async function saveText() {
   await reloadCurrentCase();
 }
 
+async function loadResultFiles() {
+  if (!state.currentCaseId) return;
+
+  const data = await api.getResultFiles(state.currentCaseId);
+  state.resultFiles = data.files || [];
+  renderResultFiles();
+  updateWorkspaceTabAvailability();
+}
+
 async function buildPackage() {
   if (!state.currentCaseId) return;
 
   return withButtonLoading(els.btnBuildPackage, "Сборка...", async () => {
     const data = await api.buildPackage(state.currentCaseId);
-    state.packageData = data.package || {};
     state.currentCase = { case: data.case, fsm: data.fsm };
-
     renderWorkspaceSummary();
-    renderPackage();
     logRuntime("build package", data);
-
-    alert("Пакет собран");
     await prepareSubmit();
     setWorkspaceTab("submit");
   });
@@ -1298,6 +1361,7 @@ async function prepareSubmit() {
     renderWorkspaceSummary();
     renderWorkspaceFiles();
     renderSubmit();
+    await loadResultFiles().catch(() => {});
     logRuntime("prepare submit", data);
   });
 }
@@ -1314,8 +1378,8 @@ async function deleteCaseFromList(caseId, caseNumber) {
     state.currentCase = null;
     state.currentCaseFiles = [];
     state.variables = {};
-    state.packageData = null;
     state.submitData = null;
+    state.resultFiles = [];
     state.textContent = "";
     setScreen("dashboard");
   }
@@ -1372,6 +1436,9 @@ async function withButtonLoading(button, loadingText, fn) {
 function bindEvents() {
   els.navButtons.forEach((btn) => {
     btn.addEventListener("click", async () => {
+      if (state.currentScreen === "case-workspace" && state.currentWorkspaceTab === "submit") {
+        await handle(persistSubmitMetaIfNeeded);
+      }
       setScreen(btn.dataset.screen);
       if (btn.dataset.screen === "dashboard") await loadCases();
       if (btn.dataset.screen === "institutions") await loadInstitutions();
@@ -1396,14 +1463,31 @@ function bindEvents() {
 if (els.casesSearchInput) {
   els.casesSearchInput.addEventListener("input", (event) => {
     state.casesSearch = event.target.value || "";
+    saveCaseFiltersToSession();
     renderCases();
   });
 }
+  els.casesInstitutionFilter.addEventListener("change", (event) => {
+    state.casesInstitutionFilter = event.target.value || "";
+    saveCaseFiltersToSession();
+    renderCases();
+  });
+  els.btnResetCaseFilters.addEventListener("click", () => {
+    state.casesSearch = "";
+    state.casesInstitutionFilter = "";
+    saveCaseFiltersToSession();
+    renderCaseFilters();
+    renderCases();
+  });
   els.tabButtons.forEach((btn) => {
     btn.addEventListener("click", async () => {
+      if (state.currentWorkspaceTab === "submit" && btn.dataset.tab !== "submit") {
+        await handle(persistSubmitMetaIfNeeded);
+      }
       setWorkspaceTab(btn.dataset.tab);
       if (btn.dataset.tab === "variables") await loadVariables().catch(() => {});
       if (btn.dataset.tab === "text") await loadText().catch(() => {});
+      if (btn.dataset.tab === "result") await loadResultFiles().catch(() => {});
     });
   });
 
@@ -1437,10 +1521,18 @@ if (els.casesSearchInput) {
   els.btnCreateTemplate.addEventListener("click", () => handle(createTemplate));
 
   els.btnBackToCases.addEventListener("click", async () => {
+    if (state.currentWorkspaceTab === "submit") {
+      await handle(persistSubmitMetaIfNeeded);
+    }
     setScreen("dashboard");
     await handle(loadCases);
   });
-  els.btnReloadCase.addEventListener("click", () => handle(reloadCurrentCase));
+  els.btnReloadCase.addEventListener("click", async () => {
+    if (state.currentWorkspaceTab === "submit") {
+      await handle(persistSubmitMetaIfNeeded);
+    }
+    await handle(reloadCurrentCase);
+  });
 
   els.btnSyncFiles.addEventListener("click", () => handle(syncFiles));
   els.btnSaveFilesSelection.addEventListener("click", () => handle(saveFiles));
@@ -1477,6 +1569,7 @@ async function bootstrap() {
   renderVariableToolbar(els.textVariableToolbar, els.caseTextEditor, "value");
   updateDeviceMode();
   window.addEventListener("resize", updateDeviceMode);
+  loadCaseFiltersFromSession();
   bindEvents();
   await loadInstitutions();
   await loadTemplates();

@@ -82,6 +82,35 @@ export async function registerFilesRoutes(app: FastifyInstance): Promise<void> {
       }
     }
   );
+  app.get<{ Params: { id: string } }>(
+    `${env.API_BASE_PATH}/cases/:id/result-files`,
+    async (request, reply) => {
+      try {
+        const files = await filesService.syncResultFiles(request.params.id);
+
+        return reply.send({
+          ok: true,
+          files
+        });
+      } catch (error) {
+        request.log.error(error);
+
+        const message = error instanceof Error ? error.message : 'internal error';
+        const statusCode =
+          message === 'case not found'
+            ? 404
+            : message.startsWith('Nextcloud PROPFIND failed')
+              ? 502
+              : 500;
+
+        return reply.code(statusCode).send({
+          ok: false,
+          error: message
+        });
+      }
+    }
+  );
+
   app.get<{ Params: { id: string; fileId: string } }>(
     `${env.API_BASE_PATH}/cases/:id/files/:fileId/preview`,
     async (request, reply) => {

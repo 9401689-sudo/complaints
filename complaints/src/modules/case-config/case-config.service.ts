@@ -67,6 +67,8 @@ export class CaseConfigService {
         nextcloud_incoming_folder,
         nextcloud_artifacts_folder,
         nextcloud_result_folder,
+        case_date,
+        registration_date,
         submission_number,
         submitted_at,
         created_at,

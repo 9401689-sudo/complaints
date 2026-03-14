@@ -5,7 +5,6 @@ export interface InstitutionRecord {
   max_attachments: number;
   max_text_length: number;
   accepted_formats: string[];
-  active: boolean;
   created_at: string;
 }
 
@@ -15,7 +14,6 @@ export interface CreateInstitutionBody {
   maxAttachments?: number;
   maxTextLength?: number;
   acceptedFormats?: string[];
-  active?: boolean;
 }
 
 export interface UpdateInstitutionBody {
@@ -24,5 +22,4 @@ export interface UpdateInstitutionBody {
   maxAttachments?: number;
   maxTextLength?: number;
   acceptedFormats?: string[];
-  active?: boolean;
 }

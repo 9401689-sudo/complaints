@@ -36,7 +36,16 @@ export async function registerCasesRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
-  app.patch<{ Params: { id: string }; Body: { title?: string | null; description?: string | null } }>(
+  app.patch<{
+    Params: { id: string };
+    Body: {
+      title?: string | null;
+      description?: string | null;
+      caseDate?: string | null;
+      registrationDate?: string | null;
+      submissionNumber?: string | null;
+    };
+  }>(
     `${env.API_BASE_PATH}/cases/:id/meta`,
     async (request, reply) => {
       try {

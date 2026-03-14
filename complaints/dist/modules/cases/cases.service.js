@@ -17,9 +17,10 @@ class CasesService {
         nextcloud_case_folder,
         nextcloud_incoming_folder,
         nextcloud_artifacts_folder,
-        nextcloud_result_folder
+        nextcloud_result_folder,
+        case_date
       )
-      values ($1, $2, $3, $4, $5, $6, $7)
+      values ($1, $2, $3, $4, $5, $6, $7, to_char(now(), 'DD.MM.YYYY'))
       returning *
       `, [
             caseNumber,
@@ -282,7 +283,7 @@ class CasesService {
         }
         const movedFiles = [];
         for (const file of selectedFiles) {
-            const targetPath = this.buildResultFilePath(caseRow.nextcloud_result_folder, file.file_name);
+            const targetPath = this.buildArtifactFilePath(caseRow.nextcloud_artifacts_folder, file.file_name);
             if (file.file_path !== targetPath) {
                 await nextcloud_client_1.nextcloudClient.moveFile(file.file_path, targetPath);
                 movedFiles.push({
@@ -324,7 +325,7 @@ class CasesService {
         await this.logCaseAction(caseId, 'submit.prepared', {
             movedFilesCount: movedFiles.length,
             movedFileIds: movedFiles.map((file) => file.id),
-            resultFolder: caseRow.nextcloud_result_folder
+            artifactsFolder: caseRow.nextcloud_artifacts_folder
         });
         return {
             case: caseRow,
@@ -356,6 +357,8 @@ class CasesService {
         c.nextcloud_incoming_folder,
         c.nextcloud_artifacts_folder,
         c.nextcloud_result_folder,
+        c.case_date,
+        c.registration_date,
         c.submission_number,
         c.submitted_at,
         c.created_at,
@@ -365,7 +368,9 @@ class CasesService {
       from cases c
       left join institutions i on i.id = c.institution_id
       left join templates t on t.id = c.template_id
-      order by c.created_at desc
+      order by
+        coalesce(to_date(nullif(c.case_date, ''), 'DD.MM.YYYY'), c.created_at::date) desc,
+        c.created_at desc
       `);
         return result.rows;
     }
@@ -397,10 +402,9 @@ class CasesService {
         institution_id,
         body_template,
         variables_schema,
-        default_values,
-        active
+        default_values
       )
-      values ($1, $2, $3, $4::jsonb, $5::jsonb, $6)
+      values ($1, $2, $3, $4::jsonb, $5::jsonb)
       returning
         id,
         name,
@@ -408,7 +412,6 @@ class CasesService {
         body_template,
         variables_schema,
         default_values,
-        active,
         created_at,
         updated_at
       `, [
@@ -424,8 +427,7 @@ class CasesService {
                 complaint_date: '',
                 address: '',
                 license_plate: ''
-            }),
-            true
+            })
         ]);
         const template = result.rows[0];
         await this.logCaseAction(caseId, 'template.created.from_case', {
@@ -455,7 +457,6 @@ class CasesService {
       select *
       from templates
       where id = $1
-        and active = true
       limit 1
       `, [templateId]);
         return result.rows[0] ?? null;
@@ -499,27 +500,29 @@ class CasesService {
       `, [caseId]);
         return result.rows;
     }
-    buildResultFilePath(resultFolder, fileName) {
-        return `${resultFolder.replace(/\/+$/, '')}/${fileName}`;
+    buildArtifactFilePath(artifactsFolder, fileName) {
+        return `${artifactsFolder.replace(/\/+$/, '')}/${fileName}`;
     }
     async getCaseFiles(caseId) {
         const result = await postgres_1.postgres.query(`
       select
-        id,
-        case_id,
-        file_path,
-        file_name,
-        mime_type,
-        size_bytes,
-        checksum,
-        preview_url,
-        selected_for_submission,
-        sort_order,
-        source_mtime,
-        created_at
-      from case_files
-      where case_id = $1
-      order by selected_for_submission desc, sort_order asc nulls last, created_at asc
+        cf.id,
+        cf.case_id,
+        cf.file_path,
+        cf.file_name,
+        cf.mime_type,
+        cf.size_bytes,
+        cf.checksum,
+        cf.preview_url,
+        cf.selected_for_submission,
+        cf.sort_order,
+        cf.source_mtime,
+        cf.created_at
+      from case_files cf
+      join cases c on c.id = cf.case_id
+      where cf.case_id = $1
+        and not (cf.file_path like c.nextcloud_result_folder || '/%')
+      order by cf.selected_for_submission desc, cf.sort_order asc nulls last, cf.created_at asc
       `, [caseId]);
         return result.rows;
     }
@@ -627,18 +630,40 @@ class CasesService {
         const description = body?.description !== undefined
             ? (body.description ?? '').trim()
             : existing.description;
+        const caseDate = body?.caseDate !== undefined
+            ? (body.caseDate ?? '').trim()
+            : existing.case_date;
+        const registrationDate = body?.registrationDate !== undefined
+            ? (body.registrationDate ?? '').trim()
+            : existing.registration_date;
+        const submissionNumber = body?.submissionNumber !== undefined
+            ? (body.submissionNumber ?? '').trim()
+            : existing.submission_number;
         const result = await postgres_1.postgres.query(`
       update cases
       set
         title = $2,
         description = $3,
+        case_date = $4,
+        registration_date = $5,
+        submission_number = $6,
         updated_at = now()
       where id = $1
       returning *
-      `, [caseId, title || null, description || null]);
+      `, [
+            caseId,
+            title || null,
+            description || null,
+            caseDate || existing.case_date,
+            registrationDate || null,
+            submissionNumber || null
+        ]);
         await this.logCaseAction(caseId, 'case.meta.updated', {
             title: title || null,
-            description: description || null
+            description: description || null,
+            caseDate: caseDate || existing.case_date,
+            registrationDate: registrationDate || null,
+            submissionNumber: submissionNumber || null
         });
         return result.rows[0];
     }

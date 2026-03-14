@@ -16,7 +16,6 @@ export class InstitutionsService {
         max_attachments,
         max_text_length,
         accepted_formats,
-        active,
         created_at
       from institutions
       order by created_at desc
@@ -36,7 +35,6 @@ export class InstitutionsService {
         max_attachments,
         max_text_length,
         accepted_formats,
-        active,
         created_at
       from institutions
       where id = $1
@@ -63,7 +61,6 @@ export class InstitutionsService {
     const maxAttachments = body.maxAttachments ?? 5;
     const maxTextLength = body.maxTextLength ?? 4000;
     const acceptedFormats = body.acceptedFormats ?? ['image/jpeg', 'image/png'];
-    const active = body.active ?? true;
 
     if (!Number.isInteger(maxAttachments) || maxAttachments <= 0) {
       throw new Error('maxAttachments must be a positive integer');
@@ -84,10 +81,9 @@ export class InstitutionsService {
         submit_url,
         max_attachments,
         max_text_length,
-        accepted_formats,
-        active
+        accepted_formats
       )
-      values ($1, $2, $3, $4, $5::jsonb, $6)
+      values ($1, $2, $3, $4, $5::jsonb)
       returning
         id,
         name,
@@ -95,7 +91,6 @@ export class InstitutionsService {
         max_attachments,
         max_text_length,
         accepted_formats,
-        active,
         created_at
       `,
       [
@@ -104,7 +99,6 @@ export class InstitutionsService {
         maxAttachments,
         maxTextLength,
         JSON.stringify(acceptedFormats),
-        active,
       ]
     );
 
@@ -127,7 +121,6 @@ export class InstitutionsService {
       body.maxTextLength !== undefined ? body.maxTextLength : existing.max_text_length;
     const acceptedFormats =
       body.acceptedFormats !== undefined ? body.acceptedFormats : existing.accepted_formats;
-    const active = body.active !== undefined ? body.active : existing.active;
 
     if (!name) {
       throw new Error('name is required');
@@ -157,8 +150,7 @@ export class InstitutionsService {
         submit_url = $3,
         max_attachments = $4,
         max_text_length = $5,
-        accepted_formats = $6::jsonb,
-        active = $7
+        accepted_formats = $6::jsonb
       where id = $1
       returning
         id,
@@ -167,7 +159,6 @@ export class InstitutionsService {
         max_attachments,
         max_text_length,
         accepted_formats,
-        active,
         created_at
       `,
       [
@@ -177,7 +168,6 @@ export class InstitutionsService {
         maxAttachments,
         maxTextLength,
         JSON.stringify(acceptedFormats),
-        active,
       ]
     );
 

@@ -28,6 +28,7 @@ const envSchema = zod_1.z.object({
     POSTGRES_USER: zod_1.z.string().min(1),
     POSTGRES_PASSWORD: zod_1.z.string().min(1),
     POSTGRES_SSL: booleanFromEnv,
+    POSTGRES_SCHEMA: zod_1.z.string().min(1).default('complaints'),
     REDIS_HOST: zod_1.z.string().min(1),
     REDIS_PORT: zod_1.z.coerce.number().default(6379),
     REDIS_DB: zod_1.z.coerce.number().default(0),

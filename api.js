@@ -76,6 +76,10 @@ export const api = {
     return request(`/cases/${caseId}`);
   },
 
+  getResultFiles(caseId) {
+    return request(`/cases/${caseId}/result-files`);
+  },
+
   listInstitutions() {
     return request("/institutions");
   },
@@ -203,10 +207,6 @@ export const api = {
     });
   },
   
-  getPackage(caseId) {
-    return request(`/cases/${caseId}/package`);
-  },
-
   downloadCaseFile(caseId, fileId) {
     return requestBlob(`/cases/${caseId}/files/${fileId}/download`);
   }
