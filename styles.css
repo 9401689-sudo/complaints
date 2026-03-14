@@ -725,9 +725,9 @@ textarea {
 
 .file-card-controls {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
-  justify-items: end;
+  justify-items: start;
 }
 
 .file-card-controls label {
@@ -737,9 +737,11 @@ textarea {
 .file-select-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: var(--text);
   font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .file-card.selected {
