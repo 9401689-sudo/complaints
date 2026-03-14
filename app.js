@@ -142,11 +142,92 @@ function getTodayInputValue() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function formatDateForInput(date) {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = String(date.getFullYear());
+  return `${day}.${month}.${year}`;
+}
+
+function maskDateInputValue(value) {
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 8);
+  const parts = [];
+
+  if (digits.length > 0) {
+    parts.push(digits.slice(0, 2));
+  }
+  if (digits.length > 2) {
+    parts.push(digits.slice(2, 4));
+  }
+  if (digits.length > 4) {
+    parts.push(digits.slice(4, 8));
+  }
+
+  return parts.join(".");
+}
+
+function applyDateMask(input) {
+  if (!input) return;
+  input.value = maskDateInputValue(input.value);
+}
+
+function parseStrictDisplayDate(value, fieldLabel) {
+  const raw = String(value || "").trim();
+
+  if (!raw) {
+    return "";
+  }
+
+  const match = raw.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if (!match) {
+    throw new Error(`${fieldLabel}: используйте формат дд.мм.гггг`);
+  }
+
+  const [, dayText, monthText, yearText] = match;
+  const day = Number(dayText);
+  const month = Number(monthText);
+  const year = Number(yearText);
+  const currentYear = new Date().getFullYear();
+
+  if (day < 1 || day > 31) {
+    throw new Error(`${fieldLabel}: день должен быть в диапазоне 01-31`);
+  }
+
+  if (month < 1 || month > 12) {
+    throw new Error(`${fieldLabel}: месяц должен быть в диапазоне 01-12`);
+  }
+
+  if (year < 2000 || year > currentYear) {
+    throw new Error(`${fieldLabel}: год должен быть в диапазоне 2000-${currentYear}`);
+  }
+
+  const maxDay = new Date(year, month, 0).getDate();
+  if (day > maxDay) {
+    throw new Error(`${fieldLabel}: такой даты не существует`);
+  }
+
+  return `${dayText}.${monthText}.${yearText}`;
+}
+
 function formatComplaintDate(value) {
   const raw = String(value || "").trim();
 
   if (!raw) {
     return "";
+  }
+
+  const displayMatch = raw.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if (displayMatch) {
+    const [, day, month, year] = displayMatch;
+    const date = new Date(Number(year), Number(month) - 1, Number(day));
+
+    if (!Number.isNaN(date.getTime())) {
+      return new Intl.DateTimeFormat("ru-RU", {
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      }).format(date) + " г.";
+    }
   }
 
   const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -205,7 +286,11 @@ function normalizeVariableState(variables = {}) {
     normalized[field.enabledKey] = String(enabled);
 
     if (normalized[field.key] === undefined || normalized[field.key] === null || normalized[field.key] === "") {
-      normalized[field.key] = field.key === "complaint_date" ? getTodayInputValue() : "";
+      normalized[field.key] = field.key === "complaint_date" ? formatDateForInput(new Date()) : "";
+    }
+
+    if (field.key === "complaint_date") {
+      normalized[field.key] = maskDateInputValue(normalized[field.key]);
     }
   }
 
@@ -744,11 +829,12 @@ async function saveCaseMeta() {
   if (!state.currentCaseId) return;
 
   return withButtonLoading(els.btnSaveCaseMeta, "Сохранение...", async () => {
+    const caseDate = parseStrictDisplayDate(els.caseDate.value, "Дата кейса");
     const previousTemplateId = state.currentCase?.case?.template_id || null;
     const metaPayload = {
       title: els.caseTitle.value.trim(),
       description: els.caseDescription.value.trim(),
-      caseDate: els.caseDate.value.trim()
+      caseDate
     };
     const configPayload = {
       institutionId: els.caseInstitutionSelect.value || null,
@@ -984,7 +1070,10 @@ async function persistSubmitMetaIfNeeded() {
   if (!state.currentCaseId) return;
 
   const caseData = state.currentCase?.case || {};
-  const nextRegistrationDate = (els.submitRegistrationDate?.value || "").trim();
+  const nextRegistrationDate = parseStrictDisplayDate(
+    els.submitRegistrationDate?.value || "",
+    "Дата регистрации"
+  );
   const nextSubmissionNumber = (els.submitRegistrationNumber?.value || "").trim();
 
   if (
@@ -1135,7 +1224,6 @@ async function createTemplate() {
   return withButtonLoading(els.btnCreateTemplate, "Сохранение...", async () => {
     const payload = {
       name: els.templateName.value.trim(),
-      institutionId: null,
       bodyTemplate: els.templateBody.value,
       variablesSchema: getTemplateVariablesSchema(),
       defaultValues: getDefaultTemplateValues()
@@ -1442,6 +1530,22 @@ function bindEvents() {
   });
 
   els.btnSaveAsTemplate.onclick = () => handle(saveCaseAsTemplate);
+  [els.caseDate, els.submitRegistrationDate].forEach((input) => {
+    if (!input) return;
+    input.addEventListener("input", () => applyDateMask(input));
+    input.addEventListener("blur", () => {
+      input.value = input.value.trim();
+      applyDateMask(input);
+      if (!input.value) {
+        return;
+      }
+      try {
+        input.value = parseStrictDisplayDate(input.value, input === els.caseDate ? "Дата кейса" : "Дата регистрации");
+      } catch {
+        // Keep masked value visible; full validation error is shown on save.
+      }
+    });
+  });
 
   els.btnSaveCaseMeta.addEventListener("click", () => handle(saveCaseMeta));
   els.btnCloseImageModal.addEventListener("click", closeImageModal);

@@ -51,7 +51,6 @@ export class TemplatesService {
   async createTemplate(body: CreateTemplateBody): Promise<TemplateRecord> {
     const name = body.name?.trim();
     const bodyTemplate = body.bodyTemplate?.trim();
-    const institutionId = body.institutionId ?? null;
     const variablesSchema = body.variablesSchema ?? [];
     const defaultValues = body.defaultValues ?? {};
 
@@ -97,7 +96,7 @@ export class TemplatesService {
       `,
       [
         name,
-        institutionId,
+        null,
         bodyTemplate,
         JSON.stringify(variablesSchema),
         JSON.stringify(defaultValues),
@@ -115,8 +114,6 @@ export class TemplatesService {
     }
 
     const name = body.name !== undefined ? body.name.trim() : existing.name;
-    const institutionId =
-      body.institutionId !== undefined ? body.institutionId : existing.institution_id;
     const bodyTemplate =
       body.bodyTemplate !== undefined ? body.bodyTemplate.trim() : existing.body_template;
     const variablesSchema =
@@ -168,7 +165,7 @@ export class TemplatesService {
       [
         id,
         name,
-        institutionId,
+        existing.institution_id,
         bodyTemplate,
         JSON.stringify(variablesSchema),
         JSON.stringify(defaultValues),

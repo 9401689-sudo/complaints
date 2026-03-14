@@ -11,7 +11,6 @@ export interface TemplateRecord {
 
 export interface CreateTemplateBody {
   name: string;
-  institutionId?: string | null;
   bodyTemplate: string;
   variablesSchema?: unknown[];
   defaultValues?: Record<string, unknown>;
@@ -19,7 +18,6 @@ export interface CreateTemplateBody {
 
 export interface UpdateTemplateBody {
   name?: string;
-  institutionId?: string | null;
   bodyTemplate?: string;
   variablesSchema?: unknown[];
   defaultValues?: Record<string, unknown>;
