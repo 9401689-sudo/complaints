@@ -225,7 +225,7 @@
   <button class="tab-btn active" data-tab="variables" type="button">Переменные</button>
   <button class="tab-btn" data-tab="text" type="button">Текст</button>
   <button class="tab-btn" data-tab="files" type="button">Файлы</button>
-  <button class="tab-btn" data-tab="submit" type="button">Собрать пакет отправки</button>
+  <button class="tab-btn" data-tab="submit" type="button">Отправка</button>
   <button class="tab-btn" data-tab="result" type="button">Ответ</button>
 </div>
           <div class="workspace-tab-panel" data-tab-panel="variables">
@@ -283,6 +283,9 @@
             <div class="panel">
               <div class="panel-header">
                 <h3>Отправка</h3>
+                <div class="actions">
+                  <button class="btn btn-primary" id="btnRebuildSubmitPackage" type="button">Собрать заново</button>
+                </div>
               </div>
 
               <div id="submitProgress" class="progress-status hidden" aria-live="polite">
@@ -341,6 +344,12 @@
                 <h3>Ответ</h3>
                 <div class="actions">
                   <button class="btn btn-primary" id="btnUploadResultFiles" type="button">Загрузить</button>
+                </div>
+              </div>
+              <div id="resultUploadProgress" class="progress-status hidden" aria-live="polite">
+                <div id="resultUploadProgressLabel" class="progress-status-label">Загружаем файлы ответа...</div>
+                <div class="progress-status-track">
+                  <div class="progress-status-bar"></div>
                 </div>
               </div>
               <input id="resultFilesInput" type="file" multiple class="hidden" />

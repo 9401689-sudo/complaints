@@ -70,6 +70,16 @@ type SubmitFilePayload = {
   sortOrder: number | null;
 };
 
+type ArtifactFolderFileRow = {
+  id: string;
+  file_path: string;
+  file_name: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  preview_url: string | null;
+  sort_order: number | null;
+};
+
 export class CasesService {
   async createCase(body?: { parentCaseId?: string | null }): Promise<CreateCaseResponse> {
     const caseNumber = await this.generateCaseNumber();
@@ -488,10 +498,10 @@ export class CasesService {
       }
     }
 
-    const refreshedFiles = await this.getSelectedFiles(caseId);
+    const preparedFiles = await this.getPreparedArtifactFiles(caseId, caseRow.nextcloud_artifacts_folder);
     const textContent = await nextcloudClient.downloadTextFile(textArtifact.file_path);
 
-    const files: SubmitFilePayload[] = refreshedFiles.map((file) => ({
+    const files: SubmitFilePayload[] = preparedFiles.map((file) => ({
       id: file.id,
       fileName: file.file_name,
       filePath: file.file_path,
@@ -796,6 +806,39 @@ export class CasesService {
 
   private buildArtifactFilePath(artifactsFolder: string, fileName: string): string {
     return `${artifactsFolder.replace(/\/+$/, '')}/${fileName}`;
+  }
+
+  private async getPreparedArtifactFiles(caseId: string, artifactsFolder: string): Promise<ArtifactFolderFileRow[]> {
+    const normalizedArtifactsFolder = artifactsFolder.replace(/\/+$/, '');
+    const artifactsFolderPrefix = `${normalizedArtifactsFolder}/%`;
+    const hiddenArtifactPaths = [
+      `${normalizedArtifactsFolder}/complaint.txt`,
+      `${normalizedArtifactsFolder}/submission-package.json`
+    ];
+
+    const result = await postgres.query<ArtifactFolderFileRow>(
+      `
+      select
+        id,
+        file_path,
+        file_name,
+        mime_type,
+        size_bytes,
+        preview_url,
+        sort_order
+      from case_files
+      where case_id = $1
+        and file_path like $2
+        and file_path <> all($3::text[])
+      order by
+        coalesce(sort_order, 0),
+        created_at,
+        file_name
+      `,
+      [caseId, artifactsFolderPrefix, hiddenArtifactPaths]
+    );
+
+    return result.rows;
   }
 
   private buildIncomingFilePath(incomingFolder: string, fileName: string): string {

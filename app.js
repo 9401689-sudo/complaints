@@ -112,12 +112,15 @@ const els = {
   submitRegistrationNumber: document.getElementById("submitRegistrationNumber"),
   submitProgress: document.getElementById("submitProgress"),
   submitProgressLabel: document.getElementById("submitProgressLabel"),
+  btnRebuildSubmitPackage: document.getElementById("btnRebuildSubmitPackage"),
   submitText: document.getElementById("submitText"),
   submitInstitutionUrl: document.getElementById("submitInstitutionUrl"),
   submitInstitutionUrlPretty: document.getElementById("submitInstitutionUrlPretty"),
   submitFilesList: document.getElementById("submitFilesList"),
   btnUploadResultFiles: document.getElementById("btnUploadResultFiles"),
   resultFilesInput: document.getElementById("resultFilesInput"),
+  resultUploadProgress: document.getElementById("resultUploadProgress"),
+  resultUploadProgressLabel: document.getElementById("resultUploadProgressLabel"),
   resultFilesList: document.getElementById("resultFilesList"),
 
   imageModal: document.getElementById("imageModal"),
@@ -1071,7 +1074,7 @@ function renderSubmit() {
   els.submitInstitutionUrlPretty.classList.toggle("hidden", !submit.submitUrl);
 
   if (!files.length) {
-    els.submitFilesList.innerHTML = '<div class="notice">Файлы для submit ещё не подготовлены.</div>';
+    els.submitFilesList.innerHTML = '<div class="notice">Файлы в папке artifacts пока не подготовлены.</div>';
     return;
   }
 
@@ -1126,6 +1129,10 @@ function setCreateCaseProgress(visible, label = "Создаём кейс...") {
 
 function setFilesSyncProgress(visible, label = "Синхронизируем файлы...") {
   setProgress(els.filesSyncProgress, els.filesSyncProgressLabel, visible, label);
+}
+
+function setResultUploadProgress(visible, label = "Загружаем файлы ответа...") {
+  setProgress(els.resultUploadProgress, els.resultUploadProgressLabel, visible, label);
 }
 
 function renderResultFiles() {
@@ -1549,48 +1556,72 @@ async function uploadResultFiles() {
   if (!state.currentCaseId || !els.resultFilesInput?.files?.length) return;
 
   const files = [...els.resultFilesInput.files];
-  const data = await api.uploadResultFiles(state.currentCaseId, files);
-  logRuntime("upload result files", data);
-  els.resultFilesInput.value = "";
-  await loadResultFiles();
-  await reloadCurrentCase();
-  setWorkspaceTab("result");
+  setResultUploadProgress(true, "Загружаем файлы ответа...");
+  try {
+    const data = await api.uploadResultFiles(state.currentCaseId, files);
+    logRuntime("upload result files", data);
+    els.resultFilesInput.value = "";
+    await loadResultFiles();
+    await reloadCurrentCase();
+    setWorkspaceTab("result");
+  } finally {
+    setResultUploadProgress(false);
+  }
 }
 
-async function buildPackage() {
+async function buildPackageOnly() {
   if (!state.currentCaseId) return;
 
-  return withButtonLoading(null, "Сборка...", async () => {
-    setSubmitProgress(true, "Собираем пакет...");
-    try {
-      const data = await api.buildPackage(state.currentCaseId);
-      state.currentCase = { case: data.case, fsm: data.fsm };
-      renderWorkspaceSummary();
-      logRuntime("build package", data);
-      await prepareSubmit();
-    } finally {
-      setSubmitProgress(false);
-    }
-  });
+  const data = await api.buildPackage(state.currentCaseId);
+  state.currentCase = { case: data.case, fsm: data.fsm };
+  renderWorkspaceSummary();
+  logRuntime("build package", data);
 }
 
 async function openSubmitTab() {
   if (!state.currentCaseId) return;
 
   setWorkspaceTab("submit");
-  setSubmitProgress(true, "Подготавливаем отправку...");
+  if (state.submitData) {
+    renderSubmit();
+    return;
+  }
+
+  const currentFsmState = state.currentCase?.fsm?.state || "";
+  const requiresPackageBuild = currentFsmState !== "package_ready";
+  setSubmitProgress(true, requiresPackageBuild ? "Собираем пакет..." : "Подготавливаем отправку...");
   try {
-    await buildPackage();
+    if (requiresPackageBuild) {
+      await buildPackageOnly();
+    }
+    await prepareSubmit({ skipProgress: true });
   } finally {
     setSubmitProgress(false);
   }
 }
 
-async function prepareSubmit() {
+async function rebuildSubmitPackage() {
   if (!state.currentCaseId) return;
 
+  setWorkspaceTab("submit");
+  setSubmitProgress(true, "Собираем пакет заново...");
+  try {
+    state.submitData = null;
+    await buildPackageOnly();
+    await prepareSubmit({ skipProgress: true });
+  } finally {
+    setSubmitProgress(false);
+  }
+}
+
+async function prepareSubmit(options = {}) {
+  if (!state.currentCaseId) return;
+  const skipProgress = Boolean(options.skipProgress);
+
   return withButtonLoading(null, "Подготовка...", async () => {
-    setSubmitProgress(true, "Перемещаем файлы и готовим отправку...");
+    if (!skipProgress) {
+      setSubmitProgress(true, "Перемещаем файлы и готовим отправку...");
+    }
     try {
       const data = await api.prepareSubmit(state.currentCaseId);
       const preparedAt = new Date().toLocaleString("ru-RU");
@@ -1621,7 +1652,9 @@ async function prepareSubmit() {
       await loadResultFiles().catch(() => {});
       logRuntime("prepare submit", data);
     } finally {
-      setSubmitProgress(false);
+      if (!skipProgress) {
+        setSubmitProgress(false);
+      }
     }
   });
 }
@@ -1811,6 +1844,7 @@ if (els.casesSearchInput) {
   els.btnSaveText.addEventListener("click", () => handle(saveText));
   els.btnDownloadSubmitText.addEventListener("click", downloadSubmitText);
   els.btnCopySubmitText.addEventListener("click", () => handle(() => copyToClipboard(els.submitText.value, "Текст жалобы скопирован")));
+  els.btnRebuildSubmitPackage.addEventListener("click", () => handle(rebuildSubmitPackage));
   els.btnCopySubmitUrl.addEventListener("click", () => handle(async () => {
     const url = String(els.submitInstitutionUrl.value || "").trim();
 
