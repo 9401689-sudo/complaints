@@ -31,6 +31,7 @@ $$;
 create table if not exists institutions (
   id uuid primary key default uuid_generate_v4(),
   name text not null,
+  category text not null default 'authority',
   submit_url text not null,
   max_attachments integer not null default 5,
   max_text_length integer not null default 4000,
@@ -41,6 +42,7 @@ create table if not exists institutions (
 create table if not exists templates (
   id uuid primary key default uuid_generate_v4(),
   name text not null,
+  category text not null default 'authority',
   institution_id uuid references institutions(id) on delete set null,
   body_template text not null,
   variables_schema jsonb not null default '[]'::jsonb,
@@ -84,6 +86,8 @@ alter table cases add column if not exists registration_date text;
 
 alter table institutions drop column if exists active;
 alter table templates drop column if exists active;
+alter table institutions add column if not exists category text not null default 'authority';
+alter table templates add column if not exists category text not null default 'authority';
 
 create table if not exists case_variables (
   id uuid primary key default uuid_generate_v4(),

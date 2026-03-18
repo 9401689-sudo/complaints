@@ -9,32 +9,37 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <header class="topbar">
+      <div class="topbar-brand">
+        <h1>Центр жалоб</h1>
+      </div>
+      <nav class="topbar-nav">
+        <button class="nav-btn active" data-screen="dashboard" type="button">Обращения</button>
+        <button class="nav-btn" data-screen="institutions" type="button">Организации</button>
+        <button class="nav-btn" data-screen="templates" type="button">Шаблоны</button>
+      </nav>
+    </header>
     <div class="app-shell">
       <aside class="sidebar">
-        <div class="sidebar-brand">
-          <h1>Центр жалоб</h1>
+        <div class="sidebar-brand context-sidebar-brand">
+          <div id="contextNavTitle" class="context-nav-title">Раздел</div>
         </div>
-
-        <nav class="sidebar-nav">
-          <button class="nav-btn active" data-screen="dashboard" type="button">Кейсы</button>
-          <button class="nav-btn" data-screen="institutions" type="button">Организации</button>
-          <button class="nav-btn" data-screen="templates" type="button">Шаблоны</button>
-        </nav>
+        <nav class="sidebar-nav" id="contextNav"></nav>
       </aside>
 
       <main class="main-content">
         <section class="screen" data-screen-panel="dashboard">
          <div class="page-header">
             <div>
-              <h2>Кейсы</h2>
-              <p>Создание, список и открытие кейса</p>
+              <h2>Обращения</h2>
+              <p>Создание, список и открытие обращения</p>
             </div>
          <div class="actions">
-  <button class="btn btn-primary" id="btnCreateCase">Создать кейс</button>
+  <button class="btn btn-primary" id="btnCreateCase">Создать обращение</button>
 </div>
           </div>
           <div id="createCaseProgress" class="progress-status hidden" aria-live="polite">
-            <div id="createCaseProgressLabel" class="progress-status-label">Создаём кейс...</div>
+            <div id="createCaseProgressLabel" class="progress-status-label">Создаём обращение...</div>
             <div class="progress-status-track">
               <div class="progress-status-bar"></div>
             </div>
@@ -42,7 +47,7 @@
 <div class="panel">
   <div class="form-grid cases-filters">
     <div class="field">
-      <label for="casesSearchInput">Поиск по кейсам</label>
+      <label for="casesSearchInput">Поиск по обращениям</label>
       <input id="casesSearchInput" placeholder="Название, CASE-номер, организация, шаблон..." />
     </div>
     <div class="field">
@@ -57,7 +62,7 @@
 </div>
           <div class="panel">
             <div class="panel-header">
-              <h3>Список кейсов</h3>
+              <h3>Список обращений</h3>
             </div>
             <div id="casesList" class="table-like"></div>
           </div>
@@ -82,6 +87,13 @@
               <div class="field">
                 <label for="institutionName">Название</label>
                 <input id="institutionName" />
+              </div>
+              <div class="field">
+                <label for="institutionCategory">Категория</label>
+                <select id="institutionCategory">
+                  <option value="authority">Органы власти</option>
+                  <option value="state_org">Государственные организации</option>
+                </select>
               </div>
               <div class="field">
                 <label for="institutionSubmitUrl">URL подачи</label>
@@ -136,6 +148,13 @@
                 <label for="templateName">Название</label>
                 <input id="templateName" />
               </div>
+              <div class="field">
+                <label for="templateCategory">Категория</label>
+                <select id="templateCategory">
+                  <option value="authority">Органы власти</option>
+                  <option value="state_org">Государственные организации</option>
+                </select>
+              </div>
               <div class="field full">
                 <label>Вставка переменных</label>
                 <div id="templateVariableToolbar" class="variable-toolbar"></div>
@@ -163,27 +182,27 @@
         <section class="screen hidden" data-screen-panel="case-workspace">
           <div class="page-header">
             <div>
-              <h2 id="workspaceTitle">Кейс</h2>
-              <p id="workspaceSubtitle">Рабочее пространство кейса</p>
+              <h2 id="workspaceTitle">Обращение</h2>
+              <p id="workspaceSubtitle">Рабочее пространство обращения</p>
             </div>
             <div class="actions">
-              <button class="btn btn-secondary" id="btnBackToCases">Назад к кейсам</button>
+              <button class="btn btn-secondary" id="btnBackToCases">Назад к обращениям</button>
             </div>
           </div>
 
 <div class="panel">
   <div class="panel-header">
-    <h3>Карточка кейса</h3>
+    <h3>Карточка обращения</h3>
   </div>
 
   <div class="form-grid">
     <div class="field full">
-      <label for="caseTitle">Название кейса</label>
+      <label for="caseTitle">Название обращения</label>
       <input id="caseTitle" />
     </div>
 
     <div class="field full">
-      <label for="caseDescription">Описание кейса</label>
+      <label for="caseDescription">Описание обращения</label>
       <textarea id="caseDescription"></textarea>
     </div>
 
@@ -209,19 +228,19 @@
   </div>
 
   <div class="actions top-space">
-    <button class="btn btn-primary" id="btnSaveCaseMeta">Сохранить карточку кейса</button>
+    <button class="btn btn-primary" id="btnSaveCaseMeta">Сохранить карточку обращения</button>
   </div>
 </div>
 <div class="panel">
   <div class="panel-header">
-    <h3>Связанные кейсы</h3>
+    <h3>Связанные обращения</h3>
     <div class="actions">
-      <button class="btn btn-primary" id="btnCreateLinkedCase" type="button">Создать связанный кейс</button>
+      <button class="btn btn-primary" id="btnCreateLinkedCase" type="button">Создать связанное обращение</button>
     </div>
   </div>
   <div id="relatedCasesList" class="table-like"></div>
 </div>
-<div class="workspace-tabs">
+<div class="workspace-tabs hidden">
   <button class="tab-btn active" data-tab="variables" type="button">Переменные</button>
   <button class="tab-btn" data-tab="text" type="button">Текст</button>
   <button class="tab-btn" data-tab="files" type="button">Файлы</button>

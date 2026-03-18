@@ -36,6 +36,31 @@ body.is-mobile {
   overflow-x: hidden;
 }
 
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(251, 246, 239, 0.94);
+  backdrop-filter: blur(14px);
+}
+
+.topbar-brand h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.topbar-nav {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 button,
 input,
 textarea,
@@ -50,8 +75,8 @@ pre {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 260px 1fr;
-  min-height: 100vh;
+  grid-template-columns: 240px 1fr;
+  min-height: calc(100vh - 73px);
 }
 
 .sidebar {
@@ -63,6 +88,19 @@ pre {
 .sidebar-brand h1 {
   margin: 0 0 8px;
   font-size: 24px;
+}
+
+.context-sidebar-brand {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.context-nav-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .sidebar-brand p {
@@ -78,8 +116,8 @@ pre {
 }
 
 .nav-btn,
-.tab-btn {
-  width: 100%;
+.tab-btn,
+.context-btn {
   text-align: left;
   background: rgba(255,255,255,.55);
   border: 1px solid var(--line);
@@ -90,9 +128,14 @@ pre {
 }
 
 .nav-btn.active,
-.tab-btn.active {
+.tab-btn.active,
+.context-btn.active {
   background: linear-gradient(135deg, rgba(179,154,122,.22), rgba(141,123,104,.16));
   border-color: var(--line-strong);
+}
+
+.context-btn {
+  width: 100%;
 }
 
 .main-content {
@@ -108,21 +151,24 @@ body.is-mobile .app-shell {
 }
 
 body.is-mobile .sidebar {
-  position: sticky;
-  top: 0;
-  z-index: 40;
-  padding: 14px 14px 10px;
+  position: static;
+  padding: 10px 12px 0;
   border-right: 0;
-  border-bottom: 1px solid var(--line);
-  background: rgba(251, 246, 239, 0.96);
-  backdrop-filter: blur(12px);
+  background: transparent;
 }
 
-body.is-mobile .sidebar-brand h1 {
-  margin-bottom: 10px;
+body.is-mobile .topbar {
+  padding: 12px;
+  align-items: stretch;
+  flex-direction: column;
+  gap: 10px;
+}
+
+body.is-mobile .topbar-brand h1 {
   font-size: 20px;
 }
 
+body.is-mobile .topbar-nav,
 body.is-mobile .sidebar-nav {
   margin-top: 0;
   display: grid;
@@ -130,7 +176,8 @@ body.is-mobile .sidebar-nav {
   gap: 8px;
 }
 
-body.is-mobile .nav-btn {
+body.is-mobile .nav-btn,
+body.is-mobile .context-btn {
   min-width: 0;
   text-align: center;
   padding: 10px 8px;
@@ -171,9 +218,7 @@ body.is-mobile .panel {
 }
 
 body.is-mobile .workspace-tabs {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  display: none;
 }
 
 body.is-mobile .workspace-tabs .tab-btn {
@@ -257,6 +302,10 @@ body.is-mobile .pdf-modal-frame {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.workspace-tabs.hidden {
+  display: none;
 }
 
 .btn {

@@ -1,6 +1,7 @@
 export interface TemplateRecord {
   id: string;
   name: string;
+  category: string;
   institution_id: string | null;
   body_template: string;
   variables_schema: unknown[];
@@ -11,6 +12,7 @@ export interface TemplateRecord {
 
 export interface CreateTemplateBody {
   name: string;
+  category?: string;
   bodyTemplate: string;
   variablesSchema?: unknown[];
   defaultValues?: Record<string, unknown>;
@@ -18,6 +20,7 @@ export interface CreateTemplateBody {
 
 export interface UpdateTemplateBody {
   name?: string;
+  category?: string;
   bodyTemplate?: string;
   variablesSchema?: unknown[];
   defaultValues?: Record<string, unknown>;

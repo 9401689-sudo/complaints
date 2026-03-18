@@ -5,6 +5,8 @@ import {
   UpdateInstitutionBody,
 } from './institutions.types';
 
+const ALLOWED_CATEGORIES = new Set(['authority', 'state_org']);
+
 export class InstitutionsService {
   async listInstitutions(): Promise<InstitutionRecord[]> {
     const result = await postgres.query<InstitutionRecord>(
@@ -12,6 +14,7 @@ export class InstitutionsService {
       select
         id,
         name,
+        category,
         submit_url,
         max_attachments,
         max_text_length,
@@ -31,6 +34,7 @@ export class InstitutionsService {
       select
         id,
         name,
+        category,
         submit_url,
         max_attachments,
         max_text_length,
@@ -48,6 +52,7 @@ export class InstitutionsService {
 
   async createInstitution(body: CreateInstitutionBody): Promise<InstitutionRecord> {
     const name = body.name?.trim();
+    const category = body.category?.trim() || 'authority';
     const submitUrl = body.submitUrl?.trim();
 
     if (!name) {
@@ -56,6 +61,10 @@ export class InstitutionsService {
 
     if (!submitUrl) {
       throw new Error('submitUrl is required');
+    }
+
+    if (!ALLOWED_CATEGORIES.has(category)) {
+      throw new Error('category is invalid');
     }
 
     const maxAttachments = body.maxAttachments ?? 5;
@@ -78,15 +87,17 @@ export class InstitutionsService {
       `
       insert into institutions (
         name,
+        category,
         submit_url,
         max_attachments,
         max_text_length,
         accepted_formats
       )
-      values ($1, $2, $3, $4, $5::jsonb)
+      values ($1, $2, $3, $4, $5, $6::jsonb)
       returning
         id,
         name,
+        category,
         submit_url,
         max_attachments,
         max_text_length,
@@ -95,6 +106,7 @@ export class InstitutionsService {
       `,
       [
         name,
+        category,
         submitUrl,
         maxAttachments,
         maxTextLength,
@@ -113,6 +125,7 @@ export class InstitutionsService {
     }
 
     const name = body.name !== undefined ? body.name.trim() : existing.name;
+    const category = body.category !== undefined ? body.category.trim() : existing.category;
     const submitUrl =
       body.submitUrl !== undefined ? body.submitUrl.trim() : existing.submit_url;
     const maxAttachments =
@@ -128,6 +141,10 @@ export class InstitutionsService {
 
     if (!submitUrl) {
       throw new Error('submitUrl is required');
+    }
+
+    if (!ALLOWED_CATEGORIES.has(category)) {
+      throw new Error('category is invalid');
     }
 
     if (!Number.isInteger(maxAttachments) || maxAttachments <= 0) {
@@ -147,14 +164,16 @@ export class InstitutionsService {
       update institutions
       set
         name = $2,
-        submit_url = $3,
-        max_attachments = $4,
-        max_text_length = $5,
-        accepted_formats = $6::jsonb
+        category = $3,
+        submit_url = $4,
+        max_attachments = $5,
+        max_text_length = $6,
+        accepted_formats = $7::jsonb
       where id = $1
       returning
         id,
         name,
+        category,
         submit_url,
         max_attachments,
         max_text_length,
@@ -164,6 +183,7 @@ export class InstitutionsService {
       [
         id,
         name,
+        category,
         submitUrl,
         maxAttachments,
         maxTextLength,

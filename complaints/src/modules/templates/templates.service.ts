@@ -5,6 +5,8 @@ import {
   UpdateTemplateBody,
 } from './templates.types';
 
+const ALLOWED_CATEGORIES = new Set(['authority', 'state_org']);
+
 export class TemplatesService {
   async listTemplates(): Promise<TemplateRecord[]> {
     const result = await postgres.query<TemplateRecord>(
@@ -12,6 +14,7 @@ export class TemplatesService {
       select
         id,
         name,
+        category,
         institution_id,
         body_template,
         variables_schema,
@@ -32,6 +35,7 @@ export class TemplatesService {
       select
         id,
         name,
+        category,
         institution_id,
         body_template,
         variables_schema,
@@ -50,6 +54,7 @@ export class TemplatesService {
 
   async createTemplate(body: CreateTemplateBody): Promise<TemplateRecord> {
     const name = body.name?.trim();
+    const category = body.category?.trim() || 'authority';
     const bodyTemplate = body.bodyTemplate?.trim();
     const variablesSchema = body.variablesSchema ?? [];
     const defaultValues = body.defaultValues ?? {};
@@ -60,6 +65,10 @@ export class TemplatesService {
 
     if (!bodyTemplate) {
       throw new Error('bodyTemplate is required');
+    }
+
+    if (!ALLOWED_CATEGORIES.has(category)) {
+      throw new Error('category is invalid');
     }
 
     if (!Array.isArray(variablesSchema)) {
@@ -78,15 +87,17 @@ export class TemplatesService {
       `
       insert into templates (
         name,
+        category,
         institution_id,
         body_template,
         variables_schema,
         default_values
       )
-      values ($1, $2, $3, $4::jsonb, $5::jsonb)
+      values ($1, $2, $3, $4, $5::jsonb, $6::jsonb)
       returning
         id,
         name,
+        category,
         institution_id,
         body_template,
         variables_schema,
@@ -96,6 +107,7 @@ export class TemplatesService {
       `,
       [
         name,
+        category,
         null,
         bodyTemplate,
         JSON.stringify(variablesSchema),
@@ -114,6 +126,7 @@ export class TemplatesService {
     }
 
     const name = body.name !== undefined ? body.name.trim() : existing.name;
+    const category = body.category !== undefined ? body.category.trim() : existing.category;
     const bodyTemplate =
       body.bodyTemplate !== undefined ? body.bodyTemplate.trim() : existing.body_template;
     const variablesSchema =
@@ -127,6 +140,10 @@ export class TemplatesService {
 
     if (!bodyTemplate) {
       throw new Error('bodyTemplate is required');
+    }
+
+    if (!ALLOWED_CATEGORIES.has(category)) {
+      throw new Error('category is invalid');
     }
 
     if (!Array.isArray(variablesSchema)) {
@@ -146,15 +163,17 @@ export class TemplatesService {
       update templates
       set
         name = $2,
-        institution_id = $3,
-        body_template = $4,
-        variables_schema = $5::jsonb,
-        default_values = $6::jsonb,
+        category = $3,
+        institution_id = $4,
+        body_template = $5,
+        variables_schema = $6::jsonb,
+        default_values = $7::jsonb,
         updated_at = now()
       where id = $1
       returning
         id,
         name,
+        category,
         institution_id,
         body_template,
         variables_schema,
@@ -165,6 +184,7 @@ export class TemplatesService {
       [
         id,
         name,
+        category,
         existing.institution_id,
         bodyTemplate,
         JSON.stringify(variablesSchema),

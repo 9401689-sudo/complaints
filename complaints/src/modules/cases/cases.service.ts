@@ -7,6 +7,7 @@ import { CaseRecord, CreateCaseResponse } from './cases.types';
 type TemplateRow = {
   id: string;
   name: string;
+  category?: string;
   institution_id: string | null;
   body_template: string;
   variables_schema: unknown;
@@ -665,15 +666,17 @@ export class CasesService {
       `
       insert into templates (
         name,
+        category,
         institution_id,
         body_template,
         variables_schema,
         default_values
       )
-      values ($1, $2, $3, $4::jsonb, $5::jsonb)
+      values ($1, $2, $3, $4, $5::jsonb, $6::jsonb)
       returning
         id,
         name,
+        category,
         institution_id,
         body_template,
         variables_schema,
@@ -683,6 +686,7 @@ export class CasesService {
       `,
         [
         templateName,
+        'authority',
         caseRow.institution_id,
         templateContent,
         JSON.stringify([

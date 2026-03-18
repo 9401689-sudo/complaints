@@ -10,6 +10,8 @@ const state = {
   cases: [],
   casesSearch: "",
   casesInstitutionFilter: "",
+  institutionsCategoryFilter: "",
+  templatesCategoryFilter: "",
   variables: {},
   submitData: null,
   resultFiles: [],
@@ -44,11 +46,24 @@ const FIXED_VARIABLES = [
   }
 ];
 
+const DIRECTORY_CATEGORIES = [
+  { value: "", label: "Все категории" },
+  { value: "authority", label: "Органы власти" },
+  { value: "state_org", label: "Государственные организации" }
+];
+
+const DIRECTORY_CATEGORY_LABELS = {
+  authority: "Органы власти",
+  state_org: "Государственные организации"
+};
+
 const els = {
   screens: [...document.querySelectorAll("[data-screen-panel]")],
   navButtons: [...document.querySelectorAll(".nav-btn")],
   tabButtons: [...document.querySelectorAll(".tab-btn")],
   tabPanels: [...document.querySelectorAll("[data-tab-panel]")],
+  contextNav: document.getElementById("contextNav"),
+  contextNavTitle: document.getElementById("contextNavTitle"),
 
   btnCreateCase: document.getElementById("btnCreateCase"),
   createCaseProgress: document.getElementById("createCaseProgress"),
@@ -64,6 +79,7 @@ const els = {
   institutionFormPanel: document.getElementById("institutionFormPanel"),
   institutionsList: document.getElementById("institutionsList"),
   institutionName: document.getElementById("institutionName"),
+  institutionCategory: document.getElementById("institutionCategory"),
   institutionSubmitUrl: document.getElementById("institutionSubmitUrl"),
   institutionMaxAttachments: document.getElementById("institutionMaxAttachments"),
   institutionMaxTextLength: document.getElementById("institutionMaxTextLength"),
@@ -74,6 +90,7 @@ const els = {
   templateFormPanel: document.getElementById("templateFormPanel"),
   templatesList: document.getElementById("templatesList"),
   templateName: document.getElementById("templateName"),
+  templateCategory: document.getElementById("templateCategory"),
   templateBody: document.getElementById("templateBody"),
   templateVariablesSchema: document.getElementById("templateVariablesSchema"),
   templateDefaultValues: document.getElementById("templateDefaultValues"),
@@ -366,14 +383,66 @@ function loadCaseFiltersFromSession() {
   state.casesInstitutionFilter = sessionStorage.getItem("complaints_cases_institution_filter") || "";
 }
 
+function getCategoryLabel(value) {
+  return DIRECTORY_CATEGORY_LABELS[value] || "Без категории";
+}
+
+function renderContextNav() {
+  if (!els.contextNav || !els.contextNavTitle) {
+    return;
+  }
+
+  let title = "Раздел";
+  let items = [];
+
+  if (state.currentScreen === "case-workspace") {
+    title = "Обращение";
+    items = [
+      { action: "tab:variables", label: "Переменные", active: state.currentWorkspaceTab === "variables" },
+      { action: "tab:text", label: "Текст", active: state.currentWorkspaceTab === "text" },
+      { action: "tab:files", label: "Файлы", active: state.currentWorkspaceTab === "files" },
+      { action: "tab:submit", label: "Отправка", active: state.currentWorkspaceTab === "submit" },
+      { action: "tab:result", label: "Ответ", active: state.currentWorkspaceTab === "result" }
+    ];
+  } else if (state.currentScreen === "institutions") {
+    title = "Категории";
+    items = DIRECTORY_CATEGORIES.map((item) => ({
+      action: `institutions-category:${item.value}`,
+      label: item.label,
+      active: state.institutionsCategoryFilter === item.value
+    }));
+  } else if (state.currentScreen === "templates") {
+    title = "Категории";
+    items = DIRECTORY_CATEGORIES.map((item) => ({
+      action: `templates-category:${item.value}`,
+      label: item.label,
+      active: state.templatesCategoryFilter === item.value
+    }));
+  } else {
+    title = "Обращения";
+    items = [
+      { action: "screen:dashboard", label: "Список обращений", active: true }
+    ];
+  }
+
+  els.contextNavTitle.textContent = title;
+  els.contextNav.innerHTML = items.map((item) => `
+    <button class="context-btn ${item.active ? "active" : ""}" type="button" data-context-action="${escapeHtml(item.action)}">
+      ${escapeHtml(item.label)}
+    </button>
+  `).join("");
+}
+
 function setScreen(name) {
   state.currentScreen = name;
   els.screens.forEach((screen) => {
     screen.classList.toggle("hidden", screen.dataset.screenPanel !== name);
   });
+  const navScreen = name === "case-workspace" ? "dashboard" : name;
   els.navButtons.forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.screen === name);
+    btn.classList.toggle("active", btn.dataset.screen === navScreen);
   });
+  renderContextNav();
 }
 
 function setWorkspaceTab(name) {
@@ -385,6 +454,7 @@ function setWorkspaceTab(name) {
   els.tabPanels.forEach((panel) => {
     panel.classList.toggle("hidden", panel.dataset.tabPanel !== name);
   });
+  renderContextNav();
 }
 
 function canOpenSubmitTab() {
@@ -400,6 +470,7 @@ function updateWorkspaceTabAvailability() {
 function resetInstitutionForm() {
   state.editingInstitutionId = null;
   els.institutionName.value = "";
+  els.institutionCategory.value = "authority";
   els.institutionSubmitUrl.value = "";
   els.institutionMaxAttachments.value = "5";
   els.institutionMaxTextLength.value = "4000";
@@ -410,6 +481,7 @@ function resetInstitutionForm() {
 function resetTemplateForm() {
   state.editingTemplateId = null;
   els.templateName.value = "";
+  els.templateCategory.value = "authority";
   els.templateBody.value = "";
   els.btnCreateTemplate.textContent = "Сохранить шаблон";
 }
@@ -417,6 +489,7 @@ function resetTemplateForm() {
 function openInstitutionEdit(item) {
   state.editingInstitutionId = item.id;
   els.institutionName.value = item.name || "";
+  els.institutionCategory.value = item.category || "authority";
   els.institutionSubmitUrl.value = item.submit_url || "";
   els.institutionMaxAttachments.value = String(item.max_attachments ?? 5);
   els.institutionMaxTextLength.value = String(item.max_text_length ?? 4000);
@@ -431,6 +504,7 @@ function openInstitutionEdit(item) {
 function openTemplateEdit(item) {
   state.editingTemplateId = item.id;
   els.templateName.value = item.name || "";
+  els.templateCategory.value = item.category || "authority";
   els.templateBody.value = item.body_template || "";
   els.btnCreateTemplate.textContent = "Сохранить изменения";
   els.templateFormPanel.classList.remove("hidden");
@@ -615,19 +689,19 @@ function getCaseStatusBadges(item) {
   const badges = [];
 
   if (!item.institution_id) {
-    badges.push({ text: "NO INSTITUTION", cls: "warn" });
+    badges.push({ text: "НЕТ ОРГАНИЗАЦИИ", cls: "warn" });
   }
 
   if (!item.template_id) {
-    badges.push({ text: "NO TEMPLATE", cls: "warn" });
+    badges.push({ text: "НЕТ ШАБЛОНА", cls: "warn" });
   }
 
   if (item.template_id && !item.submission_number) {
-    badges.push({ text: "CONFIGURED", cls: "info" });
+    badges.push({ text: "СОЗДАНО", cls: "info" });
   }
 
   if (item.submission_number) {
-    badges.push({ text: "SUBMITTED", cls: "ready" });
+    badges.push({ text: "ОТПРАВЛЕНО", cls: "ready" });
   }
 
   if (item.has_reply) {
@@ -681,7 +755,7 @@ function renderCases() {
           <div class="status-badges">${badges}</div>
         </div>
         <div>
-          <div class="row-meta">Case</div>
+          <div class="row-meta">Номер</div>
           <div>${escapeHtml(item.case_number)}</div>
         </div>
         <div>
@@ -717,14 +791,21 @@ function renderCases() {
 }
 
 function renderInstitutions() {
-  if (!state.institutions.length) {
+  const filteredInstitutions = state.institutions.filter((item) => {
+    if (!state.institutionsCategoryFilter) {
+      return true;
+    }
+    return (item.category || "authority") === state.institutionsCategoryFilter;
+  });
+
+  if (!filteredInstitutions.length) {
     els.institutionsList.innerHTML = '<div class="notice">Организаций пока нет.</div>';
   } else {
-    els.institutionsList.innerHTML = state.institutions.map((item) => `
+    els.institutionsList.innerHTML = filteredInstitutions.map((item) => `
       <div class="table-row compact-3">
         <div>
           <div class="row-title">${escapeHtml(item.name)}</div>
-          <div class="row-meta">${escapeHtml(item.id)}</div>
+          <div class="row-meta">${escapeHtml(getCategoryLabel(item.category || "authority"))}</div>
         </div>
         <div>${escapeHtml(item.submit_url)}</div>
         <div class="actions">
@@ -753,14 +834,21 @@ function renderInstitutions() {
 }
 
 function renderTemplates() {
-  if (!state.templates.length) {
+  const filteredTemplates = state.templates.filter((item) => {
+    if (!state.templatesCategoryFilter) {
+      return true;
+    }
+    return (item.category || "authority") === state.templatesCategoryFilter;
+  });
+
+  if (!filteredTemplates.length) {
     els.templatesList.innerHTML = '<div class="notice">Шаблонов пока нет.</div>';
   } else {
-    els.templatesList.innerHTML = state.templates.map((item) => `
+    els.templatesList.innerHTML = filteredTemplates.map((item) => `
       <div class="table-row compact-3">
         <div>
           <div class="row-title">${escapeHtml(item.name)}</div>
-          <div class="row-meta">${escapeHtml(item.id)}</div>
+          <div class="row-meta">${escapeHtml(getCategoryLabel(item.category || "authority"))}</div>
         </div>
        <div class="actions">
          <button class="btn btn-primary" data-edit-template-id="${item.id}">Редактировать</button>
@@ -812,14 +900,14 @@ function renderVariablesForm() {
 
   if (!state.currentCaseId) {
     els.variablesForm.innerHTML = "";
-    els.variablesEmptyState.textContent = "Сначала откройте кейс.";
+    els.variablesEmptyState.textContent = "Сначала откройте обращение.";
     els.variablesEmptyState.classList.remove("hidden");
     return;
   }
 
   if (!template) {
     els.variablesForm.innerHTML = "";
-    els.variablesEmptyState.textContent = "Сначала выберите шаблон в карточке кейса.";
+    els.variablesEmptyState.textContent = "Сначала выберите шаблон в карточке обращения.";
     els.variablesEmptyState.classList.remove("hidden");
     return;
   }
@@ -881,7 +969,7 @@ async function saveCaseMeta() {
   if (!state.currentCaseId) return;
 
   return withButtonLoading(els.btnSaveCaseMeta, "Сохранение...", async () => {
-    const caseDate = parseStrictDisplayDate(els.caseDate.value, "Дата кейса");
+    const caseDate = parseStrictDisplayDate(els.caseDate.value, "Дата обращения");
     const previousTemplateId = state.currentCase?.case?.template_id || null;
     const metaPayload = {
       title: els.caseTitle.value.trim(),
@@ -926,7 +1014,7 @@ function renderWorkspaceSummary() {
 
   els.workspaceTitle.textContent = caseData.title
     ? `${caseData.title}`
-    : (caseData.case_number ? `Кейс ${caseData.case_number}` : "Кейс");
+    : (caseData.case_number ? `Обращение ${caseData.case_number}` : "Обращение");
 
   els.workspaceSubtitle.textContent = caseData.description || state.currentCaseId || "";
 
@@ -946,7 +1034,7 @@ function renderRelatedCases() {
   if (!els.relatedCasesList) return;
 
   if (!state.relatedCases.length) {
-    els.relatedCasesList.innerHTML = '<div class="notice">Связанных кейсов пока нет.</div>';
+    els.relatedCasesList.innerHTML = '<div class="notice">Связанных обращений пока нет.</div>';
     return;
   }
 
@@ -957,7 +1045,7 @@ function renderRelatedCases() {
         <div class="row-meta">${escapeHtml(item.description || "")}</div>
       </div>
       <div>
-        <div class="row-meta">Case</div>
+        <div class="row-meta">Номер</div>
         <div>${escapeHtml(item.case_number)}</div>
       </div>
       <div>
@@ -1123,7 +1211,7 @@ function setSubmitProgress(visible, label = "Подготовка отправк
   setProgress(els.submitProgress, els.submitProgressLabel, visible, label);
 }
 
-function setCreateCaseProgress(visible, label = "Создаём кейс...") {
+function setCreateCaseProgress(visible, label = "Создаём обращение...") {
   setProgress(els.createCaseProgress, els.createCaseProgressLabel, visible, label);
 }
 
@@ -1287,7 +1375,7 @@ async function loadCases() {
 
 async function createCase() {
   return withButtonLoading(els.btnCreateCase, "Создание...", async () => {
-    setCreateCaseProgress(true, "Создаём кейс и переносим файлы...");
+    setCreateCaseProgress(true, "Создаём обращение и переносим файлы...");
     try {
       const data = await api.createCase();
       logRuntime("create case", data);
@@ -1318,6 +1406,7 @@ async function createInstitution() {
   return withButtonLoading(els.btnCreateInstitution, "Сохранение...", async () => {
     const payload = {
       name: els.institutionName.value.trim(),
+      category: els.institutionCategory.value || "authority",
       submitUrl: els.institutionSubmitUrl.value.trim(),
       maxAttachments: Number(els.institutionMaxAttachments.value || 5),
       maxTextLength: Number(els.institutionMaxTextLength.value || 4000),
@@ -1351,6 +1440,7 @@ async function createTemplate() {
   return withButtonLoading(els.btnCreateTemplate, "Сохранение...", async () => {
     const payload = {
       name: els.templateName.value.trim(),
+      category: els.templateCategory.value || "authority",
       bodyTemplate: els.templateBody.value,
       variablesSchema: getTemplateVariablesSchema(),
       defaultValues: getDefaultTemplateValues()
@@ -1660,7 +1750,7 @@ async function prepareSubmit(options = {}) {
 }
 
 async function deleteCaseFromList(caseId, caseNumber) {
-  const confirmed = window.confirm(`Удалить кейс ${caseNumber}?`);
+  const confirmed = window.confirm(`Удалить обращение ${caseNumber}?`);
   if (!confirmed) return;
 
   const data = await api.deleteCase(caseId);
@@ -1690,6 +1780,25 @@ async function saveCaseAsTemplate() {
 
     await loadTemplates();
   });
+}
+
+async function openWorkspaceTabByName(tabName) {
+  if (!tabName) return;
+
+  if (state.currentWorkspaceTab === "submit" && tabName !== "submit") {
+    await handle(persistSubmitMetaIfNeeded);
+  }
+
+  if (tabName === "submit") {
+    await openSubmitTab();
+    return;
+  }
+
+  setWorkspaceTab(tabName);
+  if (tabName === "variables") await loadVariables().catch(() => {});
+  if (tabName === "text") await loadText().catch(() => {});
+  if (tabName === "files") await syncFiles().catch(() => {});
+  if (tabName === "result") await loadResultFiles().catch(() => {});
 }
 
 async function deleteInstitutionFromList(institutionId, institutionName) {
@@ -1736,6 +1845,30 @@ function bindEvents() {
     });
   });
 
+  els.contextNav?.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-context-action]");
+    if (!button) return;
+
+    const action = button.dataset.contextAction || "";
+    if (action.startsWith("tab:")) {
+      await handle(() => openWorkspaceTabByName(action.slice(4)));
+      return;
+    }
+
+    if (action.startsWith("institutions-category:")) {
+      state.institutionsCategoryFilter = action.slice("institutions-category:".length);
+      renderContextNav();
+      renderInstitutions();
+      return;
+    }
+
+    if (action.startsWith("templates-category:")) {
+      state.templatesCategoryFilter = action.slice("templates-category:".length);
+      renderContextNav();
+      renderTemplates();
+    }
+  });
+
   els.btnSaveAsTemplate.onclick = () => handle(saveCaseAsTemplate);
   [els.caseDate, els.submitRegistrationDate].forEach((input) => {
     if (!input) return;
@@ -1747,17 +1880,17 @@ function bindEvents() {
         return;
       }
       try {
-        input.value = parseStrictDisplayDate(input.value, input === els.caseDate ? "Дата кейса" : "Дата регистрации");
+        input.value = parseStrictDisplayDate(input.value, input === els.caseDate ? "Дата обращения" : "Дата регистрации");
       } catch {
         // Keep masked value visible; full validation error is shown on save.
       }
     });
   });
 
-  els.btnSaveCaseMeta.addEventListener("click", () => handle(saveCaseMeta));
-  els.btnCloseImageModal.addEventListener("click", closeImageModal);
-  els.imageModalBackdrop.addEventListener("click", closeImageModal);
-  els.imageModalSelectedCheckbox.addEventListener("change", () => {
+  els.btnSaveCaseMeta?.addEventListener("click", () => handle(saveCaseMeta));
+  els.btnCloseImageModal?.addEventListener("click", closeImageModal);
+  els.imageModalBackdrop?.addEventListener("click", closeImageModal);
+  els.imageModalSelectedCheckbox?.addEventListener("change", () => {
     const fileId = els.imageModalSelectedCheckbox.dataset.fileId;
     if (!fileId) return;
     syncModalSelectionState(fileId, els.imageModalSelectedCheckbox.checked);
@@ -1766,21 +1899,21 @@ function bindEvents() {
   if (els.btnShowRuntimeLog) {
     els.btnShowRuntimeLog.addEventListener("click", openRuntimeLogModal);
   }
-  els.btnCloseRuntimeLog.addEventListener("click", closeRuntimeLogModal);
-  els.runtimeLogBackdrop.addEventListener("click", closeRuntimeLogModal);
-if (els.casesSearchInput) {
+  els.btnCloseRuntimeLog?.addEventListener("click", closeRuntimeLogModal);
+  els.runtimeLogBackdrop?.addEventListener("click", closeRuntimeLogModal);
+  if (els.casesSearchInput) {
   els.casesSearchInput.addEventListener("input", (event) => {
     state.casesSearch = event.target.value || "";
     saveCaseFiltersToSession();
     renderCases();
   });
 }
-  els.casesInstitutionFilter.addEventListener("change", (event) => {
+  els.casesInstitutionFilter?.addEventListener("change", (event) => {
     state.casesInstitutionFilter = event.target.value || "";
     saveCaseFiltersToSession();
     renderCases();
   });
-  els.btnResetCaseFilters.addEventListener("click", () => {
+  els.btnResetCaseFilters?.addEventListener("click", () => {
     state.casesSearch = "";
     state.casesInstitutionFilter = "";
     saveCaseFiltersToSession();
@@ -1789,63 +1922,51 @@ if (els.casesSearchInput) {
   });
   els.tabButtons.forEach((btn) => {
     btn.addEventListener("click", async () => {
-      if (state.currentWorkspaceTab === "submit" && btn.dataset.tab !== "submit") {
-        await handle(persistSubmitMetaIfNeeded);
-      }
-      if (btn.dataset.tab === "submit") {
-        await handle(openSubmitTab);
-        return;
-      }
-
-      setWorkspaceTab(btn.dataset.tab);
-      if (btn.dataset.tab === "variables") await loadVariables().catch(() => {});
-      if (btn.dataset.tab === "text") await loadText().catch(() => {});
-      if (btn.dataset.tab === "files") await syncFiles().catch(() => {});
-      if (btn.dataset.tab === "result") await loadResultFiles().catch(() => {});
+      await handle(() => openWorkspaceTabByName(btn.dataset.tab));
     });
   });
 
-  els.btnCancelInstitution.addEventListener("click", () => {
+  els.btnCancelInstitution?.addEventListener("click", () => {
     resetInstitutionForm();
     els.institutionFormPanel.classList.add("hidden");
   });
 
-  els.btnCancelTemplate.addEventListener("click", () => {
+  els.btnCancelTemplate?.addEventListener("click", () => {
     resetTemplateForm();
     els.templateFormPanel.classList.add("hidden");
   });
 
-  els.btnCreateCase.addEventListener("click", () => handle(createCase));
-  els.btnCreateLinkedCase.addEventListener("click", () => handle(createLinkedCase));
+  els.btnCreateCase?.addEventListener("click", () => handle(createCase));
+  els.btnCreateLinkedCase?.addEventListener("click", () => handle(createLinkedCase));
 
-  els.btnToggleInstitutionForm.addEventListener("click", () => {
+  els.btnToggleInstitutionForm?.addEventListener("click", () => {
     resetInstitutionForm();
     els.institutionFormPanel.classList.remove("hidden");
   });
 
-  els.btnCreateInstitution.addEventListener("click", () => handle(createInstitution));
+  els.btnCreateInstitution?.addEventListener("click", () => handle(createInstitution));
 
-  els.btnToggleTemplateForm.addEventListener("click", () => {
+  els.btnToggleTemplateForm?.addEventListener("click", () => {
     resetTemplateForm();
     els.templateFormPanel.classList.remove("hidden");
   });
   
-  els.btnCreateTemplate.addEventListener("click", () => handle(createTemplate));
+  els.btnCreateTemplate?.addEventListener("click", () => handle(createTemplate));
 
-  els.btnBackToCases.addEventListener("click", async () => {
+  els.btnBackToCases?.addEventListener("click", async () => {
     if (state.currentWorkspaceTab === "submit") {
       await handle(persistSubmitMetaIfNeeded);
     }
     setScreen("dashboard");
     await handle(loadCases);
   });
-  els.btnSaveFilesSelection.addEventListener("click", () => handle(saveFiles));
-  els.btnSaveVariables.addEventListener("click", () => handle(saveVariables));
-  els.btnSaveText.addEventListener("click", () => handle(saveText));
-  els.btnDownloadSubmitText.addEventListener("click", downloadSubmitText);
-  els.btnCopySubmitText.addEventListener("click", () => handle(() => copyToClipboard(els.submitText.value, "Текст жалобы скопирован")));
-  els.btnRebuildSubmitPackage.addEventListener("click", () => handle(rebuildSubmitPackage));
-  els.btnCopySubmitUrl.addEventListener("click", () => handle(async () => {
+  els.btnSaveFilesSelection?.addEventListener("click", () => handle(saveFiles));
+  els.btnSaveVariables?.addEventListener("click", () => handle(saveVariables));
+  els.btnSaveText?.addEventListener("click", () => handle(saveText));
+  els.btnDownloadSubmitText?.addEventListener("click", downloadSubmitText);
+  els.btnCopySubmitText?.addEventListener("click", () => handle(() => copyToClipboard(els.submitText.value, "Текст жалобы скопирован")));
+  els.btnRebuildSubmitPackage?.addEventListener("click", () => handle(rebuildSubmitPackage));
+  els.btnCopySubmitUrl?.addEventListener("click", () => handle(async () => {
     const url = String(els.submitInstitutionUrl.value || "").trim();
 
     if (!url) {
@@ -1855,9 +1976,9 @@ if (els.casesSearchInput) {
 
     window.open(url, "_blank", "noopener,noreferrer");
   }));
-  els.btnDownloadSubmitFiles.addEventListener("click", () => handle(downloadSubmitFiles));
-  els.btnUploadResultFiles.addEventListener("click", () => els.resultFilesInput?.click());
-  els.resultFilesInput.addEventListener("change", () => handle(uploadResultFiles));
+  els.btnDownloadSubmitFiles?.addEventListener("click", () => handle(downloadSubmitFiles));
+  els.btnUploadResultFiles?.addEventListener("click", () => els.resultFilesInput?.click());
+  els.resultFilesInput?.addEventListener("change", () => handle(uploadResultFiles));
 }
 
 async function deleteTemplateFromList(templateId, templateName) {
