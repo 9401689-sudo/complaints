@@ -1052,6 +1052,7 @@ export class CasesService {
       caseDate?: string | null;
       registrationDate?: string | null;
       submissionNumber?: string | null;
+      responseComment?: string | null;
     }
   ) {
     const existing = await this.getCaseById(caseId);
@@ -1079,6 +1080,10 @@ export class CasesService {
       body?.submissionNumber !== undefined
         ? (body.submissionNumber ?? '').trim()
         : existing.submission_number;
+    const responseComment =
+      body?.responseComment !== undefined
+        ? (body.responseComment ?? '').trim()
+        : existing.response_comment;
 
     const result = await postgres.query<CaseRecord>(
       `
@@ -1089,6 +1094,7 @@ export class CasesService {
         case_date = $4,
         registration_date = $5,
         submission_number = $6,
+        response_comment = $7,
         updated_at = now()
       where id = $1
       returning *
@@ -1099,7 +1105,8 @@ export class CasesService {
         description || null,
         caseDate || existing.case_date,
         registrationDate || null,
-        submissionNumber || null
+        submissionNumber || null,
+        responseComment || null
       ]
     );
 
@@ -1108,7 +1115,8 @@ export class CasesService {
       description: description || null,
       caseDate: caseDate || existing.case_date,
       registrationDate: registrationDate || null,
-      submissionNumber: submissionNumber || null
+      submissionNumber: submissionNumber || null,
+      responseComment: responseComment || null
     });
 
     return result.rows[0];

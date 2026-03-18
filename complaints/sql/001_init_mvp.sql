@@ -67,6 +67,7 @@ create table if not exists cases (
   submission_number text,
   case_date text not null default to_char(now(), 'DD.MM.YYYY'),
   registration_date text,
+  response_comment text,
   submitted_at timestamptz,
 
   created_at timestamptz not null default now(),
@@ -83,6 +84,7 @@ set case_date = to_char(created_at, 'DD.MM.YYYY')
 where coalesce(nullif(trim(case_date), ''), '') = '';
 alter table cases alter column case_date set not null;
 alter table cases add column if not exists registration_date text;
+alter table cases add column if not exists response_comment text;
 
 alter table institutions drop column if exists active;
 alter table templates drop column if exists active;

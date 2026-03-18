@@ -45,6 +45,7 @@ export async function registerCasesRoutes(app: FastifyInstance): Promise<void> {
       caseDate?: string | null;
       registrationDate?: string | null;
       submissionNumber?: string | null;
+      responseComment?: string | null;
     };
   }>(
     `${env.API_BASE_PATH}/cases/:id/meta`,

@@ -64,6 +64,7 @@ const els = {
   tabPanels: [...document.querySelectorAll("[data-tab-panel]")],
   contextNav: document.getElementById("contextNav"),
   contextNavTitle: document.getElementById("contextNavTitle"),
+  mainContent: document.querySelector(".main-content"),
 
   btnCreateCase: document.getElementById("btnCreateCase"),
   createCaseProgress: document.getElementById("createCaseProgress"),
@@ -138,6 +139,7 @@ const els = {
   resultFilesInput: document.getElementById("resultFilesInput"),
   resultUploadProgress: document.getElementById("resultUploadProgress"),
   resultUploadProgressLabel: document.getElementById("resultUploadProgressLabel"),
+  resultComment: document.getElementById("resultComment"),
   resultFilesList: document.getElementById("resultFilesList"),
 
   imageModal: document.getElementById("imageModal"),
@@ -446,7 +448,7 @@ function setScreen(name) {
 }
 
 function setWorkspaceTab(name) {
-  state.currentWorkspaceTab = name;
+  state.currentWorkspaceTab = name || null;
 
   els.tabButtons.forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.tab === name);
@@ -455,6 +457,20 @@ function setWorkspaceTab(name) {
     panel.classList.toggle("hidden", panel.dataset.tabPanel !== name);
   });
   renderContextNav();
+}
+
+function scrollMainContentToTop() {
+  els.mainContent?.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function scrollToWorkspaceTab(name) {
+  const panel = document.querySelector(`[data-tab-panel="${name}"]`);
+  if (!panel) {
+    scrollMainContentToTop();
+    return;
+  }
+
+  panel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function canOpenSubmitTab() {
@@ -1224,6 +1240,8 @@ function setResultUploadProgress(visible, label = "Загружаем файлы
 }
 
 function renderResultFiles() {
+  els.resultComment.value = state.currentCase?.case?.response_comment || "";
+
   if (!state.resultFiles.length) {
     els.resultFilesList.innerHTML = '<div class="notice">Файлы ответа пока не загружены.</div>';
     return;
@@ -1291,6 +1309,27 @@ async function persistSubmitMetaIfNeeded() {
   const data = await api.updateCaseMeta(state.currentCaseId, {
     registrationDate: nextRegistrationDate,
     submissionNumber: nextSubmissionNumber
+  });
+
+  state.currentCase = {
+    ...(state.currentCase || {}),
+    case: data.case
+  };
+  renderWorkspaceSummary();
+}
+
+async function persistResultCommentIfNeeded() {
+  if (!state.currentCaseId || !els.resultComment) return;
+
+  const caseData = state.currentCase?.case || {};
+  const nextResponseComment = String(els.resultComment.value || "").trim();
+
+  if ((caseData.response_comment || "") === nextResponseComment) {
+    return;
+  }
+
+  const data = await api.updateCaseMeta(state.currentCaseId, {
+    responseComment: nextResponseComment
   });
 
   state.currentCase = {
@@ -1373,6 +1412,18 @@ async function loadCases() {
   logRuntime("list cases", data);
 }
 
+async function refreshCurrentCaseData() {
+  if (!state.currentCaseId) return;
+
+  const data = await api.getCase(state.currentCaseId);
+  state.currentCase = data;
+  state.currentCaseFiles = data.files || [];
+  state.relatedCases = data.relatedCases || [];
+  renderWorkspaceSummary();
+  renderWorkspaceFiles();
+  renderResultFiles();
+}
+
 async function createCase() {
   return withButtonLoading(els.btnCreateCase, "Создание...", async () => {
     setCreateCaseProgress(true, "Создаём обращение и переносим файлы...");
@@ -1387,7 +1438,6 @@ async function createCase() {
       if (newCaseId) {
         await openCase(newCaseId);
         setScreen("case-workspace");
-        setWorkspaceTab("variables");
       }
     } finally {
       setCreateCaseProgress(false);
@@ -1480,8 +1530,8 @@ async function openCase(caseId) {
   await loadResultFiles().catch(() => {});
 
   setScreen("case-workspace");
-  setWorkspaceTab("variables");
-  await loadVariables().catch(() => {});
+  setWorkspaceTab(null);
+  scrollMainContentToTop();
   logRuntime("open case", data);
 }
 
@@ -1638,7 +1688,6 @@ async function createLinkedCase() {
   if (linkedCaseId) {
     await openCase(linkedCaseId);
     setScreen("case-workspace");
-    setWorkspaceTab("variables");
   }
 }
 
@@ -1788,9 +1837,13 @@ async function openWorkspaceTabByName(tabName) {
   if (state.currentWorkspaceTab === "submit" && tabName !== "submit") {
     await handle(persistSubmitMetaIfNeeded);
   }
+  if (state.currentWorkspaceTab === "result" && tabName !== "result") {
+    await handle(persistResultCommentIfNeeded);
+  }
 
   if (tabName === "submit") {
     await openSubmitTab();
+    scrollToWorkspaceTab("submit");
     return;
   }
 
@@ -1798,7 +1851,11 @@ async function openWorkspaceTabByName(tabName) {
   if (tabName === "variables") await loadVariables().catch(() => {});
   if (tabName === "text") await loadText().catch(() => {});
   if (tabName === "files") await syncFiles().catch(() => {});
-  if (tabName === "result") await loadResultFiles().catch(() => {});
+  if (tabName === "result") {
+    await refreshCurrentCaseData().catch(() => {});
+    await loadResultFiles().catch(() => {});
+  }
+  scrollToWorkspaceTab(tabName);
 }
 
 async function deleteInstitutionFromList(institutionId, institutionName) {
@@ -1837,6 +1894,9 @@ function bindEvents() {
     btn.addEventListener("click", async () => {
       if (state.currentScreen === "case-workspace" && state.currentWorkspaceTab === "submit") {
         await handle(persistSubmitMetaIfNeeded);
+      }
+      if (state.currentScreen === "case-workspace" && state.currentWorkspaceTab === "result") {
+        await handle(persistResultCommentIfNeeded);
       }
       setScreen(btn.dataset.screen);
       if (btn.dataset.screen === "dashboard") await loadCases();
@@ -1957,6 +2017,9 @@ function bindEvents() {
     if (state.currentWorkspaceTab === "submit") {
       await handle(persistSubmitMetaIfNeeded);
     }
+    if (state.currentWorkspaceTab === "result") {
+      await handle(persistResultCommentIfNeeded);
+    }
     setScreen("dashboard");
     await handle(loadCases);
   });
@@ -1979,6 +2042,7 @@ function bindEvents() {
   els.btnDownloadSubmitFiles?.addEventListener("click", () => handle(downloadSubmitFiles));
   els.btnUploadResultFiles?.addEventListener("click", () => els.resultFilesInput?.click());
   els.resultFilesInput?.addEventListener("change", () => handle(uploadResultFiles));
+  els.resultComment?.addEventListener("blur", () => handle(persistResultCommentIfNeeded));
 }
 
 async function deleteTemplateFromList(templateId, templateName) {
@@ -2011,7 +2075,7 @@ async function bootstrap() {
   await loadTemplates();
   await loadCases();
   setScreen("dashboard");
-  setWorkspaceTab("variables");
+  setWorkspaceTab(null);
 }
 
 bootstrap().catch((error) => {
