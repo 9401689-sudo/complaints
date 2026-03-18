@@ -13,6 +13,7 @@ const state = {
   variables: {},
   submitData: null,
   resultFiles: [],
+  relatedCases: [],
   textContent: "",
   editingInstitutionId: null,
   editingTemplateId: null,
@@ -88,6 +89,8 @@ const els = {
 
   caseInstitutionSelect: document.getElementById("caseInstitutionSelect"),
   caseTemplateSelect: document.getElementById("caseTemplateSelect"),
+  btnCreateLinkedCase: document.getElementById("btnCreateLinkedCase"),
+  relatedCasesList: document.getElementById("relatedCasesList"),
   btnSaveVariables: document.getElementById("btnSaveVariables"),
   variablesForm: document.getElementById("variablesForm"),
   variablesEmptyState: document.getElementById("variablesEmptyState"),
@@ -113,6 +116,8 @@ const els = {
   submitInstitutionUrl: document.getElementById("submitInstitutionUrl"),
   submitInstitutionUrlPretty: document.getElementById("submitInstitutionUrlPretty"),
   submitFilesList: document.getElementById("submitFilesList"),
+  btnUploadResultFiles: document.getElementById("btnUploadResultFiles"),
+  resultFilesInput: document.getElementById("resultFilesInput"),
   resultFilesList: document.getElementById("resultFilesList"),
 
   imageModal: document.getElementById("imageModal"),
@@ -384,24 +389,9 @@ function canOpenSubmitTab() {
 }
 
 function updateWorkspaceTabAvailability() {
-  const hasResultFiles = state.resultFiles.length > 0;
-  let switchedTab = false;
-
-  if (!hasResultFiles && state.currentWorkspaceTab === "result") {
-    state.currentWorkspaceTab = "submit";
-    switchedTab = true;
-  }
-
   els.tabButtons.forEach((btn) => {
     btn.disabled = false;
-    if (btn.dataset.tab === "result") {
-      btn.classList.toggle("hidden", !hasResultFiles);
-    }
   });
-
-  if (switchedTab) {
-    setWorkspaceTab("submit");
-  }
 }
 
 function resetInstitutionForm() {
@@ -635,6 +625,14 @@ function getCaseStatusBadges(item) {
 
   if (item.submission_number) {
     badges.push({ text: "SUBMITTED", cls: "ready" });
+  }
+
+  if (item.has_reply) {
+    badges.push({ text: "ЕСТЬ ОТВЕТ", cls: "ready" });
+  }
+
+  if (Number(item.linked_cases_count || 0) > 0) {
+    badges.push({ text: "ЕСТЬ СВЯЗАННЫЕ", cls: "info" });
   }
 
   return badges;
@@ -938,6 +936,48 @@ function renderWorkspaceSummary() {
   els.caseDate.value = caseData.case_date || "";
   updateWorkspaceTabAvailability();
   renderVariablesForm();
+  renderRelatedCases();
+}
+
+function renderRelatedCases() {
+  if (!els.relatedCasesList) return;
+
+  if (!state.relatedCases.length) {
+    els.relatedCasesList.innerHTML = '<div class="notice">Связанных кейсов пока нет.</div>';
+    return;
+  }
+
+  els.relatedCasesList.innerHTML = state.relatedCases.map((item) => `
+    <div class="table-row cases-row">
+      <div>
+        <div class="row-title">${escapeHtml(item.title || "Без названия")}</div>
+        <div class="row-meta">${escapeHtml(item.description || "")}</div>
+      </div>
+      <div>
+        <div class="row-meta">Case</div>
+        <div>${escapeHtml(item.case_number)}</div>
+      </div>
+      <div>
+        <div class="row-meta">Организация</div>
+        <div>${escapeHtml(item.institution_name || "—")}</div>
+      </div>
+      <div>
+        <div class="row-meta">Шаблон</div>
+        <div>${escapeHtml(item.template_name || "—")}</div>
+      </div>
+      <div>
+        <div class="row-meta">Дата</div>
+        <div>${escapeHtml(item.case_date || "—")}</div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" data-open-related-case-id="${item.id}">Открыть</button>
+      </div>
+    </div>
+  `).join("");
+
+  els.relatedCasesList.querySelectorAll("[data-open-related-case-id]").forEach((button) => {
+    button.addEventListener("click", () => handle(() => openCase(button.dataset.openRelatedCaseId)));
+  });
 }
 
 function renderWorkspaceFiles() {
@@ -1090,7 +1130,7 @@ function setFilesSyncProgress(visible, label = "Синхронизируем ф�
 
 function renderResultFiles() {
   if (!state.resultFiles.length) {
-    els.resultFilesList.innerHTML = '<div class="notice">В папке result пока нет файлов.</div>';
+    els.resultFilesList.innerHTML = '<div class="notice">Файлы ответа пока не загружены.</div>';
     return;
   }
 
@@ -1329,6 +1369,7 @@ async function openCase(caseId) {
   const data = await api.getCase(caseId);
   state.currentCase = data;
   state.currentCaseFiles = data.files || [];
+  state.relatedCases = data.relatedCases || [];
   state.variables = {};
   state.submitData = null;
   state.resultFiles = [];
@@ -1489,6 +1530,33 @@ async function loadResultFiles() {
   updateWorkspaceTabAvailability();
 }
 
+async function createLinkedCase() {
+  if (!state.currentCaseId) return;
+
+  const data = await api.createCase({ parentCaseId: state.currentCaseId });
+  logRuntime("create linked case", data);
+  await loadCases();
+
+  const linkedCaseId = data?.case?.id || null;
+  if (linkedCaseId) {
+    await openCase(linkedCaseId);
+    setScreen("case-workspace");
+    setWorkspaceTab("variables");
+  }
+}
+
+async function uploadResultFiles() {
+  if (!state.currentCaseId || !els.resultFilesInput?.files?.length) return;
+
+  const files = [...els.resultFilesInput.files];
+  const data = await api.uploadResultFiles(state.currentCaseId, files);
+  logRuntime("upload result files", data);
+  els.resultFilesInput.value = "";
+  await loadResultFiles();
+  await reloadCurrentCase();
+  setWorkspaceTab("result");
+}
+
 async function buildPackage() {
   if (!state.currentCaseId) return;
 
@@ -1569,6 +1637,7 @@ async function deleteCaseFromList(caseId, caseNumber) {
     state.currentCaseId = null;
     state.currentCase = null;
     state.currentCaseFiles = [];
+    state.relatedCases = [];
     state.variables = {};
     state.submitData = null;
     state.resultFiles = [];
@@ -1714,6 +1783,7 @@ if (els.casesSearchInput) {
   });
 
   els.btnCreateCase.addEventListener("click", () => handle(createCase));
+  els.btnCreateLinkedCase.addEventListener("click", () => handle(createLinkedCase));
 
   els.btnToggleInstitutionForm.addEventListener("click", () => {
     resetInstitutionForm();
@@ -1752,6 +1822,8 @@ if (els.casesSearchInput) {
     window.open(url, "_blank", "noopener,noreferrer");
   }));
   els.btnDownloadSubmitFiles.addEventListener("click", () => handle(downloadSubmitFiles));
+  els.btnUploadResultFiles.addEventListener("click", () => els.resultFilesInput?.click());
+  els.resultFilesInput.addEventListener("change", () => handle(uploadResultFiles));
 }
 
 async function deleteTemplateFromList(templateId, templateName) {

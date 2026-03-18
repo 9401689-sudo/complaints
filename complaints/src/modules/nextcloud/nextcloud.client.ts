@@ -259,6 +259,25 @@ export class NextcloudClient {
     }
   }
 
+  async uploadBinaryFile(filePath: string, content: Buffer, mimeType?: string | null): Promise<void> {
+    requireNextcloudEnv();
+    const body = new Uint8Array(content);
+
+    const response = await fetch(buildDavPath(filePath), {
+      method: 'PUT',
+      headers: {
+        Authorization: getAuthHeader(),
+        'Content-Type': mimeType || 'application/octet-stream'
+      },
+      body
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`Nextcloud PUT failed (${response.status}): ${body}`);
+    }
+  }
+
   async downloadTextFile(filePath: string): Promise<string> {
     requireNextcloudEnv();
 

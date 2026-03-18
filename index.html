@@ -212,12 +212,21 @@
     <button class="btn btn-primary" id="btnSaveCaseMeta">Сохранить карточку кейса</button>
   </div>
 </div>
+<div class="panel">
+  <div class="panel-header">
+    <h3>Связанные кейсы</h3>
+    <div class="actions">
+      <button class="btn btn-primary" id="btnCreateLinkedCase" type="button">Создать связанный кейс</button>
+    </div>
+  </div>
+  <div id="relatedCasesList" class="table-like"></div>
+</div>
 <div class="workspace-tabs">
   <button class="tab-btn active" data-tab="variables" type="button">Переменные</button>
   <button class="tab-btn" data-tab="text" type="button">Текст</button>
   <button class="tab-btn" data-tab="files" type="button">Файлы</button>
   <button class="tab-btn" data-tab="submit" type="button">Собрать пакет отправки</button>
-  <button class="tab-btn hidden" data-tab="result" type="button">Результат</button>
+  <button class="tab-btn" data-tab="result" type="button">Ответ</button>
 </div>
           <div class="workspace-tab-panel" data-tab-panel="variables">
             <div class="panel">
@@ -329,8 +338,12 @@
           <div class="workspace-tab-panel hidden" data-tab-panel="result">
             <div class="panel">
               <div class="panel-header">
-                <h3>Результат</h3>
+                <h3>Ответ</h3>
+                <div class="actions">
+                  <button class="btn btn-primary" id="btnUploadResultFiles" type="button">Загрузить</button>
+                </div>
               </div>
+              <input id="resultFilesInput" type="file" multiple class="hidden" />
               <div id="resultFilesList" class="files-grid"></div>
             </div>
           </div>

@@ -38,3 +38,13 @@ export type UpdateCaseFilesResult = {
   selectedCount: number;
   files: CaseFileRecord[];
 };
+
+export type UploadResultFileItem = {
+  fileName: string;
+  mimeType?: string | null;
+  contentBase64: string;
+};
+
+export type UploadResultFilesBody = {
+  files: UploadResultFileItem[];
+};

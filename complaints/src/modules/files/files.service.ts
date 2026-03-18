@@ -5,6 +5,7 @@ import { nextcloudClient } from '../nextcloud/nextcloud.client';
 import {
   CaseFileRecord,
   SyncedCaseFile,
+  UploadResultFilesBody,
   UpdateCaseFilesBody,
   UpdateCaseFilesItem,
   UpdateCaseFilesResult,
@@ -446,6 +447,43 @@ export class FilesService {
       await postgres.query('rollback');
       throw error;
     }
+  }
+
+  async uploadResultFiles(caseId: string, body: UploadResultFilesBody): Promise<CaseFileRecord[]> {
+    const caseRow = await casesService.getCaseById(caseId);
+
+    if (!caseRow) {
+      throw new Error('case not found');
+    }
+
+    if (!body?.files || !Array.isArray(body.files) || body.files.length === 0) {
+      throw new Error('files array is required');
+    }
+
+    for (const file of body.files) {
+      if (!file?.fileName?.trim()) {
+        throw new Error('fileName is required');
+      }
+
+      if (!file?.contentBase64) {
+        throw new Error('contentBase64 is required');
+      }
+    }
+
+    for (const file of body.files) {
+      const filePath = `${caseRow.nextcloud_result_folder.replace(/\/+$/, '')}/${file.fileName.trim()}`;
+      const buffer = Buffer.from(file.contentBase64, 'base64');
+      await nextcloudClient.uploadBinaryFile(filePath, buffer, file.mimeType ?? 'application/octet-stream');
+    }
+
+    await casesService.logCaseAction(caseId, 'result.files.uploaded', {
+      files: body.files.map((file) => ({
+        fileName: file.fileName,
+        mimeType: file.mimeType ?? null
+      }))
+    });
+
+    return this.syncResultFiles(caseId);
   }
 }
 

@@ -18,12 +18,13 @@ export async function registerCasesRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
-  app.post(`${env.API_BASE_PATH}/cases`, async (_request, reply) => {
+  app.post<{ Body: { parentCaseId?: string | null } }>(`${env.API_BASE_PATH}/cases`, async (request, reply) => {
     try {
-      const payload = await casesService.createCase();
+      const payload = await casesService.createCase(request.body);
       return reply.code(201).send(payload);
     } catch (error) {
-      return requestError(reply, error);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return requestError(reply, error, message === 'parent case not found' ? 404 : 500);
     }
   });
 

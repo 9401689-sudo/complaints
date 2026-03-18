@@ -71,15 +71,24 @@ type SubmitFilePayload = {
 };
 
 export class CasesService {
-  async createCase(): Promise<CreateCaseResponse> {
+  async createCase(body?: { parentCaseId?: string | null }): Promise<CreateCaseResponse> {
     const caseNumber = await this.generateCaseNumber();
     const folders = await nextcloudClient.createCaseFolders(caseNumber);
     const adoptedFiles = await nextcloudClient.moveRootFilesToIncoming(folders.incoming);
+    const parentCaseId = body?.parentCaseId?.trim() || null;
+
+    if (parentCaseId) {
+      const parentCase = await this.getCaseById(parentCaseId);
+      if (!parentCase) {
+        throw new Error('parent case not found');
+      }
+    }
 
     const insertResult = await postgres.query<CaseRecord>(
       `
       insert into cases (
         case_number,
+        parent_case_id,
         institution_id,
         template_id,
         nextcloud_case_folder,
@@ -88,11 +97,12 @@ export class CasesService {
         nextcloud_result_folder,
         case_date
       )
-      values ($1, $2, $3, $4, $5, $6, $7, to_char(now(), 'DD.MM.YYYY'))
+      values ($1, $2, $3, $4, $5, $6, $7, $8, to_char(now(), 'DD.MM.YYYY'))
       returning *
       `,
       [
         caseNumber,
+        parentCaseId,
         null,
         null,
         folders.caseRoot,
@@ -133,6 +143,7 @@ export class CasesService {
 
     await this.logCaseAction(caseRow.id, 'case.created', {
       caseNumber: caseRow.case_number,
+      parentCaseId: caseRow.parent_case_id,
       nextcloudCaseFolder: caseRow.nextcloud_case_folder,
       nextcloudIncomingFolder: caseRow.nextcloud_incoming_folder,
       nextcloudArtifactsFolder: caseRow.nextcloud_artifacts_folder,
@@ -388,12 +399,14 @@ export class CasesService {
 
     const fsm = await fsmService.getSnapshot(caseId);
     const files = await this.getCaseFiles(caseId);
+    const relatedCases = await this.getRelatedCases(caseId);
 
     return {
       ok: true,
       case: caseRow,
       fsm,
-      files
+      files,
+      relatedCases
     };
   }
 
@@ -524,6 +537,7 @@ export class CasesService {
       select
         c.id,
         c.case_number,
+        c.parent_case_id,
         c.institution_id,
         c.template_id,
         c.title,
@@ -539,7 +553,18 @@ export class CasesService {
         c.created_at,
         c.updated_at,
         i.name as institution_name,
-        t.name as template_name
+        t.name as template_name,
+        (
+          select count(*)::int
+          from cases child
+          where child.parent_case_id = c.id
+        ) as linked_cases_count,
+        exists(
+          select 1
+          from case_files cf
+          where cf.case_id = c.id
+            and cf.file_path like c.nextcloud_result_folder || '/%'
+        ) as has_reply
       from cases c
       left join institutions i on i.id = c.institution_id
       left join templates t on t.id = c.template_id
@@ -547,6 +572,50 @@ export class CasesService {
         coalesce(to_date(nullif(c.case_date, ''), 'DD.MM.YYYY'), c.created_at::date) desc,
         c.created_at desc
       `
+    );
+
+    return result.rows;
+  }
+
+  async getRelatedCases(parentCaseId: string): Promise<CaseRecord[]> {
+    const result = await postgres.query<CaseRecord>(
+      `
+      select
+        c.id,
+        c.case_number,
+        c.parent_case_id,
+        c.institution_id,
+        c.template_id,
+        c.title,
+        c.description,
+        c.nextcloud_case_folder,
+        c.nextcloud_incoming_folder,
+        c.nextcloud_artifacts_folder,
+        c.nextcloud_result_folder,
+        c.case_date,
+        c.registration_date,
+        c.submission_number,
+        c.submitted_at,
+        c.created_at,
+        c.updated_at,
+        i.name as institution_name,
+        t.name as template_name,
+        0 as linked_cases_count,
+        exists(
+          select 1
+          from case_files cf
+          where cf.case_id = c.id
+            and cf.file_path like c.nextcloud_result_folder || '/%'
+        ) as has_reply
+      from cases c
+      left join institutions i on i.id = c.institution_id
+      left join templates t on t.id = c.template_id
+      where c.parent_case_id = $1
+      order by
+        coalesce(to_date(nullif(c.case_date, ''), 'DD.MM.YYYY'), c.created_at::date) desc,
+        c.created_at desc
+      `,
+      [parentCaseId]
     );
 
     return result.rows;

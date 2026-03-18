@@ -65,10 +65,10 @@ export const api = {
     return request("/cases");
   },
 
-  createCase() {
+  createCase(payload = {}) {
     return request("/cases", {
       method: "POST",
-      body: JSON.stringify({})
+      body: JSON.stringify(payload)
     });
   },
 
@@ -78,6 +78,29 @@ export const api = {
 
   getResultFiles(caseId) {
     return request(`/cases/${caseId}/result-files`);
+  },
+
+  async uploadResultFiles(caseId, files) {
+    const preparedFiles = await Promise.all((files || []).map(async (file) => {
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+
+      for (let index = 0; index < bytes.length; index += 1) {
+        binary += String.fromCharCode(bytes[index]);
+      }
+
+      return {
+        fileName: file.name,
+        mimeType: file.type || "application/octet-stream",
+        contentBase64: btoa(binary)
+      };
+    }));
+
+    return request(`/cases/${caseId}/result-files/upload`, {
+      method: "POST",
+      body: JSON.stringify({ files: preparedFiles })
+    });
   },
 
   listInstitutions() {
