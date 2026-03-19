@@ -7,7 +7,7 @@ export async function registerPackageRoutes(app: FastifyInstance): Promise<void>
     `${env.API_BASE_PATH}/cases/:id/package`,
     async (request, reply) => {
       try {
-        const result = await packageService.getCasePackage(request.params.id);
+        const result = await packageService.getCasePackage(request.params.id, request.authUser);
 
         return reply.send({
           ok: true,

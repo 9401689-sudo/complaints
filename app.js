@@ -784,7 +784,10 @@ function openTemplateEdit(item) {
 }
 
 function getPreviewUrl(caseId, fileId) {
-  return `https://complaints-api.doorsvip.ru/complaints/api/cases/${caseId}/files/${fileId}/preview`;
+  const path = window.location.pathname || '/';
+  const [, prefix] = path.split('/');
+  const appPrefix = prefix || 'complaints';
+  return `https://complaints-api.doorsvip.ru/${appPrefix}/api/cases/${caseId}/files/${fileId}/preview`;
 }
 
 function isImageMime(mimeType) {
@@ -1010,7 +1013,8 @@ function renderCases() {
       item.description || "",
       item.case_number || "",
       item.institution_name || "",
-      item.template_name || ""
+      item.template_name || "",
+      item.owner_nickname || ""
     ].join(" ").toLowerCase();
 
     return haystack.includes(query);
@@ -1020,6 +1024,8 @@ function renderCases() {
     els.casesList.innerHTML = '<div class="notice">Ничего не найдено.</div>';
     return;
   }
+
+  const showOwner = isAdminRole(state.authUser?.role);
 
   els.casesList.innerHTML = filteredCases.map((item) => {
     const badges = getCaseStatusBadges(item)
@@ -1041,10 +1047,15 @@ function renderCases() {
           <div class="row-meta">Организация</div>
           <div>${escapeHtml(item.institution_name || "—")}</div>
         </div>
-        <div>
+                <div>
           <div class="row-meta">Шаблон</div>
           <div>${escapeHtml(item.template_name || "—")}</div>
         </div>
+        ${showOwner ? `
+        <div>
+          <div class="row-meta">Пользователь</div>
+          <div>${escapeHtml(item.owner_nickname || "—")}</div>
+        </div>` : ""}
         <div>
           <div class="row-meta">Дата</div>
           <div>${escapeHtml(item.case_date || "—")}</div>

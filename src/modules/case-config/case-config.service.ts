@@ -2,11 +2,12 @@ import { postgres } from '../db/postgres';
 import { casesService } from '../cases/cases.service';
 import { fsmService } from '../fsm/fsm.service';
 import { nextcloudClient } from '../nextcloud/nextcloud.client';
+import { AuthUser } from '../auth/auth.service';
 import { UpdateCaseConfigBody } from './case-config.types';
 
 export class CaseConfigService {
-  async updateCaseConfig(caseId: string, body: UpdateCaseConfigBody = {}) {
-    const caseRow = await casesService.getCaseById(caseId);
+  async updateCaseConfig(caseId: string, body: UpdateCaseConfigBody = {}, authUser?: AuthUser | null) {
+    const caseRow = await casesService.getCaseById(caseId, authUser);
 
     if (!caseRow) {
       throw new Error('case not found');
@@ -63,6 +64,7 @@ export class CaseConfigService {
         id,
         case_number,
         case_status,
+        owner_user_id,
         institution_id,
         template_id,
         nextcloud_case_folder,
@@ -72,6 +74,7 @@ export class CaseConfigService {
         case_date,
         registration_date,
         submission_number,
+        response_comment,
         submitted_at,
         created_at,
         updated_at

@@ -3,6 +3,7 @@ import { postgres } from '../db/postgres';
 import { casesService } from '../cases/cases.service';
 import { fsmService } from '../fsm/fsm.service';
 import { nextcloudClient } from '../nextcloud/nextcloud.client';
+import { AuthUser } from '../auth/auth.service';
 import { GetCaseTextResult, UpdateCaseTextBody } from './text.types';
 
 function buildComplaintTextPath(artifactsFolder: string): string {
@@ -14,8 +15,8 @@ function sha256(input: string): string {
 }
 
 export class TextService {
-  async getCaseText(caseId: string): Promise<GetCaseTextResult> {
-    const caseRow = await casesService.getCaseById(caseId);
+  async getCaseText(caseId: string, authUser?: AuthUser | null): Promise<GetCaseTextResult> {
+    const caseRow = await casesService.getCaseById(caseId, authUser);
 
     if (!caseRow) {
       throw new Error('case not found');
@@ -31,8 +32,8 @@ export class TextService {
     };
   }
 
-  async saveCaseText(caseId: string, body: UpdateCaseTextBody): Promise<GetCaseTextResult> {
-    const caseRow = await casesService.getCaseById(caseId);
+  async saveCaseText(caseId: string, body: UpdateCaseTextBody, authUser?: AuthUser | null): Promise<GetCaseTextResult> {
+    const caseRow = await casesService.getCaseById(caseId, authUser);
 
     if (!caseRow) {
       throw new Error('case not found');

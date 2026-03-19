@@ -2,6 +2,7 @@ import { createHash } from 'crypto';
 import { postgres } from '../db/postgres';
 import { nextcloudClient } from '../nextcloud/nextcloud.client';
 import { fsmService, FsmSnapshot } from '../fsm/fsm.service';
+import { AuthUser } from '../auth/auth.service';
 import { CaseRecord, CreateCaseResponse } from './cases.types';
 
 type TemplateRow = {
@@ -81,6 +82,10 @@ type ArtifactFolderFileRow = {
   sort_order: number | null;
 };
 
+function isAdminRole(role?: string | null): boolean {
+  return role === 'admin_view' || role === 'admin_full';
+}
+
 export class CasesService {
   deriveCaseStatus(input: {
     submissionNumber: string | null;
@@ -128,14 +133,14 @@ export class CasesService {
     return nextStatus;
   }
 
-  async createCase(body?: { parentCaseId?: string | null }): Promise<CreateCaseResponse> {
+  async createCase(body?: { parentCaseId?: string | null }, authUser?: AuthUser | null): Promise<CreateCaseResponse> {
     const caseNumber = await this.generateCaseNumber();
     const folders = await nextcloudClient.createCaseFolders(caseNumber);
     const adoptedFiles = await nextcloudClient.moveRootFilesToIncoming(folders.incoming);
     const parentCaseId = body?.parentCaseId?.trim() || null;
 
     if (parentCaseId) {
-      const parentCase = await this.getCaseById(parentCaseId);
+      const parentCase = await this.getCaseById(parentCaseId, authUser);
       if (!parentCase) {
         throw new Error('parent case not found');
       }
@@ -147,6 +152,7 @@ export class CasesService {
         case_number,
         case_status,
         parent_case_id,
+        owner_user_id,
         institution_id,
         template_id,
         nextcloud_case_folder,
@@ -155,13 +161,14 @@ export class CasesService {
         nextcloud_result_folder,
         case_date
       )
-      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, to_char(now(), 'DD.MM.YYYY'))
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, to_char(now(), 'DD.MM.YYYY'))
       returning *
       `,
       [
         caseNumber,
         'created',
         parentCaseId,
+        authUser?.id ?? null,
         null,
         null,
         folders.caseRoot,
@@ -194,6 +201,7 @@ export class CasesService {
         packageChecksum: null,
         responseReady: false,
         submissionNumber: caseRow.submission_number,
+        ownerUserId: caseRow.owner_user_id,
         lastErrorCode: null,
         lastErrorMessage: null
       }
@@ -204,6 +212,7 @@ export class CasesService {
     await this.logCaseAction(caseRow.id, 'case.created', {
       caseNumber: caseRow.case_number,
       parentCaseId: caseRow.parent_case_id,
+      ownerUserId: caseRow.owner_user_id,
       nextcloudCaseFolder: caseRow.nextcloud_case_folder,
       nextcloudIncomingFolder: caseRow.nextcloud_incoming_folder,
       nextcloudArtifactsFolder: caseRow.nextcloud_artifacts_folder,
@@ -219,8 +228,8 @@ export class CasesService {
       fsm
     };
   }
-  async deleteCase(caseId: string) {
-    const existing = await this.getCaseById(caseId);
+  async deleteCase(caseId: string, authUser?: AuthUser | null) {
+    const existing = await this.getCaseById(caseId, authUser);
 
     if (!existing) {
       throw new Error('case not found');
@@ -242,8 +251,8 @@ export class CasesService {
     };
   }
 
-  async generateText(caseId: string) {
-    const caseRow = await this.getCaseById(caseId);
+  async generateText(caseId: string, authUser?: AuthUser | null) {
+    const caseRow = await this.getCaseById(caseId, authUser);
 
     if (!caseRow) {
       throw new Error('case not found');
@@ -337,8 +346,8 @@ export class CasesService {
     }
   }
 
-  async buildPackage(caseId: string) {
-    const caseRow = await this.getCaseById(caseId);
+  async buildPackage(caseId: string, authUser?: AuthUser | null) {
+    const caseRow = await this.getCaseById(caseId, authUser);
 
     if (!caseRow) {
       throw new Error('case not found');
@@ -374,7 +383,8 @@ export class CasesService {
         caseNumber: caseRow.case_number,
         institutionId: caseRow.institution_id,
         templateId: caseRow.template_id,
-        submissionNumber: caseRow.submission_number
+        submissionNumber: caseRow.submission_number,
+        ownerUserId: caseRow.owner_user_id
       },
       text: {
         artifactPath: textArtifact.file_path,
@@ -450,8 +460,8 @@ export class CasesService {
     }
   }
 
-  async getCase(caseId: string) {
-    const caseRow = await this.getCaseById(caseId);
+  async getCase(caseId: string, authUser?: AuthUser | null) {
+    const caseRow = await this.getCaseById(caseId, authUser);
 
     if (!caseRow) {
       throw new Error('case not found');
@@ -459,7 +469,7 @@ export class CasesService {
 
     const fsm = await fsmService.getSnapshot(caseId);
     const files = await this.getCaseFiles(caseId);
-    const relatedCases = await this.getRelatedCases(caseId);
+    const relatedCases = await this.getRelatedCases(caseId, authUser);
 
     return {
       ok: true,
@@ -470,8 +480,8 @@ export class CasesService {
     };
   }
 
-  async prepareSubmit(caseId: string) {
-    const caseRow = await this.getCaseById(caseId);
+  async prepareSubmit(caseId: string, authUser?: AuthUser | null) {
+    const caseRow = await this.getCaseById(caseId, authUser);
 
     if (!caseRow) {
       throw new Error('case not found');
@@ -577,44 +587,48 @@ export class CasesService {
     };
   }
 
-  async getCaseById(caseId: string): Promise<CaseRecord | null> {
+  async getCaseById(caseId: string, authUser?: AuthUser | null): Promise<CaseRecord | null> {
+    if (authUser && !isAdminRole(authUser.role)) {
+      const result = await postgres.query<CaseRecord>(
+        `
+        select
+          c.*,
+          i.name as institution_name,
+          t.name as template_name,
+          u.nickname as owner_nickname,
+          (
+            select count(*)::int
+            from cases child
+            where child.parent_case_id = c.id
+              and child.owner_user_id = $2
+          ) as linked_cases_count,
+          exists(
+            select 1
+            from case_files cf
+            where cf.case_id = c.id
+              and cf.file_path like c.nextcloud_result_folder || '/%'
+          ) as has_reply
+        from cases c
+        left join institutions i on i.id = c.institution_id
+        left join templates t on t.id = c.template_id
+        left join users u on u.id = c.owner_user_id
+        where c.id = $1
+          and c.owner_user_id = $2
+        limit 1
+        `,
+        [caseId, authUser.id]
+      );
+
+      return result.rows[0] ?? null;
+    }
+
     const result = await postgres.query<CaseRecord>(
       `
-      select *
-      from cases
-      where id = $1
-      limit 1
-      `,
-      [caseId]
-    );
-
-    return result.rows[0] ?? null;
-  }
-
-  async listCases() {
-    const result = await postgres.query(
-      `
       select
-        c.id,
-        c.case_number,
-        c.case_status,
-        c.parent_case_id,
-        c.institution_id,
-        c.template_id,
-        c.title,
-        c.description,
-        c.nextcloud_case_folder,
-        c.nextcloud_incoming_folder,
-        c.nextcloud_artifacts_folder,
-        c.nextcloud_result_folder,
-        c.case_date,
-        c.registration_date,
-        c.submission_number,
-        c.submitted_at,
-        c.created_at,
-        c.updated_at,
+        c.*,
         i.name as institution_name,
         t.name as template_name,
+        u.nickname as owner_nickname,
         (
           select count(*)::int
           from cases child
@@ -629,23 +643,79 @@ export class CasesService {
       from cases c
       left join institutions i on i.id = c.institution_id
       left join templates t on t.id = c.template_id
-      order by
-        coalesce(to_date(nullif(c.case_date, ''), 'DD.MM.YYYY'), c.created_at::date) desc,
-        c.created_at desc
-      `
+      left join users u on u.id = c.owner_user_id
+      where c.id = $1
+      limit 1
+      `,
+      [caseId]
     );
 
-    return result.rows;
+    return result.rows[0] ?? null;
   }
 
-  async getRelatedCases(parentCaseId: string): Promise<CaseRecord[]> {
-    const result = await postgres.query<CaseRecord>(
+  async listCases(authUser?: AuthUser | null) {
+    if (authUser && !isAdminRole(authUser.role)) {
+      const result = await postgres.query(
+        `
+        select
+          c.id,
+          c.case_number,
+          c.case_status,
+          c.parent_case_id,
+          c.owner_user_id,
+          c.institution_id,
+          c.template_id,
+          c.title,
+          c.description,
+          c.nextcloud_case_folder,
+          c.nextcloud_incoming_folder,
+          c.nextcloud_artifacts_folder,
+          c.nextcloud_result_folder,
+          c.case_date,
+          c.registration_date,
+          c.submission_number,
+          c.response_comment,
+          c.submitted_at,
+          c.created_at,
+          c.updated_at,
+          i.name as institution_name,
+          t.name as template_name,
+          u.nickname as owner_nickname,
+          (
+            select count(*)::int
+            from cases child
+            where child.parent_case_id = c.id
+              and child.owner_user_id = $1
+          ) as linked_cases_count,
+          exists(
+            select 1
+            from case_files cf
+            where cf.case_id = c.id
+              and cf.file_path like c.nextcloud_result_folder || '/%'
+          ) as has_reply
+        from cases c
+        left join institutions i on i.id = c.institution_id
+        left join templates t on t.id = c.template_id
+        left join users u on u.id = c.owner_user_id
+        where c.owner_user_id = $1
+        order by
+          coalesce(to_date(nullif(c.case_date, ''), 'DD.MM.YYYY'), c.created_at::date) desc,
+          c.created_at desc
+        `,
+        [authUser.id]
+      );
+
+      return result.rows;
+    }
+
+    const result = await postgres.query(
       `
       select
         c.id,
         c.case_number,
         c.case_status,
         c.parent_case_id,
+        c.owner_user_id,
         c.institution_id,
         c.template_id,
         c.title,
@@ -657,11 +727,114 @@ export class CasesService {
         c.case_date,
         c.registration_date,
         c.submission_number,
+        c.response_comment,
         c.submitted_at,
         c.created_at,
         c.updated_at,
         i.name as institution_name,
         t.name as template_name,
+        u.nickname as owner_nickname,
+        (
+          select count(*)::int
+          from cases child
+          where child.parent_case_id = c.id
+        ) as linked_cases_count,
+        exists(
+          select 1
+          from case_files cf
+          where cf.case_id = c.id
+            and cf.file_path like c.nextcloud_result_folder || '/%'
+        ) as has_reply
+      from cases c
+      left join institutions i on i.id = c.institution_id
+      left join templates t on t.id = c.template_id
+      left join users u on u.id = c.owner_user_id
+      order by
+        coalesce(to_date(nullif(c.case_date, ''), 'DD.MM.YYYY'), c.created_at::date) desc,
+        c.created_at desc
+      `
+    );
+
+    return result.rows;
+  }
+
+  async getRelatedCases(parentCaseId: string, authUser?: AuthUser | null): Promise<CaseRecord[]> {
+    if (authUser && !isAdminRole(authUser.role)) {
+      const result = await postgres.query<CaseRecord>(
+        `
+        select
+          c.id,
+          c.case_number,
+          c.case_status,
+          c.parent_case_id,
+          c.owner_user_id,
+          c.institution_id,
+          c.template_id,
+          c.title,
+          c.description,
+          c.nextcloud_case_folder,
+          c.nextcloud_incoming_folder,
+          c.nextcloud_artifacts_folder,
+          c.nextcloud_result_folder,
+          c.case_date,
+          c.registration_date,
+          c.submission_number,
+          c.response_comment,
+          c.submitted_at,
+          c.created_at,
+          c.updated_at,
+          i.name as institution_name,
+          t.name as template_name,
+          u.nickname as owner_nickname,
+          0 as linked_cases_count,
+          exists(
+            select 1
+            from case_files cf
+            where cf.case_id = c.id
+              and cf.file_path like c.nextcloud_result_folder || '/%'
+          ) as has_reply
+        from cases c
+        left join institutions i on i.id = c.institution_id
+        left join templates t on t.id = c.template_id
+        left join users u on u.id = c.owner_user_id
+        where c.parent_case_id = $1
+          and c.owner_user_id = $2
+        order by
+          coalesce(to_date(nullif(c.case_date, ''), 'DD.MM.YYYY'), c.created_at::date) desc,
+          c.created_at desc
+        `,
+        [parentCaseId, authUser.id]
+      );
+
+      return result.rows;
+    }
+
+    const result = await postgres.query<CaseRecord>(
+      `
+      select
+        c.id,
+        c.case_number,
+        c.case_status,
+        c.parent_case_id,
+        c.owner_user_id,
+        c.institution_id,
+        c.template_id,
+        c.title,
+        c.description,
+        c.nextcloud_case_folder,
+        c.nextcloud_incoming_folder,
+        c.nextcloud_artifacts_folder,
+        c.nextcloud_result_folder,
+        c.case_date,
+        c.registration_date,
+        c.submission_number,
+        c.response_comment,
+        c.submitted_at,
+        c.created_at,
+        c.updated_at,
+        i.name as institution_name,
+        t.name as template_name,
+        u.nickname as owner_nickname,
         0 as linked_cases_count,
         exists(
           select 1
@@ -672,6 +845,7 @@ export class CasesService {
       from cases c
       left join institutions i on i.id = c.institution_id
       left join templates t on t.id = c.template_id
+      left join users u on u.id = c.owner_user_id
       where c.parent_case_id = $1
       order by
         coalesce(to_date(nullif(c.case_date, ''), 'DD.MM.YYYY'), c.created_at::date) desc,
@@ -683,8 +857,8 @@ export class CasesService {
     return result.rows;
   }
 
-  async saveCaseTextAsTemplate(caseId: string) {
-    const caseRow = await this.getCaseById(caseId);
+  async saveCaseTextAsTemplate(caseId: string, authUser?: AuthUser | null) {
+    const caseRow = await this.getCaseById(caseId, authUser);
 
     if (!caseRow) {
       throw new Error('case not found');
@@ -1104,9 +1278,10 @@ export class CasesService {
       registrationDate?: string | null;
       submissionNumber?: string | null;
       responseComment?: string | null;
-    }
+    },
+    authUser?: AuthUser | null
   ) {
-    const existing = await this.getCaseById(caseId);
+    const existing = await this.getCaseById(caseId, authUser);
 
     if (!existing) {
       throw new Error('case not found');

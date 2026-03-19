@@ -79,6 +79,7 @@ create table if not exists cases (
   case_status text not null default 'created',
 
   parent_case_id uuid references cases(id) on delete set null,
+  owner_user_id uuid references users(id) on delete set null,
   institution_id uuid references institutions(id) on delete set null,
   template_id uuid references templates(id) on delete set null,
 
@@ -100,6 +101,7 @@ create table if not exists cases (
 alter table cases add column if not exists title text;
 alter table cases add column if not exists description text;
 alter table cases add column if not exists parent_case_id uuid references cases(id) on delete set null;
+alter table cases add column if not exists owner_user_id uuid references users(id) on delete set null;
 alter table cases add column if not exists case_status text;
 update cases
 set case_status = case

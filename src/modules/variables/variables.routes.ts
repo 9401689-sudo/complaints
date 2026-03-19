@@ -8,7 +8,7 @@ export async function registerVariablesRoutes(app: FastifyInstance): Promise<voi
     `${env.API_BASE_PATH}/cases/:id/variables`,
     async (request, reply) => {
       try {
-        const variables = await variablesService.getCaseVariables(request.params.id);
+        const variables = await variablesService.getCaseVariables(request.params.id, request.authUser);
 
         return reply.send({
           ok: true,
@@ -35,7 +35,8 @@ export async function registerVariablesRoutes(app: FastifyInstance): Promise<voi
       try {
         const variables = await variablesService.updateCaseVariables(
           request.params.id,
-          request.body
+          request.body,
+          request.authUser
         );
 
         return reply.send({

@@ -1,6 +1,7 @@
 import { postgres } from '../db/postgres';
 import { casesService } from '../cases/cases.service';
 import { fsmService } from '../fsm/fsm.service';
+import { AuthUser } from '../auth/auth.service';
 import {
   CaseVariableRecord,
   CaseVariablesMap,
@@ -8,8 +9,8 @@ import {
 } from './variables.types';
 
 export class VariablesService {
-  async getCaseVariables(caseId: string): Promise<CaseVariablesMap> {
-    const caseRow = await casesService.getCaseById(caseId);
+  async getCaseVariables(caseId: string, authUser?: AuthUser | null): Promise<CaseVariablesMap> {
+    const caseRow = await casesService.getCaseById(caseId, authUser);
 
     if (!caseRow) {
       throw new Error('case not found');
@@ -41,9 +42,10 @@ export class VariablesService {
 
   async updateCaseVariables(
     caseId: string,
-    body: UpdateCaseVariablesBody
+    body: UpdateCaseVariablesBody,
+    authUser?: AuthUser | null
   ): Promise<CaseVariablesMap> {
-    const caseRow = await casesService.getCaseById(caseId);
+    const caseRow = await casesService.getCaseById(caseId, authUser);
 
     if (!caseRow) {
       throw new Error('case not found');
@@ -107,7 +109,7 @@ export class VariablesService {
       lastErrorMessage: null
     });
 
-    return this.getCaseVariables(caseId);
+    return this.getCaseVariables(caseId, authUser);
   }
 }
 

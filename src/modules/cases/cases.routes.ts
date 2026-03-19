@@ -5,9 +5,9 @@ import { casesService } from './cases.service';
 import { redis } from '../redis/redis';
 
 export async function registerCasesRoutes(app: FastifyInstance): Promise<void> {
-  app.get(`${env.API_BASE_PATH}/cases`, async (_request, reply) => {
+  app.get(`${env.API_BASE_PATH}/cases`, async (request, reply) => {
     try {
-      const cases = await casesService.listCases();
+      const cases = await casesService.listCases(request.authUser);
 
       return reply.send({
         ok: true,
@@ -20,7 +20,7 @@ export async function registerCasesRoutes(app: FastifyInstance): Promise<void> {
 
   app.post<{ Body: { parentCaseId?: string | null } }>(`${env.API_BASE_PATH}/cases`, async (request, reply) => {
     try {
-      const payload = await casesService.createCase(request.body);
+      const payload = await casesService.createCase(request.body, request.authUser);
       return reply.code(201).send(payload);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -30,7 +30,7 @@ export async function registerCasesRoutes(app: FastifyInstance): Promise<void> {
 
   app.get<{ Params: { id: string } }>(`${env.API_BASE_PATH}/cases/:id`, async (request, reply) => {
     try {
-      const payload = await casesService.getCase(request.params.id);
+      const payload = await casesService.getCase(request.params.id, request.authUser);
       return reply.send(payload);
     } catch (error) {
       return requestError(reply, error, 404);
@@ -51,7 +51,7 @@ export async function registerCasesRoutes(app: FastifyInstance): Promise<void> {
     `${env.API_BASE_PATH}/cases/:id/meta`,
     async (request, reply) => {
       try {
-        const updated = await casesService.updateCaseMeta(request.params.id, request.body);
+        const updated = await casesService.updateCaseMeta(request.params.id, request.body, request.authUser);
 
         return reply.send({
           ok: true,
@@ -67,7 +67,7 @@ export async function registerCasesRoutes(app: FastifyInstance): Promise<void> {
     `${env.API_BASE_PATH}/cases/:id/generate-text`,
     async (request, reply) => {
       try {
-        const payload = await casesService.generateText(request.params.id);
+        const payload = await casesService.generateText(request.params.id, request.authUser);
         return reply.send({
           ok: true,
           case: payload.case,
@@ -103,7 +103,7 @@ export async function registerCasesRoutes(app: FastifyInstance): Promise<void> {
     `${env.API_BASE_PATH}/cases/:id/save-as-template`,
     async (request, reply) => {
       try {
-        const template = await casesService.saveCaseTextAsTemplate(request.params.id);
+        const template = await casesService.saveCaseTextAsTemplate(request.params.id, request.authUser);
 
         return reply.send({
           ok: true,
@@ -130,44 +130,43 @@ export async function registerCasesRoutes(app: FastifyInstance): Promise<void> {
     }
   );
 
-app.post<{ Params: { id: string } }>(
-  `${env.API_BASE_PATH}/cases/:id/build-package`,
-  async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    try {
-      // Теперь request.params.id точно будет строкой
-      const payload = await casesService.buildPackage(request.params.id);
-      return reply.send({
-        ok: true,
-        case: payload.case,
-        artifactPath: payload.artifactPath,
-        checksum: payload.checksum,
-        package: payload.packagePayload,
-        fsm: payload.fsm
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      const statusCode = message === 'case not found'
-        ? 404
-        : message === 'fsm not found'
+  app.post<{ Params: { id: string } }>(
+    `${env.API_BASE_PATH}/cases/:id/build-package`,
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      try {
+        const payload = await casesService.buildPackage(request.params.id, request.authUser);
+        return reply.send({
+          ok: true,
+          case: payload.case,
+          artifactPath: payload.artifactPath,
+          checksum: payload.checksum,
+          package: payload.packagePayload,
+          fsm: payload.fsm
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        const statusCode = message === 'case not found'
           ? 404
-          : message === 'generated text artifact not found'
+          : message === 'fsm not found'
             ? 404
-            : message === 'no files selected'
-              ? 400
-              : message.startsWith('invalid fsm state')
-                ? 409
-                : 500;
+            : message === 'generated text artifact not found'
+              ? 404
+              : message === 'no files selected'
+                ? 400
+                : message.startsWith('invalid fsm state')
+                  ? 409
+                  : 500;
 
-      return requestError(reply, error, statusCode);
+        return requestError(reply, error, statusCode);
+      }
     }
-  }
-);
+  );
 
   app.post<{ Params: { id: string } }>(
     `${env.API_BASE_PATH}/cases/:id/submit-prepare`,
     async (request, reply) => {
       try {
-        const payload = await casesService.prepareSubmit(request.params.id);
+        const payload = await casesService.prepareSubmit(request.params.id, request.authUser);
 
         return reply.send({
           ok: true,
@@ -205,7 +204,7 @@ app.post<{ Params: { id: string } }>(
 
   app.delete<{ Params: { id: string } }>(`${env.API_BASE_PATH}/cases/:id`, async (request, reply) => {
     try {
-      const deleted = await casesService.deleteCase(request.params.id);
+      const deleted = await casesService.deleteCase(request.params.id, request.authUser);
 
       await redis.del(`complaints:case:${request.params.id}:fsm`);
 

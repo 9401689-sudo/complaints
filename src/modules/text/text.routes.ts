@@ -8,7 +8,7 @@ export async function registerTextRoutes(app: FastifyInstance): Promise<void> {
     `${env.API_BASE_PATH}/cases/:id/text`,
     async (request, reply) => {
       try {
-        const result = await textService.getCaseText(request.params.id);
+        const result = await textService.getCaseText(request.params.id, request.authUser);
 
         return reply.send({
           ok: true,
@@ -40,7 +40,7 @@ export async function registerTextRoutes(app: FastifyInstance): Promise<void> {
     `${env.API_BASE_PATH}/cases/:id/text`,
     async (request, reply) => {
       try {
-        const result = await textService.saveCaseText(request.params.id, request.body);
+        const result = await textService.saveCaseText(request.params.id, request.body, request.authUser);
 
         return reply.send({
           ok: true,

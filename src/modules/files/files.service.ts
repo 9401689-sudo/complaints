@@ -2,6 +2,7 @@ import { postgres } from '../db/postgres';
 import { fsmService } from '../fsm/fsm.service';
 import { casesService } from '../cases/cases.service';
 import { nextcloudClient } from '../nextcloud/nextcloud.client';
+import { AuthUser } from '../auth/auth.service';
 import {
   CaseFileRecord,
   SyncedCaseFile,
@@ -43,8 +44,8 @@ export class FilesService {
     return result.rows;
   }
 
-  async syncCaseFiles(caseId: string) {
-    const caseRow = await casesService.getCaseById(caseId);
+  async syncCaseFiles(caseId: string, authUser?: AuthUser | null) {
+    const caseRow = await casesService.getCaseById(caseId, authUser);
 
     if (!caseRow) {
       throw new Error('case not found');
@@ -111,19 +112,18 @@ export class FilesService {
           lastErrorMessage: error instanceof Error ? error.message : 'files sync failed',
         });
       } catch {
-        // ignore secondary FSM errors
       }
 
       throw error;
     }
   }
 
-  async updateSelectedFiles(caseId: string, body: UpdateCaseFilesBody): Promise<UpdateCaseFilesResult> {
+  async updateSelectedFiles(caseId: string, body: UpdateCaseFilesBody, authUser?: AuthUser | null): Promise<UpdateCaseFilesResult> {
     if (!body?.files || !Array.isArray(body.files) || body.files.length === 0) {
       throw new Error('files array is required');
     }
 
-    const caseRow = await casesService.getCaseById(caseId);
+    const caseRow = await casesService.getCaseById(caseId, authUser);
     if (!caseRow) {
       throw new Error('case not found');
     }
@@ -308,7 +308,14 @@ export class FilesService {
       [caseId, item.fileId, item.selected, sortOrder]
     );
   }
-  async getCaseFileById(caseId: string, fileId: string): Promise<CaseFileRecord | null> {
+
+  async getCaseFileById(caseId: string, fileId: string, authUser?: AuthUser | null): Promise<CaseFileRecord | null> {
+    const caseRow = await casesService.getCaseById(caseId, authUser);
+
+    if (!caseRow) {
+      throw new Error('case not found');
+    }
+
     const result = await postgres.query<CaseFileRecord>(
       `
       select
@@ -335,8 +342,8 @@ export class FilesService {
     return result.rows[0] ?? null;
   }
 
-  async syncResultFiles(caseId: string): Promise<CaseFileRecord[]> {
-    const caseRow = await casesService.getCaseById(caseId);
+  async syncResultFiles(caseId: string, authUser?: AuthUser | null): Promise<CaseFileRecord[]> {
+    const caseRow = await casesService.getCaseById(caseId, authUser);
 
     if (!caseRow) {
       throw new Error('case not found');
@@ -458,8 +465,8 @@ export class FilesService {
     }
   }
 
-  async uploadResultFiles(caseId: string, body: UploadResultFilesBody): Promise<CaseFileRecord[]> {
-    const caseRow = await casesService.getCaseById(caseId);
+  async uploadResultFiles(caseId: string, body: UploadResultFilesBody, authUser?: AuthUser | null): Promise<CaseFileRecord[]> {
+    const caseRow = await casesService.getCaseById(caseId, authUser);
 
     if (!caseRow) {
       throw new Error('case not found');
@@ -492,7 +499,7 @@ export class FilesService {
       }))
     });
 
-    return this.syncResultFiles(caseId);
+    return this.syncResultFiles(caseId, authUser);
   }
 }
 

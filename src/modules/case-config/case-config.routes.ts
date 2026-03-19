@@ -10,7 +10,8 @@ export async function registerCaseConfigRoutes(app: FastifyInstance): Promise<vo
       try {
         const updatedCase = await caseConfigService.updateCaseConfig(
           request.params.id,
-          request.body
+          request.body,
+          request.authUser
         );
 
         return reply.send({

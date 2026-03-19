@@ -3,6 +3,7 @@ export interface CaseRecord {
   case_number: string;
   case_status: string;
   parent_case_id: string | null;
+  owner_user_id: string | null;
   institution_id: string | null;
   title: string | null;
   description: string | null;
@@ -20,6 +21,7 @@ export interface CaseRecord {
   updated_at: string;
   institution_name?: string | null;
   template_name?: string | null;
+  owner_nickname?: string | null;
   linked_cases_count?: number;
   has_reply?: boolean;
 }

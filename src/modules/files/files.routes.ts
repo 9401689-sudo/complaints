@@ -12,7 +12,7 @@ export async function registerFilesRoutes(app: FastifyInstance): Promise<void> {
     `${env.API_BASE_PATH}/cases/:id/sync-files`,
     async (request, reply) => {
       try {
-        const result = await filesService.syncCaseFiles(request.params.id);
+        const result = await filesService.syncCaseFiles(request.params.id, request.authUser);
 
         return reply.send({
           ok: true,
@@ -48,8 +48,8 @@ export async function registerFilesRoutes(app: FastifyInstance): Promise<void> {
       try {
         const caseId = request.params.id;
 
-        const result = await filesService.updateSelectedFiles(caseId, request.body);
-        const caseRow = await casesService.getCaseById(caseId);
+        const result = await filesService.updateSelectedFiles(caseId, request.body, request.authUser);
+        const caseRow = await casesService.getCaseById(caseId, request.authUser);
         const fsm = await fsmService.getSnapshot(caseId);
 
         return reply.send({
@@ -83,11 +83,12 @@ export async function registerFilesRoutes(app: FastifyInstance): Promise<void> {
       }
     }
   );
+
   app.get<{ Params: { id: string } }>(
     `${env.API_BASE_PATH}/cases/:id/result-files`,
     async (request, reply) => {
       try {
-        const files = await filesService.syncResultFiles(request.params.id);
+        const files = await filesService.syncResultFiles(request.params.id, request.authUser);
 
         return reply.send({
           ok: true,
@@ -116,7 +117,7 @@ export async function registerFilesRoutes(app: FastifyInstance): Promise<void> {
     `${env.API_BASE_PATH}/cases/:id/result-files/upload`,
     async (request, reply) => {
       try {
-        const files = await filesService.uploadResultFiles(request.params.id, request.body);
+        const files = await filesService.uploadResultFiles(request.params.id, request.body, request.authUser);
 
         return reply.send({
           ok: true,
@@ -150,7 +151,7 @@ export async function registerFilesRoutes(app: FastifyInstance): Promise<void> {
         const caseId = request.params.id;
         const fileId = request.params.fileId;
 
-        const file = await filesService.getCaseFileById(caseId, fileId);
+        const file = await filesService.getCaseFileById(caseId, fileId, request.authUser);
 
         if (!file) {
           return reply.code(404).send({
@@ -192,9 +193,11 @@ export async function registerFilesRoutes(app: FastifyInstance): Promise<void> {
         const statusCode =
           message === 'file not found'
             ? 404
-            : message.startsWith('Nextcloud GET failed')
+            : message === 'case not found'
               ? 404
-              : 500;
+              : message.startsWith('Nextcloud GET failed')
+                ? 404
+                : 500;
 
         return reply.code(statusCode).send({
           ok: false,
@@ -211,7 +214,7 @@ export async function registerFilesRoutes(app: FastifyInstance): Promise<void> {
         const caseId = request.params.id;
         const fileId = request.params.fileId;
 
-        const file = await filesService.getCaseFileById(caseId, fileId);
+        const file = await filesService.getCaseFileById(caseId, fileId, request.authUser);
 
         if (!file) {
           return reply.code(404).send({
@@ -236,9 +239,11 @@ export async function registerFilesRoutes(app: FastifyInstance): Promise<void> {
         const statusCode =
           message === 'file not found'
             ? 404
-            : message.startsWith('Nextcloud GET failed')
+            : message === 'case not found'
               ? 404
-              : 500;
+              : message.startsWith('Nextcloud GET failed')
+                ? 404
+                : 500;
 
         return reply.code(statusCode).send({
           ok: false,

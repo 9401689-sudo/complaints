@@ -1,5 +1,6 @@
 import { casesService } from '../cases/cases.service';
 import { nextcloudClient } from '../nextcloud/nextcloud.client';
+import { AuthUser } from '../auth/auth.service';
 import { GetCasePackageResult } from './package.types';
 
 function buildPackagePath(artifactsFolder: string): string {
@@ -7,8 +8,8 @@ function buildPackagePath(artifactsFolder: string): string {
 }
 
 export class PackageService {
-  async getCasePackage(caseId: string): Promise<GetCasePackageResult> {
-    const caseRow = await casesService.getCaseById(caseId);
+  async getCasePackage(caseId: string, authUser?: AuthUser | null): Promise<GetCasePackageResult> {
+    const caseRow = await casesService.getCaseById(caseId, authUser);
 
     if (!caseRow) {
       throw new Error('case not found');
