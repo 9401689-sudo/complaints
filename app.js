@@ -58,13 +58,11 @@ const DIRECTORY_CATEGORY_LABELS = {
   state_org: "Государственные организации"
 };
 
-const CASE_STATUS_OPTIONS = [
+const CASE_STATUS_FILTER_OPTIONS = [
   { value: "", label: "Все статусы" },
-  { value: "no_organization", label: "НЕТ ОРГАНИЗАЦИИ" },
-  { value: "no_template", label: "НЕТ ШАБЛОНА" },
-  { value: "created", label: "СОЗДАНО" },
-  { value: "sent", label: "ОТПРАВЛЕНО" },
-  { value: "has_reply", label: "ЕСТЬ ОТВЕТ" }
+  { value: "created_group", label: "Создано" },
+  { value: "sent", label: "Отправлено" },
+  { value: "has_reply", label: "Есть ответ" }
 ];
 
 const CASE_STATUS_LABELS = {
@@ -788,8 +786,14 @@ function renderCases() {
       return false;
     }
 
-    if (statusFilter && item.case_status !== statusFilter) {
-      return false;
+    if (statusFilter) {
+      if (statusFilter === "created_group") {
+        if (!["no_organization", "no_template", "created"].includes(item.case_status)) {
+          return false;
+        }
+      } else if (item.case_status !== statusFilter) {
+        return false;
+      }
     }
 
     if (!query) return true;
@@ -1083,7 +1087,7 @@ function renderCaseFilters() {
   const institutionOptions = ['<option value="">Все организации</option>']
     .concat(state.institutions.map((item) => `<option value="${item.id}">${escapeHtml(item.name)}</option>`))
     .join("");
-  const statusOptions = CASE_STATUS_OPTIONS
+  const statusOptions = CASE_STATUS_FILTER_OPTIONS
     .map((item) => `<option value="${item.value}">${escapeHtml(item.label)}</option>`)
     .join("");
 
