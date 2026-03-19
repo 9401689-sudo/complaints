@@ -1,4 +1,10 @@
-const API_BASE = "https://complaints-api.doorsvip.ru/complaints/api";
+function getAppPrefix() {
+  const path = window.location.pathname || "/";
+  const [, prefix] = path.split("/");
+  return prefix || "complaints";
+}
+
+const API_BASE = `https://complaints-api.doorsvip.ru/${getAppPrefix()}/api`;
 
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`;
@@ -234,3 +240,4 @@ export const api = {
     return requestBlob(`/cases/${caseId}/files/${fileId}/download`);
   }
 };
+

@@ -2185,3 +2185,4 @@ bootstrap().catch((error) => {
   logRuntime("bootstrap error", error?.message || String(error));
   alert(error?.message || "Bootstrap error");
 });
+
