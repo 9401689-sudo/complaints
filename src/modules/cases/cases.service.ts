@@ -201,7 +201,6 @@ export class CasesService {
         packageChecksum: null,
         responseReady: false,
         submissionNumber: caseRow.submission_number,
-        ownerUserId: caseRow.owner_user_id,
         lastErrorCode: null,
         lastErrorMessage: null
       }
