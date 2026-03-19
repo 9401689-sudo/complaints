@@ -1,3 +1,5 @@
+name: complaints_m
+
 services:
   complaints-backend:
     build: .
