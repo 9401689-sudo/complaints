@@ -83,21 +83,11 @@ type ArtifactFolderFileRow = {
 
 export class CasesService {
   deriveCaseStatus(input: {
-    institutionId: string | null;
-    templateId: string | null;
     submissionNumber: string | null;
     hasReply?: boolean;
   }): string {
     if (input.hasReply) {
       return 'has_reply';
-    }
-
-    if (!input.institutionId) {
-      return 'no_organization';
-    }
-
-    if (!input.templateId) {
-      return 'no_template';
     }
 
     if (input.submissionNumber) {
@@ -118,8 +108,6 @@ export class CasesService {
     }
 
     const nextStatus = this.deriveCaseStatus({
-      institutionId: overrides?.institution_id !== undefined ? overrides.institution_id : caseRow.institution_id,
-      templateId: overrides?.template_id !== undefined ? overrides.template_id : caseRow.template_id,
       submissionNumber: overrides?.submission_number !== undefined ? overrides.submission_number : caseRow.submission_number,
       hasReply: overrides?.hasReply !== undefined && overrides?.hasReply !== null
         ? overrides.hasReply
@@ -172,7 +160,7 @@ export class CasesService {
       `,
       [
         caseNumber,
-        'no_organization',
+        'created',
         parentCaseId,
         null,
         null,
@@ -1172,8 +1160,6 @@ export class CasesService {
         submissionNumber || null,
         responseComment || null,
         this.deriveCaseStatus({
-          institutionId: existing.institution_id,
-          templateId: existing.template_id,
           submissionNumber: submissionNumber || null,
           hasReply: existing.case_status === 'has_reply'
         })

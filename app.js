@@ -66,16 +66,12 @@ const CASE_STATUS_FILTER_OPTIONS = [
 ];
 
 const CASE_STATUS_LABELS = {
-  no_organization: "НЕТ ОРГАНИЗАЦИИ",
-  no_template: "НЕТ ШАБЛОНА",
   created: "СОЗДАНО",
   sent: "ОТПРАВЛЕНО",
   has_reply: "ЕСТЬ ОТВЕТ"
 };
 
 const CASE_STATUS_CLASSES = {
-  no_organization: "warn",
-  no_template: "warn",
   created: "info",
   sent: "ready",
   has_reply: "ready"
@@ -761,8 +757,16 @@ function buildComputedTextPreview() {
 function getCaseStatusBadges(item) {
   const badges = [];
 
-  const primaryStatus = String(item.case_status || "").trim();
-  if (primaryStatus && CASE_STATUS_LABELS[primaryStatus]) {
+  if (!item.institution_id) {
+    badges.push({ text: "НЕТ ОРГАНИЗАЦИИ", cls: "warn" });
+  }
+
+  if (!item.template_id) {
+    badges.push({ text: "НЕТ ШАБЛОНА", cls: "warn" });
+  }
+
+  const primaryStatus = String(item.case_status || "").trim() || "created";
+  if (CASE_STATUS_LABELS[primaryStatus]) {
     badges.push({
       text: CASE_STATUS_LABELS[primaryStatus],
       cls: CASE_STATUS_CLASSES[primaryStatus] || "info"

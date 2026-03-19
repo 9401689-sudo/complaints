@@ -81,8 +81,6 @@ export class CaseConfigService {
         institutionId ?? null,
         templateId ?? null,
         casesService.deriveCaseStatus({
-          institutionId: institutionId ?? null,
-          templateId: templateId ?? null,
           submissionNumber: caseRow.submission_number
         })
       ]

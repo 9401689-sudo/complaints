@@ -158,7 +158,7 @@ async function restoreCase(caseNumber: string): Promise<void> {
       `,
       [
         normalizedCaseNumber,
-        resultFiles.length > 0 ? 'has_reply' : 'no_organization',
+        resultFiles.length > 0 ? 'has_reply' : 'created',
         null,
         null,
         folders.caseRoot,

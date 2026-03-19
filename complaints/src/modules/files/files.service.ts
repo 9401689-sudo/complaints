@@ -442,8 +442,6 @@ export class FilesService {
       );
 
       await casesService.syncCaseStatus(caseId, {
-        institution_id: caseRow.institution_id,
-        template_id: caseRow.template_id,
         submission_number: caseRow.submission_number,
         hasReply: synced.rows.length > 0
       });
