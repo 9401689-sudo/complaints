@@ -1,14 +1,12 @@
-version: "3.8"
-
 services:
   complaints-backend:
     build: .
-    container_name: complaints-backend
+    container_name: ${APP_CONTAINER_NAME:-complaints-backend}
     restart: unless-stopped
     env_file:
       - .env
     ports:
-      - "127.0.0.1:3017:3017"
+      - "127.0.0.1:${APP_HOST_PORT:-3017}:${PORT:-3017}"
     networks:
       - proxy
       - n8n_default
