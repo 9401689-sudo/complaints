@@ -82,6 +82,64 @@ type ArtifactFolderFileRow = {
 };
 
 export class CasesService {
+  deriveCaseStatus(input: {
+    institutionId: string | null;
+    templateId: string | null;
+    submissionNumber: string | null;
+    hasReply?: boolean;
+  }): string {
+    if (input.hasReply) {
+      return 'has_reply';
+    }
+
+    if (!input.institutionId) {
+      return 'no_organization';
+    }
+
+    if (!input.templateId) {
+      return 'no_template';
+    }
+
+    if (input.submissionNumber) {
+      return 'sent';
+    }
+
+    return 'created';
+  }
+
+  async syncCaseStatus(
+    caseId: string,
+    overrides?: Partial<Pick<CaseRecord, 'institution_id' | 'template_id' | 'submission_number'>> & { hasReply?: boolean | null }
+  ): Promise<string> {
+    const caseRow = await this.getCaseById(caseId);
+
+    if (!caseRow) {
+      throw new Error('case not found');
+    }
+
+    const nextStatus = this.deriveCaseStatus({
+      institutionId: overrides?.institution_id !== undefined ? overrides.institution_id : caseRow.institution_id,
+      templateId: overrides?.template_id !== undefined ? overrides.template_id : caseRow.template_id,
+      submissionNumber: overrides?.submission_number !== undefined ? overrides.submission_number : caseRow.submission_number,
+      hasReply: overrides?.hasReply !== undefined && overrides?.hasReply !== null
+        ? overrides.hasReply
+        : caseRow.case_status === 'has_reply'
+    });
+
+    await postgres.query(
+      `
+      update cases
+      set
+        case_status = $2,
+        updated_at = now()
+      where id = $1
+      `,
+      [caseId, nextStatus]
+    );
+
+    return nextStatus;
+  }
+
   async createCase(body?: { parentCaseId?: string | null }): Promise<CreateCaseResponse> {
     const caseNumber = await this.generateCaseNumber();
     const folders = await nextcloudClient.createCaseFolders(caseNumber);
@@ -99,6 +157,7 @@ export class CasesService {
       `
       insert into cases (
         case_number,
+        case_status,
         parent_case_id,
         institution_id,
         template_id,
@@ -108,11 +167,12 @@ export class CasesService {
         nextcloud_result_folder,
         case_date
       )
-      values ($1, $2, $3, $4, $5, $6, $7, $8, to_char(now(), 'DD.MM.YYYY'))
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, to_char(now(), 'DD.MM.YYYY'))
       returning *
       `,
       [
         caseNumber,
+        'no_organization',
         parentCaseId,
         null,
         null,
@@ -144,6 +204,7 @@ export class CasesService {
         textChecksum: null,
         packageReady: false,
         packageChecksum: null,
+        responseReady: false,
         submissionNumber: caseRow.submission_number,
         lastErrorCode: null,
         lastErrorMessage: null
@@ -548,6 +609,7 @@ export class CasesService {
       select
         c.id,
         c.case_number,
+        c.case_status,
         c.parent_case_id,
         c.institution_id,
         c.template_id,
@@ -594,6 +656,7 @@ export class CasesService {
       select
         c.id,
         c.case_number,
+        c.case_status,
         c.parent_case_id,
         c.institution_id,
         c.template_id,
@@ -1095,6 +1158,7 @@ export class CasesService {
         registration_date = $5,
         submission_number = $6,
         response_comment = $7,
+        case_status = $8,
         updated_at = now()
       where id = $1
       returning *
@@ -1106,7 +1170,13 @@ export class CasesService {
         caseDate || existing.case_date,
         registrationDate || null,
         submissionNumber || null,
-        responseComment || null
+        responseComment || null,
+        this.deriveCaseStatus({
+          institutionId: existing.institution_id,
+          templateId: existing.template_id,
+          submissionNumber: submissionNumber || null,
+          hasReply: existing.case_status === 'has_reply'
+        })
       ]
     );
 

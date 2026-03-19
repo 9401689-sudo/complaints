@@ -54,6 +54,7 @@ create table if not exists templates (
 create table if not exists cases (
   id uuid primary key default uuid_generate_v4(),
   case_number text not null unique default next_case_number(),
+  case_status text not null default 'no_organization',
 
   parent_case_id uuid references cases(id) on delete set null,
   institution_id uuid references institutions(id) on delete set null,
@@ -77,6 +78,23 @@ create table if not exists cases (
 alter table cases add column if not exists title text;
 alter table cases add column if not exists description text;
 alter table cases add column if not exists parent_case_id uuid references cases(id) on delete set null;
+alter table cases add column if not exists case_status text;
+update cases
+set case_status = case
+  when exists(
+    select 1
+    from case_files cf
+    where cf.case_id = cases.id
+      and cf.file_path like cases.nextcloud_result_folder || '/%'
+  ) then 'has_reply'
+  when institution_id is null then 'no_organization'
+  when template_id is null then 'no_template'
+  when coalesce(nullif(trim(submission_number), ''), '') <> '' then 'sent'
+  else 'created'
+end
+where coalesce(nullif(trim(case_status), ''), '') = '';
+alter table cases alter column case_status set default 'no_organization';
+alter table cases alter column case_status set not null;
 alter table cases add column if not exists case_date text;
 alter table cases alter column case_date set default to_char(now(), 'DD.MM.YYYY');
 update cases

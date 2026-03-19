@@ -52,14 +52,18 @@
       <label for="casesSearchInput">Поиск по обращениям</label>
       <input id="casesSearchInput" placeholder="Название, CASE-номер, организация, шаблон..." />
     </div>
-    <div class="field">
-      <label for="casesInstitutionFilter">Организация</label>
-      <select id="casesInstitutionFilter"></select>
-    </div>
-    <div class="field filter-actions">
-      <label>&nbsp;</label>
-      <button class="btn btn-secondary" id="btnResetCaseFilters" type="button">Сбросить фильтры</button>
-    </div>
+      <div class="field">
+        <label for="casesInstitutionFilter">Организация</label>
+        <select id="casesInstitutionFilter"></select>
+      </div>
+      <div class="field">
+        <label for="casesStatusFilter">Статус</label>
+        <select id="casesStatusFilter"></select>
+      </div>
+      <div class="field filter-actions">
+        <label>&nbsp;</label>
+        <button class="btn btn-secondary" id="btnResetCaseFilters" type="button">Сбросить фильтры</button>
+      </div>
   </div>
 </div>
           <div class="panel">
@@ -420,8 +424,8 @@
       </div>
       <div id="confirmModalMessage" class="notice confirm-modal-message">Операция удаления необратима. Подтвердите.</div>
       <div class="actions confirm-modal-actions">
-        <button class="btn btn-primary" id="btnConfirmModalYes" type="button">Да</button>
-        <button class="btn btn-secondary" id="btnConfirmModalCancel" type="button">Отмена</button>
+        <button class="btn btn-secondary" id="btnConfirmModalYes" type="button">Да</button>
+        <button class="btn btn-primary" id="btnConfirmModalCancel" type="button">Отмена</button>
       </div>
     </div>
   </div>

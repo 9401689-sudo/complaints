@@ -56,11 +56,13 @@ export class CaseConfigService {
       set
         institution_id = $2,
         template_id = $3,
+        case_status = $4,
         updated_at = now()
       where id = $1
       returning
         id,
         case_number,
+        case_status,
         institution_id,
         template_id,
         nextcloud_case_folder,
@@ -74,7 +76,16 @@ export class CaseConfigService {
         created_at,
         updated_at
       `,
-      [caseId, institutionId ?? null, templateId ?? null]
+      [
+        caseId,
+        institutionId ?? null,
+        templateId ?? null,
+        casesService.deriveCaseStatus({
+          institutionId: institutionId ?? null,
+          templateId: templateId ?? null,
+          submissionNumber: caseRow.submission_number
+        })
+      ]
     );
 
     const updatedCase = result.rows[0];

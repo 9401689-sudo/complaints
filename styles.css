@@ -726,6 +726,7 @@ textarea {
 .confirm-modal-message {
   color: #111111;
   font-weight: 700;
+  text-align: center;
 }
 
 .confirm-modal-actions {

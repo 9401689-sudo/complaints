@@ -8,6 +8,7 @@ export type CaseState =
   | 'text_ready'
   | 'package_ready'
   | 'submitted'
+  | 'reply_received'
   | 'files_sync_failed'
   | 'nextcloud_failed'
   | 'submission_failed';
@@ -25,6 +26,7 @@ export type FsmContext = {
   textChecksum: string | null;
   packageReady: boolean;
   packageChecksum: string | null;
+  responseReady: boolean;
   submissionNumber: string | null;
   lastErrorCode: string | null;
   lastErrorMessage: string | null;
@@ -42,6 +44,7 @@ export const EDITABLE_CASE_STATES: CaseState[] = [
   'files_selected',
   'text_ready',
   'package_ready',
+  'reply_received',
   'files_sync_failed',
   'nextcloud_failed',
   'submission_failed'
@@ -56,7 +59,11 @@ export class FsmService {
     return EDITABLE_CASE_STATES.includes(state);
   }
 
-  deriveWorkingState(context: Pick<FsmContext, 'filesTotal' | 'filesSelected' | 'textReady' | 'packageReady'>): CaseState {
+  deriveWorkingState(context: Pick<FsmContext, 'filesTotal' | 'filesSelected' | 'textReady' | 'packageReady' | 'responseReady'>): CaseState {
+    if (context.responseReady) {
+      return 'reply_received';
+    }
+
     if (context.packageReady) {
       return 'package_ready';
     }

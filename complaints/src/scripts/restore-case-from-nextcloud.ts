@@ -91,6 +91,7 @@ function buildStateSnapshot(caseRow: CaseRecord, filesTotal: number, selectedFil
       textChecksum: null,
       packageReady,
       packageChecksum: null,
+      responseReady: caseRow.case_status === 'has_reply',
       submissionNumber: caseRow.submission_number,
       lastErrorCode: null,
       lastErrorMessage: null
@@ -143,6 +144,7 @@ async function restoreCase(caseNumber: string): Promise<void> {
       `
       insert into cases (
         case_number,
+        case_status,
         institution_id,
         template_id,
         nextcloud_case_folder,
@@ -151,11 +153,12 @@ async function restoreCase(caseNumber: string): Promise<void> {
         nextcloud_result_folder,
         case_date
       )
-      values ($1, $2, $3, $4, $5, $6, $7, to_char(now(), 'DD.MM.YYYY'))
+      values ($1, $2, $3, $4, $5, $6, $7, $8, to_char(now(), 'DD.MM.YYYY'))
       returning *
       `,
       [
         normalizedCaseNumber,
+        resultFiles.length > 0 ? 'has_reply' : 'no_organization',
         null,
         null,
         folders.caseRoot,

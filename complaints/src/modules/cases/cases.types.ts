@@ -1,6 +1,7 @@
 export interface CaseRecord {
   id: string;
   case_number: string;
+  case_status: string;
   parent_case_id: string | null;
   institution_id: string | null;
   title: string | null;

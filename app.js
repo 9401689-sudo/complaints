@@ -10,6 +10,7 @@ const state = {
   cases: [],
   casesSearch: "",
   casesInstitutionFilter: "",
+  casesStatusFilter: "",
   institutionsCategoryFilter: "",
   templatesCategoryFilter: "",
   variables: {},
@@ -57,6 +58,31 @@ const DIRECTORY_CATEGORY_LABELS = {
   state_org: "Государственные организации"
 };
 
+const CASE_STATUS_OPTIONS = [
+  { value: "", label: "Все статусы" },
+  { value: "no_organization", label: "НЕТ ОРГАНИЗАЦИИ" },
+  { value: "no_template", label: "НЕТ ШАБЛОНА" },
+  { value: "created", label: "СОЗДАНО" },
+  { value: "sent", label: "ОТПРАВЛЕНО" },
+  { value: "has_reply", label: "ЕСТЬ ОТВЕТ" }
+];
+
+const CASE_STATUS_LABELS = {
+  no_organization: "НЕТ ОРГАНИЗАЦИИ",
+  no_template: "НЕТ ШАБЛОНА",
+  created: "СОЗДАНО",
+  sent: "ОТПРАВЛЕНО",
+  has_reply: "ЕСТЬ ОТВЕТ"
+};
+
+const CASE_STATUS_CLASSES = {
+  no_organization: "warn",
+  no_template: "warn",
+  created: "info",
+  sent: "ready",
+  has_reply: "ready"
+};
+
 const els = {
   screens: [...document.querySelectorAll("[data-screen-panel]")],
   navButtons: [...document.querySelectorAll(".nav-btn")],
@@ -72,6 +98,7 @@ const els = {
   createCaseProgressLabel: document.getElementById("createCaseProgressLabel"),
   casesList: document.getElementById("casesList"),
   casesInstitutionFilter: document.getElementById("casesInstitutionFilter"),
+  casesStatusFilter: document.getElementById("casesStatusFilter"),
   btnResetCaseFilters: document.getElementById("btnResetCaseFilters"),
 
   btnToggleInstitutionForm: document.getElementById("btnToggleInstitutionForm"),
@@ -408,11 +435,13 @@ function updateDeviceMode() {
 function saveCaseFiltersToSession() {
   sessionStorage.setItem("complaints_cases_search", state.casesSearch || "");
   sessionStorage.setItem("complaints_cases_institution_filter", state.casesInstitutionFilter || "");
+  sessionStorage.setItem("complaints_cases_status_filter", state.casesStatusFilter || "");
 }
 
 function loadCaseFiltersFromSession() {
   state.casesSearch = sessionStorage.getItem("complaints_cases_search") || "";
   state.casesInstitutionFilter = sessionStorage.getItem("complaints_cases_institution_filter") || "";
+  state.casesStatusFilter = sessionStorage.getItem("complaints_cases_status_filter") || "";
 }
 
 function getCategoryLabel(value) {
@@ -734,24 +763,12 @@ function buildComputedTextPreview() {
 function getCaseStatusBadges(item) {
   const badges = [];
 
-  if (!item.institution_id) {
-    badges.push({ text: "НЕТ ОРГАНИЗАЦИИ", cls: "warn" });
-  }
-
-  if (!item.template_id) {
-    badges.push({ text: "НЕТ ШАБЛОНА", cls: "warn" });
-  }
-
-  if (item.template_id && !item.submission_number) {
-    badges.push({ text: "СОЗДАНО", cls: "info" });
-  }
-
-  if (item.submission_number) {
-    badges.push({ text: "ОТПРАВЛЕНО", cls: "ready" });
-  }
-
-  if (item.has_reply) {
-    badges.push({ text: "ЕСТЬ ОТВЕТ", cls: "ready" });
+  const primaryStatus = String(item.case_status || "").trim();
+  if (primaryStatus && CASE_STATUS_LABELS[primaryStatus]) {
+    badges.push({
+      text: CASE_STATUS_LABELS[primaryStatus],
+      cls: CASE_STATUS_CLASSES[primaryStatus] || "info"
+    });
   }
 
   if (Number(item.linked_cases_count || 0) > 0) {
@@ -764,9 +781,14 @@ function getCaseStatusBadges(item) {
 function renderCases() {
   const query = (state.casesSearch || "").trim().toLowerCase();
   const institutionFilter = state.casesInstitutionFilter || "";
+  const statusFilter = state.casesStatusFilter || "";
 
   const filteredCases = state.cases.filter((item) => {
     if (institutionFilter && item.institution_id !== institutionFilter) {
+      return false;
+    }
+
+    if (statusFilter && item.case_status !== statusFilter) {
       return false;
     }
 
@@ -860,7 +882,6 @@ function renderInstitutions() {
         </div>
         <div>${escapeHtml(item.submit_url)}</div>
         <div class="actions">
-          <button class="btn btn-primary" data-edit-institution-id="${item.id}">Редактировать</button>
           <button class="btn btn-secondary icon-delete-btn" title="Удалить" aria-label="Удалить" data-delete-institution-id="${item.id}" data-delete-institution-name="${escapeHtml(item.name)}">🗑</button>
         </div>
       </div>
@@ -907,7 +928,6 @@ function renderTemplates() {
         </div>
         <div></div>
         <div class="actions">
-          <button class="btn btn-primary" data-edit-template-id="${item.id}">Редактировать</button>
           <button class="btn btn-secondary icon-delete-btn" title="Удалить" aria-label="Удалить" data-delete-template-id="${item.id}" data-delete-template-name="${escapeHtml(item.name)}">🗑</button>
         </div>
       </div>
@@ -1060,12 +1080,17 @@ async function saveCaseMeta() {
 }
 
 function renderCaseFilters() {
-  const options = ['<option value="">Все организации</option>']
+  const institutionOptions = ['<option value="">Все организации</option>']
     .concat(state.institutions.map((item) => `<option value="${item.id}">${escapeHtml(item.name)}</option>`))
     .join("");
+  const statusOptions = CASE_STATUS_OPTIONS
+    .map((item) => `<option value="${item.value}">${escapeHtml(item.label)}</option>`)
+    .join("");
 
-  els.casesInstitutionFilter.innerHTML = options;
+  els.casesInstitutionFilter.innerHTML = institutionOptions;
   els.casesInstitutionFilter.value = state.casesInstitutionFilter || "";
+  els.casesStatusFilter.innerHTML = statusOptions;
+  els.casesStatusFilter.value = state.casesStatusFilter || "";
   els.casesSearchInput.value = state.casesSearch || "";
 }
 
@@ -2036,9 +2061,15 @@ function bindEvents() {
     saveCaseFiltersToSession();
     renderCases();
   });
+  els.casesStatusFilter?.addEventListener("change", (event) => {
+    state.casesStatusFilter = event.target.value || "";
+    saveCaseFiltersToSession();
+    renderCases();
+  });
   els.btnResetCaseFilters?.addEventListener("click", () => {
     state.casesSearch = "";
     state.casesInstitutionFilter = "";
+    state.casesStatusFilter = "";
     saveCaseFiltersToSession();
     renderCaseFilters();
     renderCases();

@@ -441,6 +441,17 @@ export class FilesService {
         [caseId, `${resultFolderPrefix}%`]
       );
 
+      await casesService.syncCaseStatus(caseId, {
+        institution_id: caseRow.institution_id,
+        template_id: caseRow.template_id,
+        submission_number: caseRow.submission_number,
+        hasReply: synced.rows.length > 0
+      });
+
+      await fsmService.syncWorkingState(caseId, {
+        responseReady: synced.rows.length > 0
+      });
+
       await postgres.query('commit');
       return synced.rows;
     } catch (error) {
