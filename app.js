@@ -1,6 +1,8 @@
 import { api } from "./api.js";
 
 const state = {
+  authUser: null,
+  adminUsers: [],
   currentScreen: "dashboard",
   currentCaseId: null,
   currentCase: null,
@@ -77,7 +79,28 @@ const CASE_STATUS_CLASSES = {
   has_reply: "ready"
 };
 
+const ROLE_LABELS = {
+  user: "Пользователь",
+  admin_view: "Админ просмотр",
+  admin_full: "Админ полный"
+};
+
 const els = {
+  authGate: document.getElementById("authGate"),
+  topbar: document.getElementById("topbar"),
+  appShell: document.getElementById("appShell"),
+  authLoginNickname: document.getElementById("authLoginNickname"),
+  authLoginPassword: document.getElementById("authLoginPassword"),
+  authRegisterNickname: document.getElementById("authRegisterNickname"),
+  authRegisterPassword: document.getElementById("authRegisterPassword"),
+  btnLogin: document.getElementById("btnLogin"),
+  btnRegister: document.getElementById("btnRegister"),
+  btnLogout: document.getElementById("btnLogout"),
+  btnAdminScreen: document.getElementById("btnAdminScreen"),
+  topbarUser: document.getElementById("topbarUser"),
+  topbarUserName: document.getElementById("topbarUserName"),
+  topbarUserRole: document.getElementById("topbarUserRole"),
+  adminUsersList: document.getElementById("adminUsersList"),
   screens: [...document.querySelectorAll("[data-screen-panel]")],
   navButtons: [...document.querySelectorAll(".nav-btn")],
   tabButtons: [...document.querySelectorAll(".tab-btn")],
@@ -374,6 +397,181 @@ function normalizeVariableState(variables = {}) {
   return normalized;
 }
 
+function roleLabel(role) {
+  return ROLE_LABELS[role] || role || "Пользователь";
+}
+
+function isAdminRole(role) {
+  return role === "admin_view" || role === "admin_full";
+}
+
+function canManageUsers() {
+  return state.authUser?.role === "admin_full";
+}
+
+function showAuthGate() {
+  els.authGate?.classList.remove("hidden");
+  els.topbar?.classList.add("hidden");
+  els.appShell?.classList.add("hidden");
+}
+
+function hideAuthGate() {
+  els.authGate?.classList.add("hidden");
+  els.topbar?.classList.remove("hidden");
+  els.appShell?.classList.remove("hidden");
+}
+
+function renderAuthState() {
+  const user = state.authUser;
+  const hasUser = Boolean(user);
+
+  els.topbarUser?.classList.toggle("hidden", !hasUser);
+  els.btnAdminScreen?.classList.toggle("hidden", !isAdminRole(user?.role));
+
+  if (els.topbarUserName) {
+    els.topbarUserName.textContent = user?.nickname || "";
+  }
+  if (els.topbarUserRole) {
+    els.topbarUserRole.textContent = roleLabel(user?.role);
+  }
+}
+
+function renderAdminUsers() {
+  if (!els.adminUsersList) {
+    return;
+  }
+
+  if (!state.adminUsers.length) {
+    els.adminUsersList.innerHTML = '<div class="table-empty">Пользователи пока не найдены.</div>';
+    return;
+  }
+
+  els.adminUsersList.innerHTML = state.adminUsers.map((user) => {
+    const roleControl = canManageUsers()
+      ? `
+        <select data-user-role-id="${escapeHtml(user.id)}">
+          <option value="user" ${user.role === "user" ? "selected" : ""}>Пользователь</option>
+          <option value="admin_view" ${user.role === "admin_view" ? "selected" : ""}>Админ просмотр</option>
+          <option value="admin_full" ${user.role === "admin_full" ? "selected" : ""}>Админ полный</option>
+        </select>
+      `
+      : `<span class="status-badge info">${escapeHtml(roleLabel(user.role))}</span>`;
+
+    return `
+      <div class="table-row admin-user-row">
+        <div>
+          <div class="row-title">${escapeHtml(user.nickname)}</div>
+          <div class="row-subtitle">Создан: ${escapeHtml(new Date(user.created_at).toLocaleString("ru-RU"))}</div>
+        </div>
+        <div class="row-actions">
+          ${roleControl}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function loadAdminUsers() {
+  if (!isAdminRole(state.authUser?.role)) {
+    return;
+  }
+
+  const data = await api.listUsers();
+  state.adminUsers = data.users || [];
+  renderAdminUsers();
+  logRuntime("list users", data);
+}
+
+async function applyAuthorizedAppState() {
+  renderAuthState();
+  hideAuthGate();
+  await loadInstitutions();
+  await loadTemplates();
+  await loadCases();
+  setScreen("dashboard");
+  setWorkspaceTab(null);
+  scrollMainContentToTop();
+}
+
+async function completeAuth(payload) {
+  if (!payload?.token || !payload?.user) {
+    throw new Error("auth payload is incomplete");
+  }
+
+  api.setAuthToken(payload.token);
+  state.authUser = payload.user;
+
+  if (els.authLoginPassword) {
+    els.authLoginPassword.value = "";
+  }
+  if (els.authRegisterPassword) {
+    els.authRegisterPassword.value = "";
+  }
+
+  await applyAuthorizedAppState();
+}
+
+async function restoreAuthSession() {
+  const token = api.getAuthToken();
+
+  if (!token) {
+    state.authUser = null;
+    renderAuthState();
+    showAuthGate();
+    return false;
+  }
+
+  try {
+    const data = await api.me();
+    state.authUser = data.user;
+    await applyAuthorizedAppState();
+    return true;
+  } catch {
+    api.clearAuthToken();
+    state.authUser = null;
+    renderAuthState();
+    showAuthGate();
+    return false;
+  }
+}
+
+async function loginUser() {
+  const payload = await api.login({
+    nickname: els.authLoginNickname?.value || "",
+    password: els.authLoginPassword?.value || ""
+  });
+
+  await completeAuth(payload);
+}
+
+async function registerUser() {
+  const payload = await api.register({
+    nickname: els.authRegisterNickname?.value || "",
+    password: els.authRegisterPassword?.value || ""
+  });
+
+  await completeAuth(payload);
+}
+
+async function logoutUser() {
+  try {
+    await api.logout();
+  } catch {
+    // ignore logout transport errors
+  }
+
+  api.clearAuthToken();
+  state.authUser = null;
+  state.currentCaseId = null;
+  state.currentCase = null;
+  state.currentCaseFiles = [];
+  state.submitData = null;
+  state.resultFiles = [];
+  state.relatedCases = [];
+  state.adminUsers = [];
+  renderAuthState();
+  showAuthGate();
+}
 function openRuntimeLogModal() {
   els.runtimeLogModal.classList.remove("hidden");
 }
@@ -473,6 +671,11 @@ function renderContextNav() {
       label: item.label,
       active: state.templatesCategoryFilter === item.value
     }));
+  } else if (state.currentScreen === "admin") {
+    title = "Админка";
+    items = [
+      { action: "screen:admin", label: "Пользователи", active: true }
+    ];
   } else {
     title = "Обращения";
     items = [
@@ -1983,7 +2186,25 @@ function bindEvents() {
       }
       if (btn.dataset.screen === "institutions") await loadInstitutions();
       if (btn.dataset.screen === "templates") await loadTemplates();
+      if (btn.dataset.screen === "admin") {
+        await loadAdminUsers();
+        scrollMainContentToTop();
+      }
     });
+  });
+
+  els.btnLogin?.addEventListener("click", () => handle(loginUser));
+  els.btnRegister?.addEventListener("click", () => handle(registerUser));
+  els.btnLogout?.addEventListener("click", () => handle(logoutUser));
+  els.authLoginPassword?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      handle(loginUser);
+    }
+  });
+  els.authRegisterPassword?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      handle(registerUser);
+    }
   });
 
   els.btnBrandHome?.addEventListener("click", async () => {
@@ -2146,6 +2367,18 @@ function bindEvents() {
   els.btnUploadResultFiles?.addEventListener("click", () => els.resultFilesInput?.click());
   els.resultFilesInput?.addEventListener("change", () => handle(uploadResultFiles));
   els.resultComment?.addEventListener("blur", () => handle(persistResultCommentIfNeeded));
+  els.adminUsersList?.addEventListener("change", (event) => {
+    const select = event.target.closest("[data-user-role-id]");
+    if (!select || !canManageUsers()) return;
+
+    handle(async () => {
+      const data = await api.updateUserRole(select.dataset.userRoleId, select.value);
+      const nextUser = data.user;
+      state.adminUsers = state.adminUsers.map((item) => item.id === nextUser.id ? nextUser : item);
+      renderAdminUsers();
+      logRuntime("update user role", data);
+    });
+  });
 }
 
 async function deleteTemplateFromList(templateId, templateName) {
@@ -2174,15 +2407,15 @@ async function bootstrap() {
   window.addEventListener("resize", updateDeviceMode);
   loadCaseFiltersFromSession();
   bindEvents();
-  await loadInstitutions();
-  await loadTemplates();
-  await loadCases();
-  setScreen("dashboard");
-  setWorkspaceTab(null);
+  renderAuthState();
+  showAuthGate();
+  await restoreAuthSession();
 }
 
 bootstrap().catch((error) => {
   logRuntime("bootstrap error", error?.message || String(error));
   alert(error?.message || "Bootstrap error");
 });
+
+
 

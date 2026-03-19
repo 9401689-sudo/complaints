@@ -5,6 +5,19 @@ function getAppPrefix() {
 }
 
 const API_BASE = `https://complaints-api.doorsvip.ru/${getAppPrefix()}/api`;
+const AUTH_TOKEN_KEY = "complaints_auth_token";
+
+function getAuthToken() {
+  return localStorage.getItem(AUTH_TOKEN_KEY) || "";
+}
+
+function setAuthToken(token) {
+  if (token) {
+    localStorage.setItem(AUTH_TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+  }
+}
 
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`;
@@ -12,6 +25,11 @@ async function request(path, options = {}) {
   const headers = {
     ...(options.headers || {})
   };
+
+  const token = getAuthToken();
+  if (token && !headers.Authorization) {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
   if (options.body !== undefined && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
@@ -43,11 +61,18 @@ async function request(path, options = {}) {
 
 async function requestBlob(path, options = {}) {
   const url = `${API_BASE}${path}`;
+  const headers = {
+    ...(options.headers || {})
+  };
+
+  const token = getAuthToken();
+  if (token && !headers.Authorization) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
   const response = await fetch(url, {
     ...options,
-    headers: {
-      ...(options.headers || {})
-    }
+    headers
   });
 
   if (!response.ok) {
@@ -67,6 +92,51 @@ async function requestBlob(path, options = {}) {
 }
 
 export const api = {
+  setAuthToken,
+
+  getAuthToken() {
+    return getAuthToken();
+  },
+
+  clearAuthToken() {
+    setAuthToken("");
+  },
+
+  register(payload) {
+    return request("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  },
+
+  login(payload) {
+    return request("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  },
+
+  me() {
+    return request("/auth/me");
+  },
+
+  logout() {
+    return request("/auth/logout", {
+      method: "POST"
+    });
+  },
+
+  listUsers() {
+    return request("/auth/users");
+  },
+
+  updateUserRole(userId, role) {
+    return request(`/auth/users/${userId}/role`, {
+      method: "PATCH",
+      body: JSON.stringify({ role })
+    });
+  },
+
   listCases() {
     return request("/cases");
   },
@@ -120,14 +190,14 @@ export const api = {
     });
   },
 
-    updateInstitution(id, payload) {
+  updateInstitution(id, payload) {
     return request(`/institutions/${id}`, {
       method: "PATCH",
       body: JSON.stringify(payload)
     });
   },
 
-    deleteInstitution(institutionId) {
+  deleteInstitution(institutionId) {
     return request(`/institutions/${institutionId}`, {
       method: "DELETE"
     });
@@ -144,14 +214,14 @@ export const api = {
     });
   },
 
-    updateTemplate(id, payload) {
+  updateTemplate(id, payload) {
     return request(`/templates/${id}`, {
       method: "PATCH",
       body: JSON.stringify(payload)
     });
   },
 
-    deleteTemplate(templateId) {
+  deleteTemplate(templateId) {
     return request(`/templates/${templateId}`, {
       method: "DELETE"
     });
@@ -195,11 +265,11 @@ export const api = {
   },
 
   updateCaseMeta(caseId, payload) {
-  return request(`/cases/${caseId}/meta`, {
-    method: "PATCH",
-    body: JSON.stringify(payload)
-  });
-},
+    return request(`/cases/${caseId}/meta`, {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    });
+  },
 
   getText(caseId) {
     return request(`/cases/${caseId}/text`);
@@ -225,19 +295,18 @@ export const api = {
   },
 
   saveCaseAsTemplate(caseId) {
-  return request(`/cases/${caseId}/save-as-template`, {
-    method: "POST"
-  });
-},
-
-  deleteCase(caseId) {
-  return request(`/cases/${caseId}`, {
-    method: "DELETE"
+    return request(`/cases/${caseId}/save-as-template`, {
+      method: "POST"
     });
   },
-  
+
+  deleteCase(caseId) {
+    return request(`/cases/${caseId}`, {
+      method: "DELETE"
+    });
+  },
+
   downloadCaseFile(caseId, fileId) {
     return requestBlob(`/cases/${caseId}/files/${fileId}/download`);
   }
 };
-

@@ -13,6 +13,9 @@ import { registerVariablesRoutes } from './modules/variables/variables.routes';
 import { registerTextRoutes } from './modules/text/text.routes';
 import { registerCaseConfigRoutes } from './modules/case-config/case-config.routes';
 import { registerPackageRoutes } from './modules/package/package.routes';
+import { registerAuthRoutes } from './modules/auth/auth.routes';
+import { authService } from './modules/auth/auth.service';
+import { extractBearerToken } from './modules/auth/auth.utils';
 
 async function bootstrap(): Promise<void> {
   const app = Fastify({
@@ -39,6 +42,37 @@ async function bootstrap(): Promise<void> {
 
   app.get(`${env.API_BASE_PATH}/health/db`, async () => {
     return checkPostgresHealth();
+  });
+
+  await registerAuthRoutes(app);
+
+  app.addHook('onRequest', async (request, reply) => {
+    const path = request.raw.url?.split('?')[0] || '';
+    const publicPaths = new Set([
+      '/health',
+      `${env.API_BASE_PATH}/health`,
+      `${env.API_BASE_PATH}/health/db`,
+      `${env.API_BASE_PATH}/auth/register`,
+      `${env.API_BASE_PATH}/auth/login`
+    ]);
+
+    if (request.method === 'OPTIONS' || publicPaths.has(path)) {
+      return;
+    }
+
+    const token = extractBearerToken(request);
+
+    if (!token) {
+      return reply.code(401).send({ ok: false, error: 'unauthorized' });
+    }
+
+    const user = await authService.getUserByToken(token);
+
+    if (!user) {
+      return reply.code(401).send({ ok: false, error: 'unauthorized' });
+    }
+
+    request.authUser = user;
   });
 
   await registerCasesRoutes(app);
@@ -68,3 +102,4 @@ bootstrap().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+

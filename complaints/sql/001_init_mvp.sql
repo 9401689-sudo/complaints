@@ -28,6 +28,28 @@ begin
 end;
 $$;
 
+create table if not exists users (
+  id uuid primary key default uuid_generate_v4(),
+  nickname text not null unique,
+  password_hash text not null,
+  role text not null default 'user',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists user_sessions (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null references users(id) on delete cascade,
+  token_hash text not null unique,
+  expires_at timestamptz not null,
+  last_used_at timestamptz not null default now(),
+  revoked_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+alter table users add column if not exists updated_at timestamptz not null default now();
+create index if not exists idx_user_sessions_user_id on user_sessions(user_id);
+create index if not exists idx_user_sessions_token_hash on user_sessions(token_hash);
 create table if not exists institutions (
   id uuid primary key default uuid_generate_v4(),
   name text not null,
@@ -174,3 +196,4 @@ create trigger trg_cases_set_updated_at
 before update on cases
 for each row
 execute function set_updated_at();
+

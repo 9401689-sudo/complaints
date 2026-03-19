@@ -9,7 +9,43 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <header class="topbar">
+    <section id="authGate" class="auth-gate hidden">
+      <div class="auth-card">
+        <div class="auth-card-brand">
+          <img src="./dialog.png" alt="Диалог граждан" class="auth-brand-logo" />
+          <h1>Вход в систему</h1>
+          <p>Никнейм и пароль. Регистрация открыта для новых пользователей.</p>
+        </div>
+        <div class="auth-forms">
+          <div class="auth-panel">
+            <h3>Вход</h3>
+            <div class="field">
+              <label for="authLoginNickname">Никнейм</label>
+              <input id="authLoginNickname" autocomplete="username" />
+            </div>
+            <div class="field">
+              <label for="authLoginPassword">Пароль</label>
+              <input id="authLoginPassword" type="password" autocomplete="current-password" />
+            </div>
+            <button class="btn btn-primary auth-submit-btn" id="btnLogin" type="button">Войти</button>
+          </div>
+          <div class="auth-panel">
+            <h3>Регистрация</h3>
+            <div class="field">
+              <label for="authRegisterNickname">Никнейм</label>
+              <input id="authRegisterNickname" autocomplete="username" />
+            </div>
+            <div class="field">
+              <label for="authRegisterPassword">Пароль</label>
+              <input id="authRegisterPassword" type="password" autocomplete="new-password" />
+            </div>
+            <button class="btn btn-primary auth-submit-btn" id="btnRegister" type="button">Зарегистрироваться</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <header class="topbar hidden" id="topbar">
       <div class="topbar-brand">
         <button class="brand-link" id="btnBrandHome" type="button" aria-label="На главный экран">
           <img src="./dialog.png" alt="Диалог граждан" class="brand-logo" />
@@ -19,9 +55,17 @@
         <button class="nav-btn active" data-screen="dashboard" type="button">Обращения</button>
         <button class="nav-btn" data-screen="institutions" type="button">Организации</button>
         <button class="nav-btn" data-screen="templates" type="button">Шаблоны</button>
+        <button class="nav-btn hidden" id="btnAdminScreen" data-screen="admin" type="button">Админка</button>
       </nav>
+      <div class="topbar-user hidden" id="topbarUser">
+        <div class="user-badge">
+          <span id="topbarUserName">Пользователь</span>
+          <span id="topbarUserRole">user</span>
+        </div>
+        <button class="btn btn-secondary" id="btnLogout" type="button">Выйти</button>
+      </div>
     </header>
-    <div class="app-shell">
+    <div class="app-shell hidden" id="appShell">
       <aside class="sidebar">
         <div class="sidebar-brand context-sidebar-brand">
           <div id="contextNavTitle" class="context-nav-title">Раздел</div>
@@ -182,6 +226,21 @@
               <h3>Список шаблонов</h3>
             </div>
             <div id="templatesList" class="table-like"></div>
+          </div>
+        </section>
+
+        <section class="screen hidden" data-screen-panel="admin">
+          <div class="page-header">
+            <div>
+              <h2>Админка</h2>
+              <p>Управление пользователями и ролями доступа</p>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Пользователи</h3>
+            </div>
+            <div id="adminUsersList" class="table-like"></div>
           </div>
         </section>
 
