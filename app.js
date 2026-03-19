@@ -65,6 +65,7 @@ const els = {
   contextNav: document.getElementById("contextNav"),
   contextNavTitle: document.getElementById("contextNavTitle"),
   mainContent: document.querySelector(".main-content"),
+  btnBrandHome: document.getElementById("btnBrandHome"),
 
   btnCreateCase: document.getElementById("btnCreateCase"),
   createCaseProgress: document.getElementById("createCaseProgress"),
@@ -160,7 +161,12 @@ const els = {
   btnCloseRuntimeLog: document.getElementById("btnCloseRuntimeLog"),
   casesSearchInput: document.getElementById("casesSearchInput"),
 
-  runtimeLog: document.getElementById("runtimeLog")
+  runtimeLog: document.getElementById("runtimeLog"),
+  confirmModal: document.getElementById("confirmModal"),
+  confirmModalBackdrop: document.getElementById("confirmModalBackdrop"),
+  confirmModalMessage: document.getElementById("confirmModalMessage"),
+  btnConfirmModalYes: document.getElementById("btnConfirmModalYes"),
+  btnConfirmModalCancel: document.getElementById("btnConfirmModalCancel")
 };
 
 els.templateVariableToolbar = document.getElementById("templateVariableToolbar");
@@ -353,6 +359,30 @@ function openRuntimeLogModal() {
 
 function closeRuntimeLogModal() {
   els.runtimeLogModal.classList.add("hidden");
+}
+
+let confirmModalResolver = null;
+
+function closeConfirmModal(result = false) {
+  els.confirmModal?.classList.add("hidden");
+  if (confirmModalResolver) {
+    const resolve = confirmModalResolver;
+    confirmModalResolver = null;
+    resolve(result);
+  }
+}
+
+function confirmDestructiveAction(message = "Операция удаления необратима. Подтвердите.") {
+  if (!els.confirmModal || !els.confirmModalMessage) {
+    return Promise.resolve(false);
+  }
+
+  els.confirmModalMessage.textContent = message;
+  els.confirmModal.classList.remove("hidden");
+
+  return new Promise((resolve) => {
+    confirmModalResolver = resolve;
+  });
 }
 
 async function copyToClipboard(text, successMessage = "Скопировано") {
@@ -764,7 +794,7 @@ function renderCases() {
       .join("");
 
     return `
-      <div class="table-row cases-row">
+      <div class="table-row cases-row clickable-row" data-open-case-id="${item.id}">
         <div>
           <div class="row-title">${escapeHtml(item.title || "Без названия")}</div>
           <div class="row-meta">${escapeHtml(item.description || "")}</div>
@@ -787,22 +817,27 @@ function renderCases() {
           <div>${escapeHtml(item.case_date || "—")}</div>
         </div>
         <div class="actions">
-          <button class="btn btn-primary" data-open-case-id="${item.id}">Открыть</button>
-          <button class="btn btn-secondary" data-delete-case-id="${item.id}" data-delete-case-number="${item.case_number}">Удалить</button>
+          <button class="btn btn-secondary icon-delete-btn" title="Удалить" aria-label="Удалить" data-delete-case-id="${item.id}" data-delete-case-number="${item.case_number}">🗑</button>
         </div>
       </div>
     `;
   }).join("");
 
   document.querySelectorAll("[data-open-case-id]").forEach((btn) => {
-    btn.addEventListener("click", () => handle(() => openCase(btn.dataset.openCaseId)));
+    btn.addEventListener("click", (event) => {
+      if (event.target.closest("button")) return;
+      handle(() => openCase(btn.dataset.openCaseId));
+    });
   });
 
   document.querySelectorAll("[data-delete-case-id]").forEach((btn) => {
-    btn.addEventListener("click", () => handle(() => deleteCaseFromList(
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      handle(() => deleteCaseFromList(
       btn.dataset.deleteCaseId,
       btn.dataset.deleteCaseNumber
-    )));
+    ));
+    });
   });
 }
 
@@ -818,7 +853,7 @@ function renderInstitutions() {
     els.institutionsList.innerHTML = '<div class="notice">Организаций пока нет.</div>';
   } else {
     els.institutionsList.innerHTML = filteredInstitutions.map((item) => `
-      <div class="table-row compact-3">
+      <div class="table-row compact-3 clickable-row" data-edit-institution-id="${item.id}">
         <div>
           <div class="row-title">${escapeHtml(item.name)}</div>
           <div class="row-meta">${escapeHtml(getCategoryLabel(item.category || "authority"))}</div>
@@ -826,23 +861,27 @@ function renderInstitutions() {
         <div>${escapeHtml(item.submit_url)}</div>
         <div class="actions">
           <button class="btn btn-primary" data-edit-institution-id="${item.id}">Редактировать</button>
-          <button class="btn btn-secondary" data-delete-institution-id="${item.id}" data-delete-institution-name="${escapeHtml(item.name)}">Удалить</button>
+          <button class="btn btn-secondary icon-delete-btn" title="Удалить" aria-label="Удалить" data-delete-institution-id="${item.id}" data-delete-institution-name="${escapeHtml(item.name)}">🗑</button>
         </div>
       </div>
     `).join("");
   }
 
   document.querySelectorAll("[data-edit-institution-id]").forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (event) => {
+      if (event.target.closest("button")) return;
       const item = state.institutions.find((x) => x.id === btn.dataset.editInstitutionId);
       if (item) openInstitutionEdit(item);
     });
   });
   document.querySelectorAll("[data-delete-institution-id]").forEach((btn) => {
-  btn.addEventListener("click", () => handle(() => deleteInstitutionFromList(
+  btn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    handle(() => deleteInstitutionFromList(
     btn.dataset.deleteInstitutionId,
     btn.dataset.deleteInstitutionName
-  )));
+  ));
+  });
 });
 
   fillInstitutionSelects();
@@ -861,30 +900,35 @@ function renderTemplates() {
     els.templatesList.innerHTML = '<div class="notice">Шаблонов пока нет.</div>';
   } else {
     els.templatesList.innerHTML = filteredTemplates.map((item) => `
-      <div class="table-row compact-3">
+      <div class="table-row compact-3 clickable-row" data-edit-template-id="${item.id}">
         <div>
           <div class="row-title">${escapeHtml(item.name)}</div>
           <div class="row-meta">${escapeHtml(getCategoryLabel(item.category || "authority"))}</div>
         </div>
-       <div class="actions">
-         <button class="btn btn-primary" data-edit-template-id="${item.id}">Редактировать</button>
-         <button class="btn btn-secondary" data-delete-template-id="${item.id}" data-delete-template-name="${escapeHtml(item.name)}">Удалить</button>
-       </div>
+        <div></div>
+        <div class="actions">
+          <button class="btn btn-primary" data-edit-template-id="${item.id}">Редактировать</button>
+          <button class="btn btn-secondary icon-delete-btn" title="Удалить" aria-label="Удалить" data-delete-template-id="${item.id}" data-delete-template-name="${escapeHtml(item.name)}">🗑</button>
+        </div>
       </div>
     `).join("");
   }
 
   document.querySelectorAll("[data-edit-template-id]").forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (event) => {
+      if (event.target.closest("button")) return;
       const item = state.templates.find((x) => x.id === btn.dataset.editTemplateId);
       if (item) openTemplateEdit(item);
     });
   });
   document.querySelectorAll("[data-delete-template-id]").forEach((btn) => {
-  btn.addEventListener("click", () => handle(() => deleteTemplateFromList(
+  btn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    handle(() => deleteTemplateFromList(
     btn.dataset.deleteTemplateId,
     btn.dataset.deleteTemplateName
-  )));
+  ));
+  });
 });
 
   fillTemplateSelect();
@@ -1055,7 +1099,7 @@ function renderRelatedCases() {
   }
 
   els.relatedCasesList.innerHTML = state.relatedCases.map((item) => `
-    <div class="table-row cases-row">
+    <div class="table-row cases-row clickable-row" data-open-related-case-id="${item.id}">
       <div>
         <div class="row-title">${escapeHtml(item.title || "Без названия")}</div>
         <div class="row-meta">${escapeHtml(item.description || "")}</div>
@@ -1076,14 +1120,15 @@ function renderRelatedCases() {
         <div class="row-meta">Дата</div>
         <div>${escapeHtml(item.case_date || "—")}</div>
       </div>
-      <div class="actions">
-        <button class="btn btn-primary" data-open-related-case-id="${item.id}">Открыть</button>
-      </div>
+      <div class="actions"></div>
     </div>
   `).join("");
 
   els.relatedCasesList.querySelectorAll("[data-open-related-case-id]").forEach((button) => {
-    button.addEventListener("click", () => handle(() => openCase(button.dataset.openRelatedCaseId)));
+    button.addEventListener("click", (event) => {
+      if (event.target.closest("button")) return;
+      handle(() => openCase(button.dataset.openRelatedCaseId));
+    });
   });
 }
 
@@ -1799,7 +1844,7 @@ async function prepareSubmit(options = {}) {
 }
 
 async function deleteCaseFromList(caseId, caseNumber) {
-  const confirmed = window.confirm(`Удалить обращение ${caseNumber}?`);
+  const confirmed = await confirmDestructiveAction("Операция удаления необратима. Подтвердите.");
   if (!confirmed) return;
 
   const data = await api.deleteCase(caseId);
@@ -1859,7 +1904,7 @@ async function openWorkspaceTabByName(tabName) {
 }
 
 async function deleteInstitutionFromList(institutionId, institutionName) {
-  const confirmed = window.confirm(`Удалить организацию "${institutionName}"?`);
+  const confirmed = await confirmDestructiveAction("Операция удаления необратима. Подтвердите.");
   if (!confirmed) return;
 
   const data = await api.deleteInstitution(institutionId);
@@ -1899,10 +1944,25 @@ function bindEvents() {
         await handle(persistResultCommentIfNeeded);
       }
       setScreen(btn.dataset.screen);
-      if (btn.dataset.screen === "dashboard") await loadCases();
+      if (btn.dataset.screen === "dashboard") {
+        await loadCases();
+        scrollMainContentToTop();
+      }
       if (btn.dataset.screen === "institutions") await loadInstitutions();
       if (btn.dataset.screen === "templates") await loadTemplates();
     });
+  });
+
+  els.btnBrandHome?.addEventListener("click", async () => {
+    if (state.currentScreen === "case-workspace" && state.currentWorkspaceTab === "submit") {
+      await handle(persistSubmitMetaIfNeeded);
+    }
+    if (state.currentScreen === "case-workspace" && state.currentWorkspaceTab === "result") {
+      await handle(persistResultCommentIfNeeded);
+    }
+    setScreen("dashboard");
+    await handle(loadCases);
+    scrollMainContentToTop();
   });
 
   els.contextNav?.addEventListener("click", async (event) => {
@@ -1961,6 +2021,9 @@ function bindEvents() {
   }
   els.btnCloseRuntimeLog?.addEventListener("click", closeRuntimeLogModal);
   els.runtimeLogBackdrop?.addEventListener("click", closeRuntimeLogModal);
+  els.btnConfirmModalYes?.addEventListener("click", () => closeConfirmModal(true));
+  els.btnConfirmModalCancel?.addEventListener("click", () => closeConfirmModal(false));
+  els.confirmModalBackdrop?.addEventListener("click", () => closeConfirmModal(false));
   if (els.casesSearchInput) {
   els.casesSearchInput.addEventListener("input", (event) => {
     state.casesSearch = event.target.value || "";
@@ -2022,6 +2085,7 @@ function bindEvents() {
     }
     setScreen("dashboard");
     await handle(loadCases);
+    scrollMainContentToTop();
   });
   els.btnSaveFilesSelection?.addEventListener("click", () => handle(saveFiles));
   els.btnSaveVariables?.addEventListener("click", () => handle(saveVariables));
@@ -2046,7 +2110,7 @@ function bindEvents() {
 }
 
 async function deleteTemplateFromList(templateId, templateName) {
-  const confirmed = window.confirm(`Удалить шаблон "${templateName}"?`);
+  const confirmed = await confirmDestructiveAction("Операция удаления необратима. Подтвердите.");
   if (!confirmed) return;
 
   const data = await api.deleteTemplate(templateId);

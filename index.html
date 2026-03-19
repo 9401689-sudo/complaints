@@ -11,7 +11,9 @@
   <body>
     <header class="topbar">
       <div class="topbar-brand">
-        <h1>Центр жалоб</h1>
+        <button class="brand-link" id="btnBrandHome" type="button" aria-label="На главный экран">
+          <img src="./dialog.png" alt="Диалог граждан" class="brand-logo" />
+        </button>
       </div>
       <nav class="topbar-nav">
         <button class="nav-btn active" data-screen="dashboard" type="button">Обращения</button>
@@ -405,6 +407,22 @@
         <h3>Runtime log</h3>
       </div>
       <pre id="runtimeLog">Готово.</pre>
+    </div>
+  </div>
+</div>
+
+<div id="confirmModal" class="image-modal hidden">
+  <div class="image-modal-backdrop" id="confirmModalBackdrop"></div>
+  <div class="image-modal-content confirm-modal-content">
+    <div class="panel confirm-modal-panel">
+      <div class="panel-header">
+        <h3>Подтверждение</h3>
+      </div>
+      <div id="confirmModalMessage" class="notice confirm-modal-message">Операция удаления необратима. Подтвердите.</div>
+      <div class="actions confirm-modal-actions">
+        <button class="btn btn-primary" id="btnConfirmModalYes" type="button">Да</button>
+        <button class="btn btn-secondary" id="btnConfirmModalCancel" type="button">Отмена</button>
+      </div>
     </div>
   </div>
 </div>
