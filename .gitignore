@@ -1,0 +1,6 @@
+node_modules/
+dist/
+complaints/
+*.tar.gz
+complaints-backend@1.0.0
+tsc
