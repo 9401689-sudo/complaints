@@ -110,6 +110,8 @@ const els = {
   topbarUserName: document.getElementById("topbarUserName"),
   topbarUserRole: document.getElementById("topbarUserRole"),
   adminUsersList: document.getElementById("adminUsersList"),
+  adminPrivateInstitutionsList: document.getElementById("adminPrivateInstitutionsList"),
+  adminPrivateTemplatesList: document.getElementById("adminPrivateTemplatesList"),
   screens: [...document.querySelectorAll("[data-screen-panel]")],
   navButtons: [...document.querySelectorAll(".nav-btn")],
   tabButtons: [...document.querySelectorAll(".tab-btn")],
@@ -583,6 +585,72 @@ function renderAdminUsers() {
   }).join("");
 }
 
+function renderAdminDirectories() {
+  if (!isAdminRole(state.authUser?.role)) {
+    return;
+  }
+
+  if (els.adminPrivateInstitutionsList) {
+    const items = state.institutions
+      .filter((item) => item.visibility === "private")
+      .sort((a, b) => `${a.owner_nickname || ""} ${a.name || ""}`.localeCompare(`${b.owner_nickname || ""} ${b.name || ""}`, "ru"));
+
+    els.adminPrivateInstitutionsList.innerHTML = items.length
+      ? items.map((item) => `
+        <div class="table-row compact-3">
+          <div>
+            <div class="row-title">${escapeHtml(item.name)}</div>
+            <div class="row-meta">${escapeHtml(getCategoryLabel(item.category || "authority"))}</div>
+            <div class="row-meta">Автор: ${escapeHtml(item.owner_nickname || "—")}</div>
+          </div>
+          <div>${escapeHtml(item.submit_url || "—")}</div>
+          <div class="actions">
+            ${state.authUser?.role === "admin_full"
+              ? `<button class="btn btn-secondary" type="button" data-publish-institution-id="${item.id}">Сделать общим</button>`
+              : ""}
+          </div>
+        </div>
+      `).join("")
+      : '<div class="table-empty">Личных организаций сейчас нет.</div>';
+  }
+
+  if (els.adminPrivateTemplatesList) {
+    const items = state.templates
+      .filter((item) => item.visibility === "private")
+      .sort((a, b) => `${a.owner_nickname || ""} ${a.name || ""}`.localeCompare(`${b.owner_nickname || ""} ${b.name || ""}`, "ru"));
+
+    els.adminPrivateTemplatesList.innerHTML = items.length
+      ? items.map((item) => `
+        <div class="table-row compact-3">
+          <div>
+            <div class="row-title">${escapeHtml(item.name)}</div>
+            <div class="row-meta">${escapeHtml(getCategoryLabel(item.category || "authority"))}</div>
+            <div class="row-meta">Автор: ${escapeHtml(item.owner_nickname || "—")}</div>
+          </div>
+          <div>${escapeHtml(item.body_template ? "Есть текст" : "Без текста")}</div>
+          <div class="actions">
+            ${state.authUser?.role === "admin_full"
+              ? `<button class="btn btn-secondary" type="button" data-publish-template-id="${item.id}">Сделать общим</button>`
+              : ""}
+          </div>
+        </div>
+      `).join("")
+      : '<div class="table-empty">Личных шаблонов сейчас нет.</div>';
+  }
+
+  document.querySelectorAll("[data-publish-institution-id]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      handle(() => publishInstitutionFromAdmin(btn.dataset.publishInstitutionId));
+    });
+  });
+
+  document.querySelectorAll("[data-publish-template-id]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      handle(() => publishTemplateFromAdmin(btn.dataset.publishTemplateId));
+    });
+  });
+}
+
 async function loadAdminUsers() {
   if (!isAdminRole(state.authUser?.role)) {
     return;
@@ -591,6 +659,7 @@ async function loadAdminUsers() {
   const data = await api.listUsers();
   state.adminUsers = data.users || [];
   renderAdminUsers();
+  renderAdminDirectories();
   logRuntime("list users", data);
 }
 
@@ -757,6 +826,41 @@ async function purgeDeletedRecords() {
   await loadInstitutions();
   await loadTemplates();
   await loadCases();
+}
+
+async function publishInstitutionFromAdmin(institutionId) {
+  const item = state.institutions.find((entry) => entry.id === institutionId);
+  if (!item) return;
+
+  await api.updateInstitution(institutionId, {
+    name: item.name || "",
+    category: item.category || "authority",
+    visibility: "public",
+    submitUrl: item.submit_url || "",
+    maxAttachments: item.max_attachments,
+    maxTextLength: item.max_text_length,
+    acceptedFormats: item.accepted_formats || ["image/jpeg", "image/png"]
+  });
+
+  await loadInstitutions();
+  renderAdminDirectories();
+}
+
+async function publishTemplateFromAdmin(templateId) {
+  const item = state.templates.find((entry) => entry.id === templateId);
+  if (!item) return;
+
+  await api.updateTemplate(templateId, {
+    name: item.name || "",
+    category: item.category || "authority",
+    visibility: "public",
+    bodyTemplate: item.body_template || "",
+    variablesSchema: item.variables_schema || [],
+    defaultValues: item.default_values || {}
+  });
+
+  await loadTemplates();
+  renderAdminDirectories();
 }
 function openRuntimeLogModal() {
   els.runtimeLogModal.classList.remove("hidden");
@@ -1333,7 +1437,9 @@ function renderInstitutions() {
         </div>
         <div>${escapeHtml(item.submit_url)}</div>
         <div class="actions">
-          <button class="btn btn-secondary icon-delete-btn favorite-btn ${item.is_favorite ? "active" : ""}" title="${item.is_favorite ? "Убрать из моих организаций" : "Добавить в мои организации"}" aria-label="${item.is_favorite ? "Убрать из моих организаций" : "Добавить в мои организации"}" data-favorite-institution-id="${item.id}">${item.is_favorite ? "★" : "☆"}</button>
+          ${item.visibility === "public"
+            ? `<button class="btn btn-secondary icon-delete-btn favorite-btn ${item.is_favorite ? "active" : ""}" title="${item.is_favorite ? "Убрать из моих организаций" : "Добавить в мои организации"}" aria-label="${item.is_favorite ? "Убрать из моих организаций" : "Добавить в мои организации"}" data-favorite-institution-id="${item.id}">${item.is_favorite ? "★" : "☆"}</button>`
+            : ""}
           ${canEditDirectoryItem(item)
             ? `<button class="btn btn-secondary icon-delete-btn" title="Удалить" aria-label="Удалить" data-delete-institution-id="${item.id}" data-delete-institution-name="${escapeHtml(item.name)}">🗑</button>`
             : ""}
@@ -1403,7 +1509,9 @@ function renderTemplates() {
         </div>
         <div></div>
         <div class="actions">
-          <button class="btn btn-secondary icon-delete-btn favorite-btn ${item.is_favorite ? "active" : ""}" title="${item.is_favorite ? "Убрать из моих шаблонов" : "Добавить в мои шаблоны"}" aria-label="${item.is_favorite ? "Убрать из моих шаблонов" : "Добавить в мои шаблоны"}" data-favorite-template-id="${item.id}">${item.is_favorite ? "★" : "☆"}</button>
+          ${item.visibility === "public"
+            ? `<button class="btn btn-secondary icon-delete-btn favorite-btn ${item.is_favorite ? "active" : ""}" title="${item.is_favorite ? "Убрать из моих шаблонов" : "Добавить в мои шаблоны"}" aria-label="${item.is_favorite ? "Убрать из моих шаблонов" : "Добавить в мои шаблоны"}" data-favorite-template-id="${item.id}">${item.is_favorite ? "★" : "☆"}</button>`
+            : ""}
           ${canEditDirectoryItem(item)
             ? `<button class="btn btn-secondary icon-delete-btn" title="Удалить" aria-label="Удалить" data-delete-template-id="${item.id}" data-delete-template-name="${escapeHtml(item.name)}">🗑</button>`
             : ""}
@@ -2012,6 +2120,7 @@ async function loadInstitutions() {
   const data = await api.listInstitutions();
   state.institutions = data.institutions || [];
   renderInstitutions();
+  renderAdminDirectories();
   logRuntime("list institutions", data);
 }
 
@@ -2046,6 +2155,7 @@ async function loadTemplates() {
   const data = await api.listTemplates();
   state.templates = data.templates || [];
   renderTemplates();
+  renderAdminDirectories();
   renderVariableToolbar(els.templateVariableToolbar, els.templateBody);
   logRuntime("list templates", data);
 }
@@ -2494,6 +2604,8 @@ function bindEvents() {
           await loadTemplates();
         }
         if (btn.dataset.screen === "admin") {
+          await loadInstitutions();
+          await loadTemplates();
           await loadAdminUsers();
           scrollMainContentToTop();
         }
