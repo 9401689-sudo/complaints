@@ -6,6 +6,7 @@ import { AuthUser } from '../auth/auth.service';
 import {
   CaseFileRecord,
   SyncedCaseFile,
+  UploadIncomingFilesBody,
   UploadResultFilesBody,
   UpdateCaseFilesBody,
   UpdateCaseFilesItem,
@@ -13,6 +14,10 @@ import {
 } from './files.types';
 
 export class FilesService {
+  private sanitizeIncomingFileName(fileName: string): string {
+    return fileName.trim().replace(/[\\/:*?"<>|]+/g, '_');
+  }
+
   async getCaseFiles(caseId: string): Promise<CaseFileRecord[]> {
     const result = await postgres.query<CaseFileRecord>(
       `
@@ -500,6 +505,48 @@ export class FilesService {
     });
 
     return this.syncResultFiles(caseId, authUser);
+  }
+
+  async uploadIncomingFiles(
+    caseId: string,
+    body: UploadIncomingFilesBody,
+    authUser?: AuthUser | null
+  ) {
+    const caseRow = await casesService.getCaseById(caseId, authUser);
+
+    if (!caseRow) {
+      throw new Error('case not found');
+    }
+
+    if (!body?.files || !Array.isArray(body.files) || body.files.length === 0) {
+      throw new Error('files array is required');
+    }
+
+    for (const file of body.files) {
+      if (!file?.fileName?.trim()) {
+        throw new Error('fileName is required');
+      }
+
+      if (!file?.contentBase64) {
+        throw new Error('contentBase64 is required');
+      }
+    }
+
+    for (const file of body.files) {
+      const safeFileName = this.sanitizeIncomingFileName(file.fileName);
+      const filePath = `${caseRow.nextcloud_incoming_folder.replace(/\/+$/, '')}/${safeFileName}`;
+      const buffer = Buffer.from(file.contentBase64, 'base64');
+      await nextcloudClient.uploadBinaryFile(filePath, buffer, file.mimeType ?? 'application/octet-stream');
+    }
+
+    await casesService.logCaseAction(caseId, 'incoming.files.uploaded', {
+      files: body.files.map((file) => ({
+        fileName: file.fileName,
+        mimeType: file.mimeType ?? null
+      }))
+    });
+
+    return this.syncCaseFiles(caseId, authUser);
   }
 }
 

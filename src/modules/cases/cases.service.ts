@@ -136,7 +136,6 @@ export class CasesService {
   async createCase(body?: { parentCaseId?: string | null }, authUser?: AuthUser | null): Promise<CreateCaseResponse> {
     const caseNumber = await this.generateCaseNumber();
     const folders = await nextcloudClient.createCaseFolders(caseNumber);
-    const adoptedFiles = await nextcloudClient.moveRootFilesToIncoming(folders.incoming);
     const parentCaseId = body?.parentCaseId?.trim() || null;
 
     if (parentCaseId) {
@@ -215,11 +214,7 @@ export class CasesService {
       nextcloudCaseFolder: caseRow.nextcloud_case_folder,
       nextcloudIncomingFolder: caseRow.nextcloud_incoming_folder,
       nextcloudArtifactsFolder: caseRow.nextcloud_artifacts_folder,
-      nextcloudResultFolder: caseRow.nextcloud_result_folder,
-      adoptedIncomingFiles: adoptedFiles.map((file) => ({
-        fileName: file.fileName,
-        filePath: file.filePath
-      }))
+      nextcloudResultFolder: caseRow.nextcloud_result_folder
     });
 
     return {

@@ -4,6 +4,7 @@ import { filesService } from './files.service';
 import { casesService } from '../cases/cases.service';
 import { fsmService } from '../fsm/fsm.service';
 import { UpdateCaseFilesBody } from './files.types';
+import { UploadIncomingFilesBody } from './files.types';
 import { UploadResultFilesBody } from './files.types';
 import { nextcloudClient } from '../nextcloud/nextcloud.client';
 
@@ -135,6 +136,41 @@ export async function registerFilesRoutes(app: FastifyInstance): Promise<void> {
               : message.startsWith('Nextcloud PUT failed')
                 ? 502
                 : 500;
+
+        return reply.code(statusCode).send({
+          ok: false,
+          error: message
+        });
+      }
+    }
+  );
+
+  app.post<{ Params: { id: string }; Body: UploadIncomingFilesBody }>(
+    `${env.API_BASE_PATH}/cases/:id/files/upload`,
+    async (request, reply) => {
+      try {
+        const result = await filesService.uploadIncomingFiles(request.params.id, request.body, request.authUser);
+
+        return reply.send({
+          ok: true,
+          case: result.case,
+          files: result.files,
+          fsm: result.fsm
+        });
+      } catch (error) {
+        request.log.error(error);
+
+        const message = error instanceof Error ? error.message : 'internal error';
+        const statusCode =
+          message === 'case not found'
+            ? 404
+            : message.includes('required')
+              ? 400
+              : message.startsWith('invalid fsm state')
+                ? 409
+                : message.startsWith('Nextcloud PUT failed')
+                  ? 502
+                  : 500;
 
         return reply.code(statusCode).send({
           ok: false,

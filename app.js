@@ -31,6 +31,12 @@ const state = {
   institutionsUserFilterText: "",
   templatesUserFilter: "",
   templatesUserFilterText: "",
+  adminPrivateInstitutionsUserFilter: "",
+  adminPrivateInstitutionsUserFilterText: "",
+  adminPrivateTemplatesUserFilter: "",
+  adminPrivateTemplatesUserFilterText: "",
+  institutionsSearch: "",
+  templatesSearch: "",
   variables: {},
   submitData: null,
   resultFiles: [],
@@ -96,9 +102,9 @@ const CASE_STATUS_CLASSES = {
 };
 
 const ROLE_LABELS = {
-  user: "Пользователь",
-  admin_view: "Админ просмотр",
-  admin_full: "Админ полный"
+  user: "пользователь",
+  admin_view: "только просмотр",
+  admin_full: "полный доступ"
 };
 
 const els = {
@@ -122,7 +128,7 @@ const els = {
   guestInfoPanel: document.getElementById("guestInfoPanel"),
   dashboardCasesZone: document.getElementById("dashboardCasesZone"),
   dashboardTitle: document.getElementById("dashboardTitle"),
-  dashboardSubtitle: document.getElementById("dashboardSubtitle"),
+  btnCreateCase: document.getElementById("btnCreateCase"),
   btnAboutScreen: document.querySelector('.nav-btn[data-screen="dashboard"]'),
   btnAdminScreen: document.getElementById("btnAdminScreen"),
   topbarGuest: document.getElementById("topbarGuest"),
@@ -133,8 +139,12 @@ const els = {
   adminUsersPanel: document.getElementById("adminUsersPanel"),
   adminPrivateInstitutionsList: document.getElementById("adminPrivateInstitutionsList"),
   adminPrivateInstitutionsPanel: document.getElementById("adminPrivateInstitutionsPanel"),
+  adminPrivateInstitutionUserFilter: document.getElementById("adminPrivateInstitutionUserFilter"),
+  adminPrivateInstitutionUserFilterList: document.getElementById("adminPrivateInstitutionUserFilterList"),
   adminPrivateTemplatesList: document.getElementById("adminPrivateTemplatesList"),
   adminPrivateTemplatesPanel: document.getElementById("adminPrivateTemplatesPanel"),
+  adminPrivateTemplateUserFilter: document.getElementById("adminPrivateTemplateUserFilter"),
+  adminPrivateTemplateUserFilterList: document.getElementById("adminPrivateTemplateUserFilterList"),
   adminDeletedPanel: document.getElementById("adminDeletedPanel"),
   adminDeletedCasesList: document.getElementById("adminDeletedCasesList"),
   adminDeletedInstitutionsList: document.getElementById("adminDeletedInstitutionsList"),
@@ -151,7 +161,6 @@ const els = {
   mainContent: document.querySelector(".main-content"),
   btnBrandHome: document.getElementById("btnBrandHome"),
 
-  btnCreateCase: document.getElementById("btnCreateCase"),
   createCaseProgress: document.getElementById("createCaseProgress"),
   createCaseProgressLabel: document.getElementById("createCaseProgressLabel"),
   casesList: document.getElementById("casesList"),
@@ -174,6 +183,7 @@ const els = {
   institutionUserFilter: document.getElementById("institutionUserFilter"),
   institutionUserFilterField: document.getElementById("institutionUserFilterField"),
   institutionUserFilterList: document.getElementById("institutionUserFilterList"),
+  institutionsSearchInput: document.getElementById("institutionsSearchInput"),
   institutionSubmitUrl: document.getElementById("institutionSubmitUrl"),
   institutionMaxAttachments: document.getElementById("institutionMaxAttachments"),
   institutionMaxTextLength: document.getElementById("institutionMaxTextLength"),
@@ -189,6 +199,7 @@ const els = {
   templateUserFilter: document.getElementById("templateUserFilter"),
   templateUserFilterField: document.getElementById("templateUserFilterField"),
   templateUserFilterList: document.getElementById("templateUserFilterList"),
+  templatesSearchInput: document.getElementById("templatesSearchInput"),
   templateBody: document.getElementById("templateBody"),
   templateVariablesSchema: document.getElementById("templateVariablesSchema"),
   templateDefaultValues: document.getElementById("templateDefaultValues"),
@@ -198,6 +209,9 @@ const els = {
   workspaceSubtitle: document.getElementById("workspaceSubtitle"),
 
   workspaceFilesList: document.getElementById("workspaceFilesList"),
+  workspaceDropzone: document.getElementById("workspaceDropzone"),
+  btnPickWorkspaceFiles: document.getElementById("btnPickWorkspaceFiles"),
+  workspaceFilesInput: document.getElementById("workspaceFilesInput"),
   filesSyncProgress: document.getElementById("filesSyncProgress"),
   filesSyncProgressLabel: document.getElementById("filesSyncProgressLabel"),
   btnSaveFilesSelection: document.getElementById("btnSaveFilesSelection"),
@@ -561,6 +575,12 @@ function resetDirectoryFilters() {
   state.institutionsUserFilterText = "";
   state.templatesUserFilter = "";
   state.templatesUserFilterText = "";
+  state.adminPrivateInstitutionsUserFilter = "";
+  state.adminPrivateInstitutionsUserFilterText = "";
+  state.adminPrivateTemplatesUserFilter = "";
+  state.adminPrivateTemplatesUserFilterText = "";
+  state.institutionsSearch = "";
+  state.templatesSearch = "";
 }
 
 function isAuthenticated() {
@@ -600,6 +620,7 @@ function applyReadonlyUiState() {
   els.btnCreateLinkedCase?.classList.toggle("hidden", readOnly);
   els.btnSaveCaseMeta?.classList.toggle("hidden", readOnly);
   els.btnSaveFilesSelection?.classList.toggle("hidden", readOnly);
+  els.btnPickWorkspaceFiles?.classList.toggle("hidden", readOnly);
   els.btnSaveVariables?.classList.toggle("hidden", readOnly);
   els.btnSaveText?.classList.toggle("hidden", readOnly);
   els.btnRebuildSubmitPackage?.classList.toggle("hidden", readOnly);
@@ -625,6 +646,9 @@ function applyReadonlyUiState() {
   if (els.caseTextEditor) {
     els.caseTextEditor.readOnly = readOnly;
   }
+  if (els.workspaceDropzone) {
+    els.workspaceDropzone.classList.toggle("hidden", readOnly);
+  }
   els.variablesForm?.querySelectorAll("input, select, textarea, button").forEach((node) => {
     node.disabled = readOnly;
   });
@@ -633,6 +657,7 @@ function applyReadonlyUiState() {
 function renderAuthState() {
   const user = state.authUser;
   const hasUser = Boolean(user);
+  const isAdmin = isAdminRole(user?.role);
 
   els.topbarUser?.classList.toggle("hidden", !hasUser);
   els.topbarGuest?.classList.toggle("hidden", hasUser);
@@ -643,20 +668,16 @@ function renderAuthState() {
   if (els.dashboardTitle) {
     els.dashboardTitle.textContent = hasUser ? "Обращения" : "О сервисе";
   }
-  if (els.dashboardSubtitle) {
-    els.dashboardSubtitle.textContent = hasUser
-      ? "Создание, список и открытие обращения"
-      : "Описание возможностей и режимов работы";
-  }
   els.guestInfoPanel?.classList.toggle("hidden", hasUser);
   els.dashboardCasesZone?.classList.toggle("hidden", !hasUser);
-  els.btnAdminScreen?.classList.toggle("hidden", !isAdminRole(user?.role));
+  els.btnAdminScreen?.classList.toggle("hidden", !isAdmin);
 
   if (els.topbarUserName) {
     els.topbarUserName.textContent = user?.nickname || "";
   }
   if (els.topbarUserRole) {
-    els.topbarUserRole.textContent = roleLabel(user?.role);
+    els.topbarUserRole.textContent = isAdmin ? roleLabel(user?.role) : "";
+    els.topbarUserRole.classList.toggle("hidden", !isAdmin);
   }
 
   syncDirectoryVisibilityControls();
@@ -716,9 +737,13 @@ function renderAdminDirectories() {
     return;
   }
 
+  const privateInstitutionFilter = state.adminPrivateInstitutionsUserFilter;
+  const privateTemplateFilter = state.adminPrivateTemplatesUserFilter;
+
   if (els.adminPrivateInstitutionsList) {
     const items = state.institutions
       .filter((item) => item.visibility === "private")
+      .filter((item) => !privateInstitutionFilter || item.owner_user_id === privateInstitutionFilter)
       .sort((a, b) => `${a.owner_nickname || ""} ${a.name || ""}`.localeCompare(`${b.owner_nickname || ""} ${b.name || ""}`, "ru"));
 
     els.adminPrivateInstitutionsList.innerHTML = items.length
@@ -743,6 +768,7 @@ function renderAdminDirectories() {
   if (els.adminPrivateTemplatesList) {
     const items = state.templates
       .filter((item) => item.visibility === "private")
+      .filter((item) => !privateTemplateFilter || item.owner_user_id === privateTemplateFilter)
       .sort((a, b) => `${a.owner_nickname || ""} ${a.name || ""}`.localeCompare(`${b.owner_nickname || ""} ${b.name || ""}`, "ru"));
 
     els.adminPrivateTemplatesList.innerHTML = items.length
@@ -1017,6 +1043,21 @@ function renderDirectoryUserFilters() {
   if (els.casesUserFilterList) {
     els.casesUserFilterList.innerHTML = options;
   }
+
+  if (els.adminPrivateInstitutionUserFilter) {
+    els.adminPrivateInstitutionUserFilter.value =
+      state.adminPrivateInstitutionsUserFilterText || getAdminUserFilterInputValue(state.adminPrivateInstitutionsUserFilter);
+  }
+  if (els.adminPrivateInstitutionUserFilterList) {
+    els.adminPrivateInstitutionUserFilterList.innerHTML = options;
+  }
+  if (els.adminPrivateTemplateUserFilter) {
+    els.adminPrivateTemplateUserFilter.value =
+      state.adminPrivateTemplatesUserFilterText || getAdminUserFilterInputValue(state.adminPrivateTemplatesUserFilter);
+  }
+  if (els.adminPrivateTemplateUserFilterList) {
+    els.adminPrivateTemplateUserFilterList.innerHTML = options;
+  }
 }
 
 async function applyAuthorizedAppState() {
@@ -1245,6 +1286,14 @@ async function deleteUserFromAdmin(userId, nickname) {
     state.templatesUserFilter = "";
     state.templatesUserFilterText = "";
   }
+  if (state.adminPrivateInstitutionsUserFilter === userId) {
+    state.adminPrivateInstitutionsUserFilter = "";
+    state.adminPrivateInstitutionsUserFilterText = "";
+  }
+  if (state.adminPrivateTemplatesUserFilter === userId) {
+    state.adminPrivateTemplatesUserFilter = "";
+    state.adminPrivateTemplatesUserFilterText = "";
+  }
   renderAdminUsers();
   renderDirectoryUserFilters();
   await loadInstitutions();
@@ -1413,19 +1462,21 @@ function renderContextNav() {
     }));
     items = scopeItems.concat(scopeItems.length ? [{ action: "__divider__", label: "", active: false }] : []).concat(categoryItems);
   } else if (state.currentScreen === "admin") {
-    title = "Админка";
+    title = "Панель администратора";
     items = [
       { action: "admin-section:users", label: "Пользователи", active: state.adminSection === "users" },
       { action: "admin-section:private_institutions", label: "Личные организации", active: state.adminSection === "private_institutions" },
       { action: "admin-section:private_templates", label: "Личные шаблоны", active: state.adminSection === "private_templates" },
       { action: "admin-section:deleted", label: "Просмотр помеченных", active: state.adminSection === "deleted" },
       { action: "admin-action:purge-deleted", label: "Удаление помеченных", active: false },
-      { action: "admin-section:backups", label: "Бэкапы", active: state.adminSection === "backups" }
+      { action: "admin-section:backups", label: "Резервные копии", active: state.adminSection === "backups" }
     ];
   } else {
     if (isAuthenticated()) {
       title = "Обращения";
-      items = [];
+      items = [
+        { action: "dashboard:create-case", label: "Создать обращение", active: false }
+      ];
     } else {
       title = "О сервисе";
       items = [];
@@ -1500,7 +1551,6 @@ function resetInstitutionForm() {
   if (els.institutionSubmitUrl) els.institutionSubmitUrl.disabled = false;
   if (els.institutionMaxAttachments) els.institutionMaxAttachments.disabled = false;
   if (els.institutionMaxTextLength) els.institutionMaxTextLength.disabled = false;
-  if (els.institutionAcceptedFormats) els.institutionAcceptedFormats.disabled = false;
   if (els.btnCreateInstitution) els.btnCreateInstitution.classList.remove("hidden");
   els.institutionName.value = "";
   els.institutionCategory.value = "authority";
@@ -1508,7 +1558,6 @@ function resetInstitutionForm() {
   els.institutionSubmitUrl.value = "";
   els.institutionMaxAttachments.value = "5";
   els.institutionMaxTextLength.value = "4000";
-  els.institutionAcceptedFormats.value = "image/jpeg,image/png";
   els.btnCreateInstitution.textContent = "Сохранить организацию";
   syncDirectoryVisibilityControls();
 }
@@ -1535,7 +1584,6 @@ function openInstitutionEdit(item) {
   if (els.institutionSubmitUrl) els.institutionSubmitUrl.disabled = !canEdit;
   if (els.institutionMaxAttachments) els.institutionMaxAttachments.disabled = !canEdit;
   if (els.institutionMaxTextLength) els.institutionMaxTextLength.disabled = !canEdit;
-  if (els.institutionAcceptedFormats) els.institutionAcceptedFormats.disabled = !canEdit;
   if (els.btnCreateInstitution) {
     els.btnCreateInstitution.classList.toggle("hidden", !canEdit);
   }
@@ -1545,9 +1593,6 @@ function openInstitutionEdit(item) {
   els.institutionSubmitUrl.value = item.submit_url || "";
   els.institutionMaxAttachments.value = String(item.max_attachments ?? 5);
   els.institutionMaxTextLength.value = String(item.max_text_length ?? 4000);
-  els.institutionAcceptedFormats.value = Array.isArray(item.accepted_formats)
-    ? item.accepted_formats.join(",")
-    : "image/jpeg,image/png";
   els.btnCreateInstitution.textContent = canEdit ? "Сохранить изменения" : "Сохранить организацию";
   syncDirectoryVisibilityControls();
   els.institutionFormPanel.classList.remove("hidden");
@@ -1888,6 +1933,7 @@ function renderCases() {
 function renderInstitutions() {
   const canUseFavorites = isAuthenticated() && !isAdminRole(state.authUser?.role);
   const showOwner = isAdminRole(state.authUser?.role);
+  const search = String(state.institutionsSearch || "").trim().toLowerCase();
   const filteredInstitutions = state.institutions.filter((item) => {
     if (showOwner) {
       if (state.institutionsScopeFilter === "owned") {
@@ -1902,9 +1948,16 @@ function renderInstitutions() {
       return false;
     }
     if (!state.institutionsCategoryFilter) {
-      return true;
+      if (!search) return true;
+      const haystack = `${item.name || ""} ${item.submit_url || ""} ${item.owner_nickname || ""}`.toLowerCase();
+      return haystack.includes(search);
     }
-    return (item.category || "authority") === state.institutionsCategoryFilter;
+    if ((item.category || "authority") !== state.institutionsCategoryFilter) {
+      return false;
+    }
+    if (!search) return true;
+    const haystack = `${item.name || ""} ${item.submit_url || ""} ${item.owner_nickname || ""}`.toLowerCase();
+    return haystack.includes(search);
   });
 
   if (!filteredInstitutions.length) {
@@ -1954,6 +2007,9 @@ function renderInstitutions() {
   });
 
   renderDirectoryUserFilters();
+  if (els.institutionsSearchInput) {
+    els.institutionsSearchInput.value = state.institutionsSearch || "";
+  }
   fillInstitutionSelects();
   renderCaseFilters();
 }
@@ -1961,6 +2017,7 @@ function renderInstitutions() {
 function renderTemplates() {
   const canUseFavorites = isAuthenticated() && !isAdminRole(state.authUser?.role);
   const showOwner = isAdminRole(state.authUser?.role);
+  const search = String(state.templatesSearch || "").trim().toLowerCase();
   const filteredTemplates = state.templates.filter((item) => {
     if (showOwner) {
       if (state.templatesScopeFilter === "owned") {
@@ -1975,9 +2032,16 @@ function renderTemplates() {
       return false;
     }
     if (!state.templatesCategoryFilter) {
-      return true;
+      if (!search) return true;
+      const haystack = `${item.name || ""} ${item.body_template || ""} ${item.owner_nickname || ""}`.toLowerCase();
+      return haystack.includes(search);
     }
-    return (item.category || "authority") === state.templatesCategoryFilter;
+    if ((item.category || "authority") !== state.templatesCategoryFilter) {
+      return false;
+    }
+    if (!search) return true;
+    const haystack = `${item.name || ""} ${item.body_template || ""} ${item.owner_nickname || ""}`.toLowerCase();
+    return haystack.includes(search);
   });
 
   if (!filteredTemplates.length) {
@@ -2027,6 +2091,9 @@ function renderTemplates() {
   });
 
   renderDirectoryUserFilters();
+  if (els.templatesSearchInput) {
+    els.templatesSearchInput.value = state.templatesSearch || "";
+  }
   fillTemplateSelect();
 }
 
@@ -2589,7 +2656,7 @@ async function refreshCurrentCaseData() {
 async function createCase() {
   if (!requireAuthAction()) return;
   return withButtonLoading(els.btnCreateCase, "Создание...", async () => {
-    setCreateCaseProgress(true, "Создаём обращение и переносим файлы...");
+    setCreateCaseProgress(true, "Создаём обращение...");
     try {
       const data = await api.createCase();
       logRuntime("create case", data);
@@ -2636,7 +2703,7 @@ async function createInstitution() {
       submitUrl: els.institutionSubmitUrl.value.trim(),
       maxAttachments: Number(els.institutionMaxAttachments.value || 5),
       maxTextLength: Number(els.institutionMaxTextLength.value || 4000),
-      acceptedFormats: els.institutionAcceptedFormats.value.split(",").map((x) => x.trim()).filter(Boolean),
+      acceptedFormats: ["image/jpeg", "image/png"],
     };
 
     let data;
@@ -2779,6 +2846,21 @@ async function saveFiles() {
     renderWorkspaceFiles();
     logRuntime("save files", data);
   });
+}
+
+async function uploadWorkspaceFiles() {
+  if (!requireAuthAction()) return;
+  if (!state.currentCaseId || !els.workspaceFilesInput?.files?.length) return;
+
+  const files = [...els.workspaceFilesInput.files];
+  const data = await api.uploadIncomingFiles(state.currentCaseId, files);
+  state.currentCase = { case: data.case, fsm: data.fsm };
+  state.currentCaseFiles = data.files || [];
+  state.submitData = null;
+  renderWorkspaceSummary();
+  renderWorkspaceFiles();
+  logRuntime("upload incoming files", data);
+  els.workspaceFilesInput.value = "";
 }
 
 async function loadVariables() {
@@ -3205,6 +3287,10 @@ function bindEvents() {
       await handle(() => openWorkspaceTabByName(action.slice(4)));
       return;
     }
+    if (action === "dashboard:create-case") {
+      await handle(createCase);
+      return;
+    }
 
       if (action.startsWith("institutions-category:")) {
         state.institutionsCategoryFilter = action.slice("institutions-category:".length);
@@ -3327,12 +3413,34 @@ function bindEvents() {
     state.institutionsUserFilter = user?.id || "";
     renderInstitutions();
   });
+  els.institutionsSearchInput?.addEventListener("input", (event) => {
+    state.institutionsSearch = event.target.value || "";
+    renderInstitutions();
+  });
   els.templateUserFilter?.addEventListener("input", (event) => {
     const value = event.target.value || "";
     state.templatesUserFilterText = value;
     const user = getAdminUserByFilterValue(value);
     state.templatesUserFilter = user?.id || "";
     renderTemplates();
+  });
+  els.templatesSearchInput?.addEventListener("input", (event) => {
+    state.templatesSearch = event.target.value || "";
+    renderTemplates();
+  });
+  els.adminPrivateInstitutionUserFilter?.addEventListener("input", (event) => {
+    const value = event.target.value || "";
+    state.adminPrivateInstitutionsUserFilterText = value;
+    const user = getAdminUserByFilterValue(value);
+    state.adminPrivateInstitutionsUserFilter = user?.id || "";
+    renderAdminDirectories();
+  });
+  els.adminPrivateTemplateUserFilter?.addEventListener("input", (event) => {
+    const value = event.target.value || "";
+    state.adminPrivateTemplatesUserFilterText = value;
+    const user = getAdminUserByFilterValue(value);
+    state.adminPrivateTemplatesUserFilter = user?.id || "";
+    renderAdminDirectories();
   });
   els.btnResetCaseFilters?.addEventListener("click", () => {
     state.casesSearch = "";
@@ -3393,6 +3501,45 @@ function bindEvents() {
     scrollMainContentToTop();
   });
   els.btnSaveFilesSelection?.addEventListener("click", () => handle(saveFiles));
+  els.btnPickWorkspaceFiles?.addEventListener("click", () => {
+    if (!requireAuthAction()) return;
+    els.workspaceFilesInput?.click();
+  });
+  els.workspaceFilesInput?.addEventListener("change", () => handle(uploadWorkspaceFiles));
+  els.workspaceDropzone?.addEventListener("click", () => {
+    if (!requireAuthAction()) return;
+    els.workspaceFilesInput?.click();
+  });
+  els.workspaceDropzone?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    if (!requireAuthAction()) return;
+    els.workspaceFilesInput?.click();
+  });
+  ["dragenter", "dragover"].forEach((eventName) => {
+    els.workspaceDropzone?.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      els.workspaceDropzone?.classList.add("drag-over");
+    });
+  });
+  ["dragleave", "dragend"].forEach((eventName) => {
+    els.workspaceDropzone?.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      els.workspaceDropzone?.classList.remove("drag-over");
+    });
+  });
+  els.workspaceDropzone?.addEventListener("drop", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    els.workspaceDropzone?.classList.remove("drag-over");
+    if (!requireAuthAction()) return;
+    const files = event.dataTransfer?.files;
+    if (!files?.length || !els.workspaceFilesInput) return;
+    els.workspaceFilesInput.files = files;
+    handle(uploadWorkspaceFiles);
+  });
   els.btnSaveVariables?.addEventListener("click", () => handle(saveVariables));
   els.btnSaveText?.addEventListener("click", () => handle(saveText));
   els.btnDownloadSubmitText?.addEventListener("click", downloadSubmitText);

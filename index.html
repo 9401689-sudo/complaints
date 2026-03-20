@@ -25,7 +25,7 @@
           <span id="topbarUserName">Пользователь</span>
           <span id="topbarUserRole">user</span>
         </div>
-        <button class="btn btn-secondary hidden" id="btnAdminScreen" data-screen="admin" type="button">Админка</button>
+        <button class="btn btn-secondary hidden" id="btnAdminScreen" data-screen="admin" type="button">Панель администратора</button>
         <button class="btn btn-secondary" id="btnLogout" type="button">Выйти</button>
       </div>
       <div class="topbar-guest" id="topbarGuest">
@@ -42,19 +42,10 @@
 
       <main class="main-content">
         <section class="screen" data-screen-panel="dashboard">
-         <div class="page-header">
-            <div>
-              <h2 id="dashboardTitle">О сервисе</h2>
-              <p id="dashboardSubtitle">Описание возможностей и режимов работы</p>
-            </div>
-         <div class="actions">
-  <button class="btn btn-primary" id="btnCreateCase">Создать обращение</button>
-</div>
+         <div class="page-header compact-page-header">
+            <h2 id="dashboardTitle">О сервисе</h2>
           </div>
           <div class="panel guest-info-panel" id="guestInfoPanel">
-            <div class="panel-header">
-              <h3>Для ознакомления</h3>
-            </div>
             <p class="guest-info-text">
               В гостевом режиме можно просматривать общие организации и шаблоны.
               Создание, редактирование, удаление и работа с обращениями доступны только после входа.
@@ -87,7 +78,7 @@
         <datalist id="casesUserFilterList"></datalist>
       </div>
       <div class="field filter-actions">
-        <label>&nbsp;</label>
+        <label class="visually-hidden">Сбросить фильтры</label>
         <button class="btn btn-secondary" id="btnResetCaseFilters" type="button">Сбросить фильтры</button>
       </div>
   </div>
@@ -102,15 +93,6 @@
         </section>
 
         <section class="screen hidden" data-screen-panel="institutions">
-          <div class="page-header">
-            <div>
-              <h2>Организации</h2>
-              <p>Справочник учреждений для подачи жалоб</p>
-            </div>
-            <div class="actions">
-              <button class="btn btn-primary" id="btnToggleInstitutionForm">Новая организация</button>
-            </div>
-          </div>
           <div class="panel hidden" id="institutionFormPanel">
             <div class="panel-header">
               <h3>Создать организацию</h3>
@@ -147,10 +129,6 @@
                 <label for="institutionMaxTextLength">Макс. длина текста</label>
                 <input id="institutionMaxTextLength" type="number" value="4000" />
               </div>
-              <div class="field full">
-                <label for="institutionAcceptedFormats">Форматы через запятую</label>
-                <input id="institutionAcceptedFormats" value="image/jpeg,image/png" />
-              </div>
             </div>
 
            <div class="actions top-space">
@@ -163,11 +141,16 @@
             <div class="panel-header">
               <h3>Список организаций</h3>
               <div class="actions">
+                <div class="field inline-field">
+                  <label for="institutionsSearchInput">Поиск</label>
+                  <input id="institutionsSearchInput" placeholder="Название, описание..." />
+                </div>
                 <div class="field inline-field hidden" id="institutionUserFilterField">
                   <label for="institutionUserFilter">Пользователь</label>
                   <input id="institutionUserFilter" list="institutionUserFilterList" placeholder="Все пользователи" />
                   <datalist id="institutionUserFilterList"></datalist>
                 </div>
+                <button class="btn btn-primary" id="btnToggleInstitutionForm">Новая организация</button>
               </div>
             </div>
             <div id="institutionsList" class="table-like"></div>
@@ -175,16 +158,6 @@
         </section>
 
         <section class="screen hidden" data-screen-panel="templates">
-          <div class="page-header">
-            <div>
-              <h2>Шаблоны</h2>
-              <p>Шаблоны генерации текста жалобы</p>
-            </div>
-            <div class="actions">
-              <button class="btn btn-primary" id="btnToggleTemplateForm">Новый шаблон</button>
-            </div>
-          </div>
-
           <div class="panel hidden" id="templateFormPanel">
             <div class="panel-header">
               <h3>Создать шаблон</h3>
@@ -229,11 +202,16 @@
             <div class="panel-header">
               <h3>Список шаблонов</h3>
               <div class="actions">
+                <div class="field inline-field">
+                  <label for="templatesSearchInput">Поиск</label>
+                  <input id="templatesSearchInput" placeholder="Название, описание..." />
+                </div>
                 <div class="field inline-field hidden" id="templateUserFilterField">
                   <label for="templateUserFilter">Пользователь</label>
                   <input id="templateUserFilter" list="templateUserFilterList" placeholder="Все пользователи" />
                   <datalist id="templateUserFilterList"></datalist>
                 </div>
+                <button class="btn btn-primary" id="btnToggleTemplateForm">Новый шаблон</button>
               </div>
             </div>
             <div id="templatesList" class="table-like"></div>
@@ -241,12 +219,6 @@
         </section>
 
         <section class="screen hidden" data-screen-panel="admin">
-          <div class="page-header">
-            <div>
-              <h2>Админка</h2>
-              <p>Управление пользователями и ролями доступа</p>
-            </div>
-          </div>
           <div class="panel" id="adminUsersPanel">
             <div class="panel-header">
               <h3>Пользователи</h3>
@@ -256,12 +228,26 @@
           <div class="panel hidden" id="adminPrivateInstitutionsPanel">
             <div class="panel-header">
               <h3>Личные организации</h3>
+              <div class="actions">
+                <div class="field inline-field">
+                  <label for="adminPrivateInstitutionUserFilter">Пользователь</label>
+                  <input id="adminPrivateInstitutionUserFilter" list="adminPrivateInstitutionUserFilterList" placeholder="Все пользователи" />
+                  <datalist id="adminPrivateInstitutionUserFilterList"></datalist>
+                </div>
+              </div>
             </div>
             <div id="adminPrivateInstitutionsList" class="table-like"></div>
           </div>
           <div class="panel hidden" id="adminPrivateTemplatesPanel">
             <div class="panel-header">
               <h3>Личные шаблоны</h3>
+              <div class="actions">
+                <div class="field inline-field">
+                  <label for="adminPrivateTemplateUserFilter">Пользователь</label>
+                  <input id="adminPrivateTemplateUserFilter" list="adminPrivateTemplateUserFilterList" placeholder="Все пользователи" />
+                  <datalist id="adminPrivateTemplateUserFilterList"></datalist>
+                </div>
+              </div>
             </div>
             <div id="adminPrivateTemplatesList" class="table-like"></div>
           </div>
@@ -281,7 +267,7 @@
           </div>
           <div class="panel hidden" id="adminBackupsPanel">
             <div class="panel-header">
-              <h3>Бэкапы базы</h3>
+              <h3>Резервные копии</h3>
               <div class="actions">
                 <button class="btn btn-primary" id="btnCreateBackup" type="button">Сохранить БД</button>
               </div>
@@ -396,9 +382,14 @@
               <div class="panel-header">
                 <h3>Файлы</h3>
                 <div class="actions">
+                  <button class="btn btn-secondary" id="btnPickWorkspaceFiles" type="button">Загрузить файлы</button>
                   <button class="btn btn-primary" id="btnSaveFilesSelection">Сохранить выбор</button>
                 </div>
               </div>
+              <div id="workspaceDropzone" class="workspace-dropzone" tabindex="0" role="button" aria-label="Перетащите файлы сюда или нажмите для выбора">
+                Перетащите файлы сюда или нажмите для выбора
+              </div>
+              <input id="workspaceFilesInput" type="file" multiple class="hidden" />
               <div id="filesSyncProgress" class="progress-status hidden" aria-live="polite">
                 <div id="filesSyncProgressLabel" class="progress-status-label">Синхронизируем файлы...</div>
                 <div class="progress-status-track">
@@ -542,14 +533,11 @@
         <button class="image-modal-close" id="btnCloseAuthModal" type="button">×</button>
         <div class="auth-card-brand">
           <img src="./dialog.png" alt="Диалог граждан" class="auth-brand-logo" />
-          <h1>Вход в систему</h1>
-          <p>Вход и регистрация для работы с обращениями.</p>
         </div>
 
         <div id="authLoginPanel" class="auth-panel">
-          <h3>Войти</h3>
           <div class="field">
-            <label for="authLoginNickname">Никнейм</label>
+            <label for="authLoginNickname">Имя пользователя</label>
             <input id="authLoginNickname" autocomplete="username" />
           </div>
           <div class="field">
@@ -561,9 +549,8 @@
         </div>
 
         <div id="authRegisterPanel" class="auth-panel hidden">
-          <h3>Регистрация</h3>
           <div class="field">
-            <label for="authRegisterNickname">Никнейм</label>
+            <label for="authRegisterNickname">Имя пользователя</label>
             <input id="authRegisterNickname" autocomplete="username" />
           </div>
           <div class="field">

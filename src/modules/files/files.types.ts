@@ -48,3 +48,13 @@ export type UploadResultFileItem = {
 export type UploadResultFilesBody = {
   files: UploadResultFileItem[];
 };
+
+export type UploadIncomingFileItem = {
+  fileName: string;
+  mimeType?: string | null;
+  contentBase64: string;
+};
+
+export type UploadIncomingFilesBody = {
+  files: UploadIncomingFileItem[];
+};
