@@ -57,7 +57,6 @@ async function bootstrap(): Promise<void> {
       `${env.API_BASE_PATH}/auth/login`
     ]);
     const publicGetPrefixes = [
-      `${env.API_BASE_PATH}/cases`,
       `${env.API_BASE_PATH}/institutions`,
       `${env.API_BASE_PATH}/templates`
     ];

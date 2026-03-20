@@ -1224,6 +1224,17 @@ textarea {
   color: #5c6c82;
 }
 
+.guest-info-panel {
+  border-color: #8fb8e4;
+  background: linear-gradient(180deg, rgba(232, 241, 249, 0.94), rgba(223, 234, 244, 0.9));
+}
+
+.guest-info-text {
+  margin: 0;
+  color: #2e4660;
+  line-height: 1.45;
+}
+
 @media (max-width: 820px) {
   .auth-modal-content {
     padding: 14px;

@@ -16,7 +16,7 @@
         </button>
       </div>
       <nav class="topbar-nav">
-        <button class="nav-btn active" data-screen="dashboard" type="button">Обращения</button>
+        <button class="nav-btn active" data-screen="dashboard" type="button">О сервисе</button>
         <button class="nav-btn" data-screen="institutions" type="button">Организации</button>
         <button class="nav-btn" data-screen="templates" type="button">Шаблоны</button>
         <button class="nav-btn hidden" id="btnAdminScreen" data-screen="admin" type="button">Админка</button>
@@ -44,13 +44,23 @@
         <section class="screen" data-screen-panel="dashboard">
          <div class="page-header">
             <div>
-              <h2>Обращения</h2>
-              <p>Создание, список и открытие обращения</p>
+              <h2>О сервисе</h2>
+              <p>Описание возможностей и режимов работы</p>
             </div>
          <div class="actions">
   <button class="btn btn-primary" id="btnCreateCase">Создать обращение</button>
 </div>
           </div>
+          <div class="panel guest-info-panel" id="guestInfoPanel">
+            <div class="panel-header">
+              <h3>Для ознакомления</h3>
+            </div>
+            <p class="guest-info-text">
+              В гостевом режиме можно просматривать общие организации и шаблоны.
+              Создание, редактирование, удаление и работа с обращениями доступны только после входа.
+            </p>
+          </div>
+          <div id="dashboardCasesZone">
           <div id="createCaseProgress" class="progress-status hidden" aria-live="polite">
             <div id="createCaseProgressLabel" class="progress-status-label">Создаём обращение...</div>
             <div class="progress-status-track">
@@ -87,6 +97,7 @@
               <h3>Список обращений</h3>
             </div>
             <div id="casesList" class="table-like"></div>
+          </div>
           </div>
         </section>
 

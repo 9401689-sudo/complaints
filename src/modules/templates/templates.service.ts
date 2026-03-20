@@ -23,6 +23,35 @@ function normalizeVisibility(input?: string | null): 'public' | 'private' {
 
 export class TemplatesService {
   async listTemplates(authUser?: AuthUser | null): Promise<TemplateRecord[]> {
+    if (!authUser) {
+      const result = await postgres.query<TemplateRecord>(
+        `
+        select
+          t.id,
+          t.name,
+          t.category,
+          t.visibility,
+          t.owner_user_id,
+          u.nickname as owner_nickname,
+          t.institution_id,
+          t.body_template,
+          t.variables_schema,
+          t.default_values,
+          t.created_at,
+          t.updated_at,
+          false as can_edit,
+          false as is_favorite
+        from templates t
+        left join users u on u.id = t.owner_user_id
+        where t.deleted_at is null
+          and t.visibility = 'public'
+        order by t.created_at desc
+        `
+      );
+
+      return result.rows;
+    }
+
     if (authUser && !isAdminRole(authUser.role)) {
       const result = await postgres.query<TemplateRecord>(
         `
@@ -60,15 +89,13 @@ export class TemplatesService {
       return result.rows;
     }
 
-    const favoriteSelect = authUser?.id
-      ? `exists(
-          select 1
-          from template_favorites f
-          where f.user_id = $1
-            and f.template_id = t.id
-        )`
-      : 'false';
-    const canEditSelect = canManageDirectory(authUser?.role)
+    const favoriteSelect = `exists(
+        select 1
+        from template_favorites f
+        where f.user_id = $1
+          and f.template_id = t.id
+      )`;
+    const canEditSelect = canManageDirectory(authUser.role)
       ? 'true'
       : "(t.visibility = 'private' and t.owner_user_id = $1)";
     const result = await postgres.query<TemplateRecord>(
@@ -95,13 +122,44 @@ export class TemplatesService {
         case when t.visibility = 'public' then 0 else 1 end,
         t.created_at desc
       `,
-      authUser?.id ? [authUser.id] : []
+      [authUser.id]
     );
 
     return result.rows;
   }
 
   async getTemplateById(id: string, authUser?: AuthUser | null): Promise<TemplateRecord | null> {
+    if (!authUser) {
+      const result = await postgres.query<TemplateRecord>(
+        `
+        select
+          t.id,
+          t.name,
+          t.category,
+          t.visibility,
+          t.owner_user_id,
+          u.nickname as owner_nickname,
+          t.institution_id,
+          t.body_template,
+          t.variables_schema,
+          t.default_values,
+          t.created_at,
+          t.updated_at,
+          false as can_edit,
+          false as is_favorite
+        from templates t
+        left join users u on u.id = t.owner_user_id
+        where t.id = $1
+          and t.deleted_at is null
+          and t.visibility = 'public'
+        limit 1
+        `,
+        [id]
+      );
+
+      return result.rows[0] ?? null;
+    }
+
     if (authUser && !isAdminRole(authUser.role)) {
       const result = await postgres.query<TemplateRecord>(
         `
@@ -138,15 +196,13 @@ export class TemplatesService {
       return result.rows[0] ?? null;
     }
 
-    const favoriteSelect = authUser?.id
-      ? `exists(
-          select 1
-          from template_favorites f
-          where f.user_id = $2
-            and f.template_id = t.id
-        )`
-      : 'false';
-    const canEditSelect = canManageDirectory(authUser?.role)
+    const favoriteSelect = `exists(
+        select 1
+        from template_favorites f
+        where f.user_id = $2
+          and f.template_id = t.id
+      )`;
+    const canEditSelect = canManageDirectory(authUser.role)
       ? 'true'
       : "(t.visibility = 'private' and t.owner_user_id = $2)";
     const result = await postgres.query<TemplateRecord>(
@@ -172,7 +228,7 @@ export class TemplatesService {
         and t.deleted_at is null
       limit 1
       `,
-      authUser?.id ? [id, authUser.id] : [id]
+      [id, authUser.id]
     );
 
     return result.rows[0] ?? null;

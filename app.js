@@ -119,6 +119,8 @@ const els = {
   btnShowRegisterPanel: document.getElementById("btnShowRegisterPanel"),
   btnShowLoginPanel: document.getElementById("btnShowLoginPanel"),
   btnLogout: document.getElementById("btnLogout"),
+  guestInfoPanel: document.getElementById("guestInfoPanel"),
+  dashboardCasesZone: document.getElementById("dashboardCasesZone"),
   btnAdminScreen: document.getElementById("btnAdminScreen"),
   topbarGuest: document.getElementById("topbarGuest"),
   topbarUser: document.getElementById("topbarUser"),
@@ -624,6 +626,7 @@ function renderAuthState() {
 
   els.topbarUser?.classList.toggle("hidden", !hasUser);
   els.topbarGuest?.classList.toggle("hidden", hasUser);
+  els.dashboardCasesZone?.classList.toggle("hidden", !hasUser);
   els.btnAdminScreen?.classList.toggle("hidden", !isAdminRole(user?.role));
 
   if (els.topbarUserName) {
@@ -1005,7 +1008,7 @@ async function restoreAuthSession() {
     els.templateFormPanel?.classList.add("hidden");
     await loadInstitutions();
     await loadTemplates();
-    await loadCases();
+    state.cases = [];
     setScreen("dashboard");
     setWorkspaceTab(null);
     scrollMainContentToTop();
@@ -1027,7 +1030,7 @@ async function restoreAuthSession() {
     els.templateFormPanel?.classList.add("hidden");
     await loadInstitutions();
     await loadTemplates();
-    await loadCases();
+    state.cases = [];
     setScreen("dashboard");
     setWorkspaceTab(null);
     scrollMainContentToTop();
@@ -1081,7 +1084,7 @@ async function logoutUser() {
   closeAuthModal();
   await loadInstitutions();
   await loadTemplates();
-  await loadCases();
+  state.cases = [];
   setScreen("dashboard");
   setWorkspaceTab(null);
   scrollMainContentToTop();
@@ -2297,6 +2300,7 @@ function sanitizeFilename(value, fallback = "download.bin") {
 }
 
 async function persistSubmitMetaIfNeeded() {
+  if (!isAuthenticated()) return;
   if (!state.currentCaseId) return;
 
   const caseData = state.currentCase?.case || {};
@@ -2326,6 +2330,7 @@ async function persistSubmitMetaIfNeeded() {
 }
 
 async function persistResultCommentIfNeeded() {
+  if (!isAuthenticated()) return;
   if (!state.currentCaseId || !els.resultComment) return;
 
   const caseData = state.currentCase?.case || {};
@@ -2737,6 +2742,7 @@ async function buildPackageOnly() {
 }
 
 async function openSubmitTab() {
+  if (!requireAuthAction()) return;
   if (!state.currentCaseId) return;
 
   setWorkspaceTab("submit");
@@ -2774,6 +2780,7 @@ async function rebuildSubmitPackage() {
 }
 
 async function prepareSubmit(options = {}) {
+  if (!requireAuthAction()) return;
   if (!state.currentCaseId) return;
   const skipProgress = Boolean(options.skipProgress);
 
@@ -2937,7 +2944,9 @@ function bindEvents() {
       }
       setScreen(btn.dataset.screen);
         if (btn.dataset.screen === "dashboard") {
-          await loadCases();
+          if (isAuthenticated()) {
+            await loadCases();
+          }
           scrollMainContentToTop();
         }
         if (btn.dataset.screen === "institutions") {
@@ -2992,7 +3001,9 @@ function bindEvents() {
       await handle(persistResultCommentIfNeeded);
     }
     setScreen("dashboard");
-    await handle(loadCases);
+    if (isAuthenticated()) {
+      await handle(loadCases);
+    }
     scrollMainContentToTop();
   });
 
@@ -3187,7 +3198,9 @@ function bindEvents() {
       await handle(persistResultCommentIfNeeded);
     }
     setScreen("dashboard");
-    await handle(loadCases);
+    if (isAuthenticated()) {
+      await handle(loadCases);
+    }
     scrollMainContentToTop();
   });
   els.btnSaveFilesSelection?.addEventListener("click", () => handle(saveFiles));
@@ -3259,6 +3272,13 @@ async function handle(fn) {
   try {
     await fn();
   } catch (error) {
+    const message = String(error?.message || "");
+    if (error?.status === 401 || message.toLowerCase().includes("unauthorized")) {
+      if (!isAuthenticated()) {
+        openAuthModal("login");
+      }
+      return;
+    }
     logRuntime("error", error?.payload || error?.message || String(error));
     alert(error?.message || "Unknown error");
   }

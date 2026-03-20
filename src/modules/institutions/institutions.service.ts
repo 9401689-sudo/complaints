@@ -23,6 +23,34 @@ function normalizeVisibility(input?: string | null): 'public' | 'private' {
 
 export class InstitutionsService {
   async listInstitutions(authUser?: AuthUser | null): Promise<InstitutionRecord[]> {
+    if (!authUser) {
+      const result = await postgres.query<InstitutionRecord>(
+        `
+        select
+          i.id,
+          i.name,
+          i.category,
+          i.visibility,
+          i.owner_user_id,
+          u.nickname as owner_nickname,
+          i.submit_url,
+          i.max_attachments,
+          i.max_text_length,
+          i.accepted_formats,
+          i.created_at,
+          false as can_edit,
+          false as is_favorite
+        from institutions i
+        left join users u on u.id = i.owner_user_id
+        where i.deleted_at is null
+          and i.visibility = 'public'
+        order by i.created_at desc
+        `
+      );
+
+      return result.rows;
+    }
+
     if (authUser && !isAdminRole(authUser.role)) {
       const result = await postgres.query<InstitutionRecord>(
         `
@@ -59,15 +87,13 @@ export class InstitutionsService {
       return result.rows;
     }
 
-    const favoriteSelect = authUser?.id
-      ? `exists(
-          select 1
-          from institution_favorites f
-          where f.user_id = $1
-            and f.institution_id = i.id
-        )`
-      : 'false';
-    const canEditSelect = canManageDirectory(authUser?.role)
+    const favoriteSelect = `exists(
+        select 1
+        from institution_favorites f
+        where f.user_id = $1
+          and f.institution_id = i.id
+      )`;
+    const canEditSelect = canManageDirectory(authUser.role)
       ? 'true'
       : "(i.visibility = 'private' and i.owner_user_id = $1)";
     const result = await postgres.query<InstitutionRecord>(
@@ -93,13 +119,43 @@ export class InstitutionsService {
         case when i.visibility = 'public' then 0 else 1 end,
         i.created_at desc
       `,
-      authUser?.id ? [authUser.id] : []
+      [authUser.id]
     );
 
     return result.rows;
   }
 
   async getInstitutionById(id: string, authUser?: AuthUser | null): Promise<InstitutionRecord | null> {
+    if (!authUser) {
+      const result = await postgres.query<InstitutionRecord>(
+        `
+        select
+          i.id,
+          i.name,
+          i.category,
+          i.visibility,
+          i.owner_user_id,
+          u.nickname as owner_nickname,
+          i.submit_url,
+          i.max_attachments,
+          i.max_text_length,
+          i.accepted_formats,
+          i.created_at,
+          false as can_edit,
+          false as is_favorite
+        from institutions i
+        left join users u on u.id = i.owner_user_id
+        where i.id = $1
+          and i.deleted_at is null
+          and i.visibility = 'public'
+        limit 1
+        `,
+        [id]
+      );
+
+      return result.rows[0] ?? null;
+    }
+
     if (authUser && !isAdminRole(authUser.role)) {
       const result = await postgres.query<InstitutionRecord>(
         `
@@ -135,15 +191,13 @@ export class InstitutionsService {
       return result.rows[0] ?? null;
     }
 
-    const favoriteSelect = authUser?.id
-      ? `exists(
-          select 1
-          from institution_favorites f
-          where f.user_id = $2
-            and f.institution_id = i.id
-        )`
-      : 'false';
-    const canEditSelect = canManageDirectory(authUser?.role)
+    const favoriteSelect = `exists(
+        select 1
+        from institution_favorites f
+        where f.user_id = $2
+          and f.institution_id = i.id
+      )`;
+    const canEditSelect = canManageDirectory(authUser.role)
       ? 'true'
       : "(i.visibility = 'private' and i.owner_user_id = $2)";
     const result = await postgres.query<InstitutionRecord>(
@@ -168,7 +222,7 @@ export class InstitutionsService {
         and i.deleted_at is null
       limit 1
       `,
-      authUser?.id ? [id, authUser.id] : [id]
+      [id, authUser.id]
     );
 
     return result.rows[0] ?? null;
