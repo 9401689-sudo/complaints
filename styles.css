@@ -355,6 +355,17 @@ body.is-mobile .pdf-modal-frame {
   margin-bottom: 6px;
 }
 
+.search-toolbar-header {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.search-toolbar-header .actions {
+  justify-content: flex-start;
+}
+
 .workspace-tabs.hidden {
   display: none;
 }

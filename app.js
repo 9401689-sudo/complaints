@@ -667,6 +667,7 @@ function renderAuthState() {
   }
   if (els.dashboardTitle) {
     els.dashboardTitle.textContent = hasUser ? "Обращения" : "О сервисе";
+    els.dashboardTitle.classList.toggle("hidden", hasUser);
   }
   els.guestInfoPanel?.classList.toggle("hidden", hasUser);
   els.dashboardCasesZone?.classList.toggle("hidden", !hasUser);
