@@ -2247,26 +2247,34 @@ async function withButtonLoading(button, loadingText, fn) {
 }
 
 function bindEvents() {
-  els.navButtons.forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      if (state.currentScreen === "case-workspace" && state.currentWorkspaceTab === "submit") {
-        await handle(persistSubmitMetaIfNeeded);
-      }
+    els.navButtons.forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (state.currentScreen === "case-workspace" && state.currentWorkspaceTab === "submit") {
+          await handle(persistSubmitMetaIfNeeded);
+        }
       if (state.currentScreen === "case-workspace" && state.currentWorkspaceTab === "result") {
         await handle(persistResultCommentIfNeeded);
       }
       setScreen(btn.dataset.screen);
-      if (btn.dataset.screen === "dashboard") {
-        await loadCases();
-        scrollMainContentToTop();
-      }
-      if (btn.dataset.screen === "institutions") await loadInstitutions();
-      if (btn.dataset.screen === "templates") await loadTemplates();
-      if (btn.dataset.screen === "admin") {
-        await loadAdminUsers();
-        scrollMainContentToTop();
-      }
-    });
+        if (btn.dataset.screen === "dashboard") {
+          await loadCases();
+          scrollMainContentToTop();
+        }
+        if (btn.dataset.screen === "institutions") {
+          resetInstitutionForm();
+          els.institutionFormPanel?.classList.add("hidden");
+          await loadInstitutions();
+        }
+        if (btn.dataset.screen === "templates") {
+          resetTemplateForm();
+          els.templateFormPanel?.classList.add("hidden");
+          await loadTemplates();
+        }
+        if (btn.dataset.screen === "admin") {
+          await loadAdminUsers();
+          scrollMainContentToTop();
+        }
+      });
   });
 
   els.btnLogin?.addEventListener("click", () => handle(loginUser));

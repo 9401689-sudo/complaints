@@ -137,17 +137,13 @@ export class InstitutionsService {
   async createInstitution(body: CreateInstitutionBody, authUser?: AuthUser | null): Promise<InstitutionRecord> {
     const name = body.name?.trim();
     const category = body.category?.trim() || 'authority';
-    const submitUrl = body.submitUrl?.trim();
+    const submitUrl = body.submitUrl?.trim() ?? '';
     const requestedVisibility = normalizeVisibility(body.visibility);
     const visibility = authUser && !canManageDirectory(authUser.role) ? 'private' : requestedVisibility;
     const ownerUserId = visibility === 'private' ? authUser?.id ?? null : authUser?.id ?? null;
 
     if (!name) {
       throw new Error('name is required');
-    }
-
-    if (!submitUrl) {
-      throw new Error('submitUrl is required');
     }
 
     if (!ALLOWED_CATEGORIES.has(category)) {
@@ -228,7 +224,7 @@ export class InstitutionsService {
     const name = body.name !== undefined ? body.name.trim() : existing.name;
     const category = body.category !== undefined ? body.category.trim() : existing.category;
     const submitUrl =
-      body.submitUrl !== undefined ? body.submitUrl.trim() : existing.submit_url;
+      body.submitUrl !== undefined ? body.submitUrl.trim() : (existing.submit_url || '');
     const maxAttachments =
       body.maxAttachments !== undefined ? body.maxAttachments : existing.max_attachments;
     const maxTextLength =
@@ -248,10 +244,6 @@ export class InstitutionsService {
 
     if (!name) {
       throw new Error('name is required');
-    }
-
-    if (!submitUrl) {
-      throw new Error('submitUrl is required');
     }
 
     if (!ALLOWED_CATEGORIES.has(category)) {

@@ -141,7 +141,7 @@ export class TemplatesService {
   async createTemplate(body: CreateTemplateBody, authUser?: AuthUser | null): Promise<TemplateRecord> {
     const name = body.name?.trim();
     const category = body.category?.trim() || 'authority';
-    const bodyTemplate = body.bodyTemplate?.trim();
+    const bodyTemplate = body.bodyTemplate?.trim() ?? '';
     const variablesSchema = body.variablesSchema ?? [];
     const defaultValues = body.defaultValues ?? {};
     const requestedVisibility = normalizeVisibility(body.visibility);
@@ -150,10 +150,6 @@ export class TemplatesService {
 
     if (!name) {
       throw new Error('name is required');
-    }
-
-    if (!bodyTemplate) {
-      throw new Error('bodyTemplate is required');
     }
 
     if (!ALLOWED_CATEGORIES.has(category)) {
@@ -231,7 +227,7 @@ export class TemplatesService {
     const name = body.name !== undefined ? body.name.trim() : existing.name;
     const category = body.category !== undefined ? body.category.trim() : existing.category;
     const bodyTemplate =
-      body.bodyTemplate !== undefined ? body.bodyTemplate.trim() : existing.body_template;
+      body.bodyTemplate !== undefined ? body.bodyTemplate.trim() : (existing.body_template || '');
     const variablesSchema =
       body.variablesSchema !== undefined ? body.variablesSchema : existing.variables_schema;
     const defaultValues =
@@ -249,10 +245,6 @@ export class TemplatesService {
 
     if (!name) {
       throw new Error('name is required');
-    }
-
-    if (!bodyTemplate) {
-      throw new Error('bodyTemplate is required');
     }
 
     if (!ALLOWED_CATEGORIES.has(category)) {
