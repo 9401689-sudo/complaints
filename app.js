@@ -1641,7 +1641,8 @@ function getPreviewUrl(caseId, fileId) {
   const path = window.location.pathname || '/';
   const [, prefix] = path.split('/');
   const appPrefix = prefix || 'complaints';
-  return `https://complaints-api.doorsvip.ru/${appPrefix}/api/cases/${caseId}/files/${fileId}/preview`;
+  const token = encodeURIComponent(api.getAuthToken() || "");
+  return `https://complaints-api.doorsvip.ru/${appPrefix}/api/cases/${caseId}/files/${fileId}/preview?token=${token}`;
 }
 
 function isImageMime(mimeType) {
@@ -2481,13 +2482,25 @@ function renderSubmit() {
   });
 }
 
-function setProgress(container, labelNode, visible, label) {
+function setProgress(container, labelNode, visible, label, percent = null) {
   if (!container || !labelNode) {
     return;
   }
 
   container.classList.toggle("hidden", !visible);
   labelNode.textContent = label;
+
+  const bar = container.querySelector(".progress-status-bar");
+  if (!bar) return;
+
+  if (visible && Number.isFinite(percent)) {
+    const safePercent = Math.max(0, Math.min(100, Number(percent)));
+    container.classList.add("determinate");
+    bar.style.width = `${safePercent}%`;
+  } else {
+    container.classList.remove("determinate");
+    bar.style.width = "";
+  }
 }
 
 function setSubmitProgress(visible, label = "Подготовка отправки...") {
@@ -2498,12 +2511,12 @@ function setCreateCaseProgress(visible, label = "Создаём обращени
   setProgress(els.createCaseProgress, els.createCaseProgressLabel, visible, label);
 }
 
-function setFilesSyncProgress(visible, label = "Синхронизируем файлы...") {
-  setProgress(els.filesSyncProgress, els.filesSyncProgressLabel, visible, label);
+function setFilesSyncProgress(visible, label = "Синхронизируем файлы...", percent = null) {
+  setProgress(els.filesSyncProgress, els.filesSyncProgressLabel, visible, label, percent);
 }
 
-function setResultUploadProgress(visible, label = "Загружаем файлы ответа...") {
-  setProgress(els.resultUploadProgress, els.resultUploadProgressLabel, visible, label);
+function setResultUploadProgress(visible, label = "Загружаем файлы ответа...", percent = null) {
+  setProgress(els.resultUploadProgress, els.resultUploadProgressLabel, visible, label, percent);
 }
 
 function renderResultFiles() {
@@ -2893,14 +2906,28 @@ async function uploadWorkspaceFiles() {
   if (!state.currentCaseId || !els.workspaceFilesInput?.files?.length) return;
 
   const files = [...els.workspaceFilesInput.files];
-  const data = await api.uploadIncomingFiles(state.currentCaseId, files);
-  state.currentCase = { case: data.case, fsm: data.fsm };
-  state.currentCaseFiles = data.files || [];
-  state.submitData = null;
-  renderWorkspaceSummary();
-  renderWorkspaceFiles();
-  logRuntime("upload incoming files", data);
-  els.workspaceFilesInput.value = "";
+  let lastData = null;
+  setFilesSyncProgress(true, `Загружено 0 из ${files.length}`, 0);
+  try {
+    for (let index = 0; index < files.length; index += 1) {
+      lastData = await api.uploadIncomingFile(state.currentCaseId, files[index]);
+      const done = index + 1;
+      const percent = Math.round((done / files.length) * 100);
+      setFilesSyncProgress(true, `Загружено ${done} из ${files.length}`, percent);
+    }
+
+    if (lastData) {
+      state.currentCase = { case: lastData.case, fsm: lastData.fsm };
+      state.currentCaseFiles = lastData.files || [];
+      state.submitData = null;
+      renderWorkspaceSummary();
+      renderWorkspaceFiles();
+      logRuntime("upload incoming files", lastData);
+    }
+  } finally {
+    els.workspaceFilesInput.value = "";
+    setFilesSyncProgress(false);
+  }
 }
 
 async function loadVariables() {
@@ -3011,10 +3038,16 @@ async function uploadResultFiles() {
   if (!state.currentCaseId || !els.resultFilesInput?.files?.length) return;
 
   const files = [...els.resultFilesInput.files];
-  setResultUploadProgress(true, "Загружаем файлы ответа...");
+  setResultUploadProgress(true, `Загружено 0 из ${files.length}`, 0);
   try {
-    const data = await api.uploadResultFiles(state.currentCaseId, files);
-    logRuntime("upload result files", data);
+    let lastData = null;
+    for (let index = 0; index < files.length; index += 1) {
+      lastData = await api.uploadResultFile(state.currentCaseId, files[index]);
+      const done = index + 1;
+      const percent = Math.round((done / files.length) * 100);
+      setResultUploadProgress(true, `Загружено ${done} из ${files.length}`, percent);
+    }
+    logRuntime("upload result files", lastData || { ok: true });
     els.resultFilesInput.value = "";
     await loadResultFiles();
     await reloadCurrentCase();

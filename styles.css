@@ -889,6 +889,12 @@ textarea {
   animation: submit-progress-slide 1.2s ease-in-out infinite;
 }
 
+.progress-status.determinate .progress-status-bar {
+  width: 0;
+  animation: none;
+  transition: width 0.2s ease;
+}
+
 @keyframes submit-progress-slide {
   0% {
     transform: translateX(-110%);

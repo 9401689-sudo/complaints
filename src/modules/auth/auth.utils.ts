@@ -4,11 +4,18 @@ import { AuthUser, UserRole } from './auth.service';
 export function extractBearerToken(request: FastifyRequest): string | null {
   const authorization = request.headers.authorization;
 
-  if (!authorization || !authorization.startsWith('Bearer ')) {
-    return null;
+  if (authorization && authorization.startsWith('Bearer ')) {
+    return authorization.slice('Bearer '.length).trim() || null;
   }
 
-  return authorization.slice('Bearer '.length).trim() || null;
+  try {
+    const rawUrl = request.raw.url || '';
+    const parsed = new URL(rawUrl, 'http://localhost');
+    const queryToken = parsed.searchParams.get('token');
+    return queryToken?.trim() || null;
+  } catch {
+    return null;
+  }
 }
 
 export function requireAuthUser(request: FastifyRequest): AuthUser {

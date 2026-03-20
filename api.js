@@ -214,57 +214,51 @@ export const api = {
     return request(`/cases/${caseId}/result-files`);
   },
 
+  async encodeFileToPayloadItem(file) {
+    const buffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+
+    for (let index = 0; index < bytes.length; index += 1) {
+      binary += String.fromCharCode(bytes[index]);
+    }
+
+    return {
+      fileName: file.name,
+      mimeType: file.type || "application/octet-stream",
+      contentBase64: btoa(binary)
+    };
+  },
+
+  async uploadResultFile(caseId, file) {
+    const prepared = await this.encodeFileToPayloadItem(file);
+    return request(`/cases/${caseId}/result-files/upload`, {
+      method: "POST",
+      body: JSON.stringify({ files: [prepared] })
+    });
+  },
+
   async uploadResultFiles(caseId, files) {
     let lastResponse = null;
     for (const file of files || []) {
-      const buffer = await file.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      let binary = "";
-
-      for (let index = 0; index < bytes.length; index += 1) {
-        binary += String.fromCharCode(bytes[index]);
-      }
-
-      lastResponse = await request(`/cases/${caseId}/result-files/upload`, {
-        method: "POST",
-        body: JSON.stringify({
-          files: [
-            {
-              fileName: file.name,
-              mimeType: file.type || "application/octet-stream",
-              contentBase64: btoa(binary)
-            }
-          ]
-        })
-      });
+      lastResponse = await this.uploadResultFile(caseId, file);
     }
 
     return lastResponse || { ok: true, files: [] };
   },
 
+  async uploadIncomingFile(caseId, file) {
+    const prepared = await this.encodeFileToPayloadItem(file);
+    return request(`/cases/${caseId}/files/upload`, {
+      method: "POST",
+      body: JSON.stringify({ files: [prepared] })
+    });
+  },
+
   async uploadIncomingFiles(caseId, files) {
     let lastResponse = null;
     for (const file of files || []) {
-      const buffer = await file.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      let binary = "";
-
-      for (let index = 0; index < bytes.length; index += 1) {
-        binary += String.fromCharCode(bytes[index]);
-      }
-
-      lastResponse = await request(`/cases/${caseId}/files/upload`, {
-        method: "POST",
-        body: JSON.stringify({
-          files: [
-            {
-              fileName: file.name,
-              mimeType: file.type || "application/octet-stream",
-              contentBase64: btoa(binary)
-            }
-          ]
-        })
-      });
+      lastResponse = await this.uploadIncomingFile(caseId, file);
     }
 
     return lastResponse || { ok: true, files: [] };
