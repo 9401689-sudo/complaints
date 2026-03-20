@@ -149,6 +149,45 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
+  app.post<{ Params: { id: string } }>(`${env.API_BASE_PATH}/admin/deleted/cases/:id/restore`, async (request, reply) => {
+    try {
+      const user = requireAuthUser(request);
+      ensureRole(user, ['admin_full']);
+      const restored = await casesService.restoreDeletedCase(request.params.id);
+      return reply.send({ ok: true, case: restored });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'internal error';
+      const statusCode = message === 'case not found' ? 404 : message === 'forbidden' ? 403 : 500;
+      return reply.code(statusCode).send({ ok: false, error: message });
+    }
+  });
+
+  app.post<{ Params: { id: string } }>(`${env.API_BASE_PATH}/admin/deleted/institutions/:id/restore`, async (request, reply) => {
+    try {
+      const user = requireAuthUser(request);
+      ensureRole(user, ['admin_full']);
+      const restored = await institutionsService.restoreDeletedInstitution(request.params.id);
+      return reply.send({ ok: true, institution: restored });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'internal error';
+      const statusCode = message === 'institution not found' ? 404 : message === 'forbidden' ? 403 : 500;
+      return reply.code(statusCode).send({ ok: false, error: message });
+    }
+  });
+
+  app.post<{ Params: { id: string } }>(`${env.API_BASE_PATH}/admin/deleted/templates/:id/restore`, async (request, reply) => {
+    try {
+      const user = requireAuthUser(request);
+      ensureRole(user, ['admin_full']);
+      const restored = await templatesService.restoreDeletedTemplate(request.params.id);
+      return reply.send({ ok: true, template: restored });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'internal error';
+      const statusCode = message === 'template not found' ? 404 : message === 'forbidden' ? 403 : 500;
+      return reply.code(statusCode).send({ ok: false, error: message });
+    }
+  });
+
   app.get(`${env.API_BASE_PATH}/admin/backups`, async (request, reply) => {
     try {
       const user = requireAuthUser(request);

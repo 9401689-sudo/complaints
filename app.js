@@ -819,7 +819,11 @@ function renderDeletedAdminItems() {
               <div class="row-meta">Удалено</div>
               <div>${escapeHtml(item.deleted_at ? new Date(item.deleted_at).toLocaleString("ru-RU") : "—")}</div>
             </div>
-            <div class="actions"></div>
+            <div class="actions">
+              ${state.authUser?.role === "admin_full"
+                ? `<button class="btn btn-secondary" type="button" data-restore-deleted-case-id="${item.id}">Восстановить</button>`
+                : ""}
+            </div>
           </div>
         `;
       }).join("")
@@ -827,7 +831,7 @@ function renderDeletedAdminItems() {
 
   els.adminDeletedInstitutionsList.innerHTML = deletedInstitutions.length
     ? deletedInstitutions.map((item) => `
-      <div class="table-row compact-3">
+      <div class="table-row compact-4">
         <div>
           <div class="row-title">${escapeHtml(item.name)}</div>
           <div class="row-meta">${escapeHtml(getCategoryLabel(item.category || "authority"))} · ${escapeHtml(getVisibilityLabel(item.visibility))}</div>
@@ -838,13 +842,18 @@ function renderDeletedAdminItems() {
           <div class="row-meta">Удалено</div>
           <div>${escapeHtml(item.deleted_at ? new Date(item.deleted_at).toLocaleString("ru-RU") : "—")}</div>
         </div>
+        <div class="actions">
+          ${state.authUser?.role === "admin_full"
+            ? `<button class="btn btn-secondary" type="button" data-restore-deleted-institution-id="${item.id}">Восстановить</button>`
+            : ""}
+        </div>
       </div>
     `).join("")
     : '<div class="table-empty">Помеченных организаций нет.</div>';
 
   els.adminDeletedTemplatesList.innerHTML = deletedTemplates.length
     ? deletedTemplates.map((item) => `
-      <div class="table-row compact-3">
+      <div class="table-row compact-4">
         <div>
           <div class="row-title">${escapeHtml(item.name)}</div>
           <div class="row-meta">${escapeHtml(getCategoryLabel(item.category || "authority"))} · ${escapeHtml(getVisibilityLabel(item.visibility))}</div>
@@ -855,9 +864,30 @@ function renderDeletedAdminItems() {
           <div class="row-meta">Удалено</div>
           <div>${escapeHtml(item.deleted_at ? new Date(item.deleted_at).toLocaleString("ru-RU") : "—")}</div>
         </div>
+        <div class="actions">
+          ${state.authUser?.role === "admin_full"
+            ? `<button class="btn btn-secondary" type="button" data-restore-deleted-template-id="${item.id}">Восстановить</button>`
+            : ""}
+        </div>
       </div>
     `).join("")
     : '<div class="table-empty">Помеченных шаблонов нет.</div>';
+
+  document.querySelectorAll("[data-restore-deleted-case-id]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      handle(() => restoreDeletedCaseFromAdmin(btn.dataset.restoreDeletedCaseId));
+    });
+  });
+  document.querySelectorAll("[data-restore-deleted-institution-id]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      handle(() => restoreDeletedInstitutionFromAdmin(btn.dataset.restoreDeletedInstitutionId));
+    });
+  });
+  document.querySelectorAll("[data-restore-deleted-template-id]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      handle(() => restoreDeletedTemplateFromAdmin(btn.dataset.restoreDeletedTemplateId));
+    });
+  });
 }
 
 function renderAdminBackups() {
@@ -1220,6 +1250,33 @@ async function deleteUserFromAdmin(userId, nickname) {
   await loadInstitutions();
   await loadTemplates();
   await loadCases();
+}
+
+async function restoreDeletedCaseFromAdmin(caseId) {
+  if (!canManageUsers()) return;
+  if (!caseId) return;
+  const result = await api.restoreDeletedCase(caseId);
+  logRuntime("restore deleted case", result);
+  await loadCases();
+  await loadDeletedAdminItems();
+}
+
+async function restoreDeletedInstitutionFromAdmin(institutionId) {
+  if (!canManageUsers()) return;
+  if (!institutionId) return;
+  const result = await api.restoreDeletedInstitution(institutionId);
+  logRuntime("restore deleted institution", result);
+  await loadInstitutions();
+  await loadDeletedAdminItems();
+}
+
+async function restoreDeletedTemplateFromAdmin(templateId) {
+  if (!canManageUsers()) return;
+  if (!templateId) return;
+  const result = await api.restoreDeletedTemplate(templateId);
+  logRuntime("restore deleted template", result);
+  await loadTemplates();
+  await loadDeletedAdminItems();
 }
 function openRuntimeLogModal() {
   els.runtimeLogModal.classList.remove("hidden");
@@ -3093,6 +3150,17 @@ function bindEvents() {
   els.btnShowLoginPanel?.addEventListener("click", () => setAuthModalMode("login"));
   els.btnCloseAuthModal?.addEventListener("click", closeAuthModal);
   els.authModalBackdrop?.addEventListener("click", closeAuthModal);
+  els.btnAdminScreen?.addEventListener("click", async () => {
+    if (!isAdminRole(state.authUser?.role)) return;
+    setScreen("admin");
+    state.adminSection = "users";
+    await loadInstitutions();
+    await loadTemplates();
+    await loadAdminUsers();
+    await loadAdminBackups();
+    renderAdminPanels();
+    scrollMainContentToTop();
+  });
   els.btnLogout?.addEventListener("click", () => handle(logoutUser));
   els.btnCreateBackup?.addEventListener("click", () => handle(createBackupFromAdmin));
   els.authLoginPassword?.addEventListener("keydown", (event) => {

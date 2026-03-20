@@ -429,6 +429,28 @@ export class InstitutionsService {
     };
   }
 
+  async restoreDeletedInstitution(id: string): Promise<{ id: string; name: string }> {
+    const result = await postgres.query<{ id: string; name: string }>(
+      `
+      update institutions
+      set
+        deleted_at = null,
+        deleted_by_user_id = null
+      where id = $1
+        and deleted_at is not null
+      returning id, name
+      `,
+      [id]
+    );
+
+    const restored = result.rows[0];
+    if (!restored) {
+      throw new Error('institution not found');
+    }
+
+    return restored;
+  }
+
   async purgeDeletedInstitutions(): Promise<{ count: number }> {
     const deletedResult = await postgres.query<{ id: string }>(
       `

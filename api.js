@@ -153,6 +153,24 @@ export const api = {
     return request("/admin/deleted");
   },
 
+  restoreDeletedCase(id) {
+    return request(`/admin/deleted/cases/${id}/restore`, {
+      method: "POST"
+    });
+  },
+
+  restoreDeletedInstitution(id) {
+    return request(`/admin/deleted/institutions/${id}/restore`, {
+      method: "POST"
+    });
+  },
+
+  restoreDeletedTemplate(id) {
+    return request(`/admin/deleted/templates/${id}/restore`, {
+      method: "POST"
+    });
+  },
+
   listBackups() {
     return request("/admin/backups");
   },

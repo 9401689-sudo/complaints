@@ -252,6 +252,29 @@ export class CasesService {
     };
   }
 
+  async restoreDeletedCase(caseId: string): Promise<{ id: string; case_number: string }> {
+    const result = await postgres.query<{ id: string; case_number: string }>(
+      `
+      update cases
+      set
+        deleted_at = null,
+        deleted_by_user_id = null,
+        updated_at = now()
+      where id = $1
+        and deleted_at is not null
+      returning id, case_number
+      `,
+      [caseId]
+    );
+
+    const restored = result.rows[0];
+    if (!restored) {
+      throw new Error('case not found');
+    }
+
+    return restored;
+  }
+
   async purgeDeletedCases(): Promise<{ count: number; ids: string[] }> {
     const result = await postgres.query<{ id: string; nextcloud_case_folder: string }>(
       `

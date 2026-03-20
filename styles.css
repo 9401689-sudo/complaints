@@ -153,6 +153,13 @@ pre {
   width: 100%;
 }
 
+.context-divider {
+  height: 1px;
+  background: var(--line);
+  opacity: 0.75;
+  margin: 14px 0;
+}
+
 .main-content {
   min-height: 0;
   overflow-y: auto;
@@ -416,6 +423,13 @@ body.is-mobile .pdf-modal-frame {
 .row-meta {
   color: var(--muted);
   font-size: 13px;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .form-grid {
@@ -1216,6 +1230,10 @@ textarea {
 
 .admin-user-row select {
   min-width: 190px;
+}
+
+.admin-user-row {
+  grid-template-columns: 1fr auto;
 }
 
 .table-empty {

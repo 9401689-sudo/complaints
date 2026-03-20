@@ -19,13 +19,13 @@
         <button class="nav-btn active" data-screen="dashboard" type="button">О сервисе</button>
         <button class="nav-btn" data-screen="institutions" type="button">Организации</button>
         <button class="nav-btn" data-screen="templates" type="button">Шаблоны</button>
-        <button class="nav-btn hidden" id="btnAdminScreen" data-screen="admin" type="button">Админка</button>
       </nav>
       <div class="topbar-user hidden" id="topbarUser">
         <div class="user-badge">
           <span id="topbarUserName">Пользователь</span>
           <span id="topbarUserRole">user</span>
         </div>
+        <button class="btn btn-secondary hidden" id="btnAdminScreen" data-screen="admin" type="button">Админка</button>
         <button class="btn btn-secondary" id="btnLogout" type="button">Выйти</button>
       </div>
       <div class="topbar-guest" id="topbarGuest">
@@ -44,8 +44,8 @@
         <section class="screen" data-screen-panel="dashboard">
          <div class="page-header">
             <div>
-              <h2>О сервисе</h2>
-              <p>Описание возможностей и режимов работы</p>
+              <h2 id="dashboardTitle">О сервисе</h2>
+              <p id="dashboardSubtitle">Описание возможностей и режимов работы</p>
             </div>
          <div class="actions">
   <button class="btn btn-primary" id="btnCreateCase">Создать обращение</button>
