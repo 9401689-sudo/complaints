@@ -58,6 +58,17 @@ export class InstitutionsService {
       return result.rows;
     }
 
+    const favoriteSelect = authUser?.id
+      ? `exists(
+          select 1
+          from institution_favorites f
+          where f.user_id = $1
+            and f.institution_id = i.id
+        )`
+      : 'false';
+    const canEditSelect = canManageDirectory(authUser?.role)
+      ? 'true'
+      : "(i.visibility = 'private' and i.owner_user_id = $1)";
     const result = await postgres.query<InstitutionRecord>(
       `
       select
@@ -72,20 +83,15 @@ export class InstitutionsService {
         i.max_text_length,
         i.accepted_formats,
         i.created_at,
-        ${canManageDirectory(authUser?.role) ? 'true' : "(i.visibility = 'private' and i.owner_user_id = $1)"} as can_edit,
-        ${authUser?.id ? `exists(
-          select 1
-          from institution_favorites f
-          where f.user_id = $1
-            and f.institution_id = i.id
-        )` : 'false'} as is_favorite
+        ${canEditSelect} as can_edit,
+        ${favoriteSelect} as is_favorite
       from institutions i
       left join users u on u.id = i.owner_user_id
       order by
         case when i.visibility = 'public' then 0 else 1 end,
         i.created_at desc
       `,
-      canManageDirectory(authUser?.role) ? [] : [authUser?.id ?? null]
+      authUser?.id ? [authUser.id] : []
     );
 
     return result.rows;
@@ -126,6 +132,17 @@ export class InstitutionsService {
       return result.rows[0] ?? null;
     }
 
+    const favoriteSelect = authUser?.id
+      ? `exists(
+          select 1
+          from institution_favorites f
+          where f.user_id = $2
+            and f.institution_id = i.id
+        )`
+      : 'false';
+    const canEditSelect = canManageDirectory(authUser?.role)
+      ? 'true'
+      : "(i.visibility = 'private' and i.owner_user_id = $2)";
     const result = await postgres.query<InstitutionRecord>(
       `
       select
@@ -140,19 +157,14 @@ export class InstitutionsService {
         i.max_text_length,
         i.accepted_formats,
         i.created_at,
-        ${canManageDirectory(authUser?.role) ? 'true' : "(i.visibility = 'private' and i.owner_user_id = $2)"} as can_edit,
-        ${authUser?.id ? `exists(
-          select 1
-          from institution_favorites f
-          where f.user_id = $2
-            and f.institution_id = i.id
-        )` : 'false'} as is_favorite
+        ${canEditSelect} as can_edit,
+        ${favoriteSelect} as is_favorite
       from institutions i
       left join users u on u.id = i.owner_user_id
       where i.id = $1
       limit 1
       `,
-      canManageDirectory(authUser?.role) ? [id] : [id, authUser?.id ?? null]
+      authUser?.id ? [id, authUser.id] : [id]
     );
 
     return result.rows[0] ?? null;

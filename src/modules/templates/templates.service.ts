@@ -59,6 +59,17 @@ export class TemplatesService {
       return result.rows;
     }
 
+    const favoriteSelect = authUser?.id
+      ? `exists(
+          select 1
+          from template_favorites f
+          where f.user_id = $1
+            and f.template_id = t.id
+        )`
+      : 'false';
+    const canEditSelect = canManageDirectory(authUser?.role)
+      ? 'true'
+      : "(t.visibility = 'private' and t.owner_user_id = $1)";
     const result = await postgres.query<TemplateRecord>(
       `
       select
@@ -74,20 +85,15 @@ export class TemplatesService {
         t.default_values,
         t.created_at,
         t.updated_at,
-        ${canManageDirectory(authUser?.role) ? 'true' : "(t.visibility = 'private' and t.owner_user_id = $1)"} as can_edit,
-        ${authUser?.id ? `exists(
-          select 1
-          from template_favorites f
-          where f.user_id = $1
-            and f.template_id = t.id
-        )` : 'false'} as is_favorite
+        ${canEditSelect} as can_edit,
+        ${favoriteSelect} as is_favorite
       from templates t
       left join users u on u.id = t.owner_user_id
       order by
         case when t.visibility = 'public' then 0 else 1 end,
         t.created_at desc
       `,
-      canManageDirectory(authUser?.role) ? [] : [authUser?.id ?? null]
+      authUser?.id ? [authUser.id] : []
     );
 
     return result.rows;
@@ -129,6 +135,17 @@ export class TemplatesService {
       return result.rows[0] ?? null;
     }
 
+    const favoriteSelect = authUser?.id
+      ? `exists(
+          select 1
+          from template_favorites f
+          where f.user_id = $2
+            and f.template_id = t.id
+        )`
+      : 'false';
+    const canEditSelect = canManageDirectory(authUser?.role)
+      ? 'true'
+      : "(t.visibility = 'private' and t.owner_user_id = $2)";
     const result = await postgres.query<TemplateRecord>(
       `
       select
@@ -144,19 +161,14 @@ export class TemplatesService {
         t.default_values,
         t.created_at,
         t.updated_at,
-        ${canManageDirectory(authUser?.role) ? 'true' : "(t.visibility = 'private' and t.owner_user_id = $2)"} as can_edit,
-        ${authUser?.id ? `exists(
-          select 1
-          from template_favorites f
-          where f.user_id = $2
-            and f.template_id = t.id
-        )` : 'false'} as is_favorite
+        ${canEditSelect} as can_edit,
+        ${favoriteSelect} as is_favorite
       from templates t
       left join users u on u.id = t.owner_user_id
       where t.id = $1
       limit 1
       `,
-      canManageDirectory(authUser?.role) ? [id] : [id, authUser?.id ?? null]
+      authUser?.id ? [id, authUser.id] : [id]
     );
 
     return result.rows[0] ?? null;
