@@ -64,11 +64,19 @@ async function bootstrap(): Promise<void> {
       isGetRequest &&
       publicGetPrefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 
+    const token = extractBearerToken(request);
+
     if (request.method === 'OPTIONS' || publicPaths.has(path) || isPublicGetRoute) {
+      if (!token) {
+        return;
+      }
+
+      const user = await authService.getUserByToken(token);
+      if (user) {
+        request.authUser = user;
+      }
       return;
     }
-
-    const token = extractBearerToken(request);
 
     if (!token) {
       return reply.code(401).send({ ok: false, error: 'unauthorized' });
