@@ -45,8 +45,6 @@ export async function registerTemplatesRoutes(app: FastifyInstance): Promise<voi
             ? 404
             : message === 'template access denied'
               ? 403
-            : message === 'template is used in cases'
-              ? 409
               : 500;
 
         return reply.code(statusCode).send({

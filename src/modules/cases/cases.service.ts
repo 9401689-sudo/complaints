@@ -234,19 +234,54 @@ export class CasesService {
       throw new Error('case not found');
     }
 
-    await nextcloudClient.deletePath(existing.nextcloud_case_folder);
-
     await postgres.query(
       `
-      delete from cases
+      update cases
+      set
+        deleted_at = now(),
+        deleted_by_user_id = $2,
+        updated_at = now()
       where id = $1
       `,
-      [caseId]
+      [caseId, authUser?.id ?? null]
     );
 
     return {
       id: existing.id,
       case_number: existing.case_number
+    };
+  }
+
+  async purgeDeletedCases(): Promise<{ count: number; ids: string[] }> {
+    const result = await postgres.query<{ id: string; nextcloud_case_folder: string }>(
+      `
+      select id, nextcloud_case_folder
+      from cases
+      where deleted_at is not null
+      `
+    );
+
+    for (const row of result.rows) {
+      await nextcloudClient.deletePath(row.nextcloud_case_folder);
+    }
+
+    if (!result.rows.length) {
+      return { count: 0, ids: [] };
+    }
+
+    const ids = result.rows.map((row) => row.id);
+
+    await postgres.query(
+      `
+      delete from cases
+      where id = any($1::uuid[])
+      `,
+      [ids]
+    );
+
+    return {
+      count: ids.length,
+      ids
     };
   }
 
@@ -600,6 +635,7 @@ export class CasesService {
             from cases child
             where child.parent_case_id = c.id
               and child.owner_user_id = $2
+              and child.deleted_at is null
           ) as linked_cases_count,
           exists(
             select 1
@@ -613,6 +649,7 @@ export class CasesService {
         left join users u on u.id = c.owner_user_id
         where c.id = $1
           and c.owner_user_id = $2
+          and c.deleted_at is null
         limit 1
         `,
         [caseId, authUser.id]
@@ -632,6 +669,7 @@ export class CasesService {
           select count(*)::int
           from cases child
           where child.parent_case_id = c.id
+            and child.deleted_at is null
         ) as linked_cases_count,
         exists(
           select 1
@@ -644,6 +682,7 @@ export class CasesService {
       left join templates t on t.id = c.template_id
       left join users u on u.id = c.owner_user_id
       where c.id = $1
+        and c.deleted_at is null
       limit 1
       `,
       [caseId]
@@ -685,6 +724,7 @@ export class CasesService {
             from cases child
             where child.parent_case_id = c.id
               and child.owner_user_id = $1
+              and child.deleted_at is null
           ) as linked_cases_count,
           exists(
             select 1
@@ -697,6 +737,7 @@ export class CasesService {
         left join templates t on t.id = c.template_id
         left join users u on u.id = c.owner_user_id
         where c.owner_user_id = $1
+          and c.deleted_at is null
         order by
           coalesce(to_date(nullif(c.case_date, ''), 'DD.MM.YYYY'), c.created_at::date) desc,
           c.created_at desc
@@ -737,6 +778,7 @@ export class CasesService {
           select count(*)::int
           from cases child
           where child.parent_case_id = c.id
+            and child.deleted_at is null
         ) as linked_cases_count,
         exists(
           select 1
@@ -748,6 +790,7 @@ export class CasesService {
       left join institutions i on i.id = c.institution_id
       left join templates t on t.id = c.template_id
       left join users u on u.id = c.owner_user_id
+      where c.deleted_at is null
       order by
         coalesce(to_date(nullif(c.case_date, ''), 'DD.MM.YYYY'), c.created_at::date) desc,
         c.created_at desc
@@ -798,6 +841,7 @@ export class CasesService {
         left join users u on u.id = c.owner_user_id
         where c.parent_case_id = $1
           and c.owner_user_id = $2
+          and c.deleted_at is null
         order by
           coalesce(to_date(nullif(c.case_date, ''), 'DD.MM.YYYY'), c.created_at::date) desc,
           c.created_at desc
@@ -846,6 +890,7 @@ export class CasesService {
       left join templates t on t.id = c.template_id
       left join users u on u.id = c.owner_user_id
       where c.parent_case_id = $1
+        and c.deleted_at is null
       order by
         coalesce(to_date(nullif(c.case_date, ''), 'DD.MM.YYYY'), c.created_at::date) desc,
         c.created_at desc
@@ -974,6 +1019,7 @@ export class CasesService {
       select *
       from templates
       where id = $1
+        and deleted_at is null
       limit 1
       `,
       [templateId]
@@ -988,6 +1034,7 @@ export class CasesService {
       select id, name, submit_url
       from institutions
       where id = $1
+        and deleted_at is null
       limit 1
       `,
       [institutionId]

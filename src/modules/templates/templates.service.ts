@@ -48,7 +48,8 @@ export class TemplatesService {
           ) as is_favorite
         from templates t
         left join users u on u.id = t.owner_user_id
-        where t.visibility = 'public' or t.owner_user_id = $1
+        where t.deleted_at is null
+          and (t.visibility = 'public' or t.owner_user_id = $1)
         order by
           case when t.visibility = 'public' then 0 else 1 end,
           t.created_at desc
@@ -89,6 +90,7 @@ export class TemplatesService {
         ${favoriteSelect} as is_favorite
       from templates t
       left join users u on u.id = t.owner_user_id
+      where t.deleted_at is null
       order by
         case when t.visibility = 'public' then 0 else 1 end,
         t.created_at desc
@@ -126,6 +128,7 @@ export class TemplatesService {
         from templates t
         left join users u on u.id = t.owner_user_id
         where t.id = $1
+          and t.deleted_at is null
           and (t.visibility = 'public' or t.owner_user_id = $2)
         limit 1
         `,
@@ -166,6 +169,7 @@ export class TemplatesService {
       from templates t
       left join users u on u.id = t.owner_user_id
       where t.id = $1
+        and t.deleted_at is null
       limit 1
       `,
       authUser?.id ? [id, authUser.id] : [id]
@@ -357,33 +361,67 @@ export class TemplatesService {
       throw new Error('template access denied');
     }
 
-    const inUseResult = await postgres.query<{ count: string }>(
-      `
-      select count(*)::text as count
-      from cases
-      where template_id = $1
-      `,
-      [id]
-    );
-
-    const inUseCount = Number(inUseResult.rows[0]?.count ?? '0');
-
-    if (inUseCount > 0) {
-      throw new Error('template is used in cases');
-    }
-
     await postgres.query(
       `
-      delete from templates
+      update templates
+      set
+        deleted_at = now(),
+        deleted_by_user_id = $2
       where id = $1
       `,
-      [id]
+      [id, authUser?.id ?? null]
     );
 
     return {
       id: existing.id,
       name: existing.name
     };
+  }
+
+  async purgeDeletedTemplates(): Promise<{ count: number }> {
+    const deletedResult = await postgres.query<{ id: string }>(
+      `
+      select id
+      from templates
+      where deleted_at is not null
+      `
+    );
+
+    if (!deletedResult.rows.length) {
+      return { count: 0 };
+    }
+
+    const ids = deletedResult.rows.map((row) => row.id);
+
+    await postgres.query('begin');
+
+    try {
+      await postgres.query(
+        `
+        update cases
+        set
+          template_id = null,
+          updated_at = now()
+        where template_id = any($1::uuid[])
+        `,
+        [ids]
+      );
+
+      await postgres.query(
+        `
+        delete from templates
+        where id = any($1::uuid[])
+        `,
+        [ids]
+      );
+
+      await postgres.query('commit');
+    } catch (error) {
+      await postgres.query('rollback');
+      throw error;
+    }
+
+    return { count: ids.length };
   }
 
   async addFavorite(id: string, authUser: AuthUser): Promise<TemplateRecord> {

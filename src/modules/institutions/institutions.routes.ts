@@ -132,8 +132,6 @@ export async function registerInstitutionsRoutes(app: FastifyInstance): Promise<
             ? 404
             : message === 'institution access denied'
               ? 403
-            : message === 'institution is used in cases or templates'
-              ? 409
               : 500;
 
         return reply.code(statusCode).send({

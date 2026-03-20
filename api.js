@@ -137,6 +137,12 @@ export const api = {
     });
   },
 
+  purgeDeleted() {
+    return request("/admin/purge-deleted", {
+      method: "POST"
+    });
+  },
+
   listCases() {
     return request("/cases");
   },

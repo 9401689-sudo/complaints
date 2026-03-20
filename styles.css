@@ -330,6 +330,15 @@ body.is-mobile .pdf-modal-frame {
   flex-wrap: wrap;
 }
 
+.inline-field {
+  min-width: 220px;
+  margin: 0;
+}
+
+.inline-field label {
+  margin-bottom: 6px;
+}
+
 .workspace-tabs.hidden {
   display: none;
 }

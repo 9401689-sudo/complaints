@@ -129,6 +129,8 @@ where coalesce(nullif(trim(case_date), ''), '') = '';
 alter table cases alter column case_date set not null;
 alter table cases add column if not exists registration_date text;
 alter table cases add column if not exists response_comment text;
+alter table cases add column if not exists deleted_at timestamptz;
+alter table cases add column if not exists deleted_by_user_id uuid references users(id) on delete set null;
 
 alter table institutions drop column if exists active;
 alter table templates drop column if exists active;
@@ -138,6 +140,10 @@ alter table institutions add column if not exists visibility text not null defau
 alter table templates add column if not exists visibility text not null default 'public';
 alter table institutions add column if not exists owner_user_id uuid references users(id) on delete set null;
 alter table templates add column if not exists owner_user_id uuid references users(id) on delete set null;
+alter table institutions add column if not exists deleted_at timestamptz;
+alter table institutions add column if not exists deleted_by_user_id uuid references users(id) on delete set null;
+alter table templates add column if not exists deleted_at timestamptz;
+alter table templates add column if not exists deleted_by_user_id uuid references users(id) on delete set null;
 
 create table if not exists case_variables (
   id uuid primary key default uuid_generate_v4(),

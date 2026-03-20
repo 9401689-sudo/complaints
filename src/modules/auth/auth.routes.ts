@@ -2,6 +2,10 @@ import { FastifyInstance } from 'fastify';
 import { authService } from './auth.service';
 import { env } from '../../config/env';
 import { extractBearerToken, requireAuthUser, ensureRole, sendAuthError } from './auth.utils';
+import { casesService } from '../cases/cases.service';
+import { institutionsService } from '../institutions/institutions.service';
+import { templatesService } from '../templates/templates.service';
+import { redis } from '../redis/redis';
 
 export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Body: { nickname?: string; password?: string } }>(`${env.API_BASE_PATH}/auth/register`, async (request, reply) => {
@@ -70,6 +74,35 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
         return reply.code(404).send({ ok: false, error: message });
       }
       return sendAuthError(reply, error);
+    }
+  });
+
+  app.post(`${env.API_BASE_PATH}/admin/purge-deleted`, async (request, reply) => {
+    try {
+      const user = requireAuthUser(request);
+      ensureRole(user, ['admin_full']);
+
+      const purgedCases = await casesService.purgeDeletedCases();
+      if (purgedCases.ids.length) {
+        await Promise.all(
+          purgedCases.ids.map((id) => redis.del(`complaints:case:${id}:fsm`))
+        );
+      }
+      const purgedInstitutions = await institutionsService.purgeDeletedInstitutions();
+      const purgedTemplates = await templatesService.purgeDeletedTemplates();
+
+      return reply.send({
+        ok: true,
+        result: {
+          cases: purgedCases.count,
+          institutions: purgedInstitutions.count,
+          templates: purgedTemplates.count
+        }
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'internal error';
+      const statusCode = message === 'forbidden' ? 403 : 500;
+      return reply.code(statusCode).send({ ok: false, error: message });
     }
   });
 }

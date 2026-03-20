@@ -104,6 +104,11 @@
         <label for="casesStatusFilter">Статус</label>
         <select id="casesStatusFilter"></select>
       </div>
+      <div class="field hidden" id="casesUserFilterField">
+        <label for="casesUserFilter">Пользователь</label>
+        <input id="casesUserFilter" list="casesUserFilterList" placeholder="Все пользователи" />
+        <datalist id="casesUserFilterList"></datalist>
+      </div>
       <div class="field filter-actions">
         <label>&nbsp;</label>
         <button class="btn btn-secondary" id="btnResetCaseFilters" type="button">Сбросить фильтры</button>
@@ -179,6 +184,13 @@
           <div class="panel">
             <div class="panel-header">
               <h3>Список организаций</h3>
+              <div class="actions">
+                <div class="field inline-field hidden" id="institutionUserFilterField">
+                  <label for="institutionUserFilter">Пользователь</label>
+                  <input id="institutionUserFilter" list="institutionUserFilterList" placeholder="Все пользователи" />
+                  <datalist id="institutionUserFilterList"></datalist>
+                </div>
+              </div>
             </div>
             <div id="institutionsList" class="table-like"></div>
           </div>
@@ -238,6 +250,13 @@
           <div class="panel">
             <div class="panel-header">
               <h3>Список шаблонов</h3>
+              <div class="actions">
+                <div class="field inline-field hidden" id="templateUserFilterField">
+                  <label for="templateUserFilter">Пользователь</label>
+                  <input id="templateUserFilter" list="templateUserFilterList" placeholder="Все пользователи" />
+                  <datalist id="templateUserFilterList"></datalist>
+                </div>
+              </div>
             </div>
             <div id="templatesList" class="table-like"></div>
           </div>
@@ -248,6 +267,9 @@
             <div>
               <h2>Админка</h2>
               <p>Управление пользователями и ролями доступа</p>
+            </div>
+            <div class="actions">
+              <button class="btn btn-secondary" id="btnPurgeDeleted" type="button">Удалить помеченные</button>
             </div>
           </div>
           <div class="panel">

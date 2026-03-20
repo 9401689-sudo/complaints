@@ -217,9 +217,7 @@ export async function registerCasesRoutes(app: FastifyInstance): Promise<void> {
       const statusCode =
         message === 'case not found'
           ? 404
-          : message.startsWith('Nextcloud DELETE failed')
-            ? 502
-            : 500;
+          : 500;
 
       return requestError(reply, error, statusCode);
     }

@@ -47,7 +47,8 @@ export class InstitutionsService {
           ) as is_favorite
         from institutions i
         left join users u on u.id = i.owner_user_id
-        where i.visibility = 'public' or i.owner_user_id = $1
+        where i.deleted_at is null
+          and (i.visibility = 'public' or i.owner_user_id = $1)
         order by
           case when i.visibility = 'public' then 0 else 1 end,
           i.created_at desc
@@ -87,6 +88,7 @@ export class InstitutionsService {
         ${favoriteSelect} as is_favorite
       from institutions i
       left join users u on u.id = i.owner_user_id
+      where i.deleted_at is null
       order by
         case when i.visibility = 'public' then 0 else 1 end,
         i.created_at desc
@@ -123,6 +125,7 @@ export class InstitutionsService {
         from institutions i
         left join users u on u.id = i.owner_user_id
         where i.id = $1
+          and i.deleted_at is null
           and (i.visibility = 'public' or i.owner_user_id = $2)
         limit 1
         `,
@@ -162,6 +165,7 @@ export class InstitutionsService {
       from institutions i
       left join users u on u.id = i.owner_user_id
       where i.id = $1
+        and i.deleted_at is null
       limit 1
       `,
       authUser?.id ? [id, authUser.id] : [id]
@@ -354,43 +358,78 @@ export class InstitutionsService {
       throw new Error('institution access denied');
     }
 
-    const casesResult = await postgres.query<{ count: string }>(
-      `
-      select count(*)::text as count
-      from cases
-      where institution_id = $1
-      `,
-      [id]
-    );
-
-    const templatesResult = await postgres.query<{ count: string }>(
-      `
-      select count(*)::text as count
-      from templates
-      where institution_id = $1
-      `,
-      [id]
-    );
-
-    const casesCount = Number(casesResult.rows[0]?.count ?? '0');
-    const templatesCount = Number(templatesResult.rows[0]?.count ?? '0');
-
-    if (casesCount > 0 || templatesCount > 0) {
-      throw new Error('institution is used in cases or templates');
-    }
-
     await postgres.query(
       `
-      delete from institutions
+      update institutions
+      set
+        deleted_at = now(),
+        deleted_by_user_id = $2
       where id = $1
       `,
-      [id]
+      [id, authUser?.id ?? null]
     );
 
     return {
       id: existing.id,
       name: existing.name,
     };
+  }
+
+  async purgeDeletedInstitutions(): Promise<{ count: number }> {
+    const deletedResult = await postgres.query<{ id: string }>(
+      `
+      select id
+      from institutions
+      where deleted_at is not null
+      `
+    );
+
+    if (!deletedResult.rows.length) {
+      return { count: 0 };
+    }
+
+    const ids = deletedResult.rows.map((row) => row.id);
+
+    await postgres.query('begin');
+
+    try {
+      await postgres.query(
+        `
+        update cases
+        set
+          institution_id = null,
+          updated_at = now()
+        where institution_id = any($1::uuid[])
+        `,
+        [ids]
+      );
+
+      await postgres.query(
+        `
+        update templates
+        set
+          institution_id = null,
+          updated_at = now()
+        where institution_id = any($1::uuid[])
+        `,
+        [ids]
+      );
+
+      await postgres.query(
+        `
+        delete from institutions
+        where id = any($1::uuid[])
+        `,
+        [ids]
+      );
+
+      await postgres.query('commit');
+    } catch (error) {
+      await postgres.query('rollback');
+      throw error;
+    }
+
+    return { count: ids.length };
   }
 
   async addFavorite(id: string, authUser: AuthUser): Promise<InstitutionRecord> {

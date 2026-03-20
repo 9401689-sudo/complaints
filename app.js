@@ -13,10 +13,16 @@ const state = {
   casesSearch: "",
   casesInstitutionFilter: "",
   casesStatusFilter: "",
+  casesUserFilter: "",
+  casesUserFilterText: "",
   institutionsCategoryFilter: "",
   templatesCategoryFilter: "",
   institutionsScopeFilter: "",
   templatesScopeFilter: "",
+  institutionsUserFilter: "",
+  institutionsUserFilterText: "",
+  templatesUserFilter: "",
+  templatesUserFilterText: "",
   variables: {},
   submitData: null,
   resultFiles: [],
@@ -56,17 +62,6 @@ const DIRECTORY_CATEGORIES = [
   { value: "authority", label: "Органы власти" },
   { value: "state_org", label: "Государственные организации" }
 ];
-
-const DIRECTORY_SCOPE_OPTIONS = {
-  institutions: [
-    { value: "", label: "Все организации" },
-    { value: "favorites", label: "Мои организации" }
-  ],
-  templates: [
-    { value: "", label: "Все шаблоны" },
-    { value: "favorites", label: "Мои шаблоны" }
-  ]
-};
 
 const DIRECTORY_CATEGORY_LABELS = {
   authority: "Органы власти",
@@ -110,6 +105,7 @@ const els = {
   btnRegister: document.getElementById("btnRegister"),
   btnLogout: document.getElementById("btnLogout"),
   btnAdminScreen: document.getElementById("btnAdminScreen"),
+  btnPurgeDeleted: document.getElementById("btnPurgeDeleted"),
   topbarUser: document.getElementById("topbarUser"),
   topbarUserName: document.getElementById("topbarUserName"),
   topbarUserRole: document.getElementById("topbarUserRole"),
@@ -129,6 +125,9 @@ const els = {
   casesList: document.getElementById("casesList"),
   casesInstitutionFilter: document.getElementById("casesInstitutionFilter"),
   casesStatusFilter: document.getElementById("casesStatusFilter"),
+  casesUserFilter: document.getElementById("casesUserFilter"),
+  casesUserFilterField: document.getElementById("casesUserFilterField"),
+  casesUserFilterList: document.getElementById("casesUserFilterList"),
   btnResetCaseFilters: document.getElementById("btnResetCaseFilters"),
 
   btnToggleInstitutionForm: document.getElementById("btnToggleInstitutionForm"),
@@ -140,6 +139,9 @@ const els = {
   institutionName: document.getElementById("institutionName"),
   institutionCategory: document.getElementById("institutionCategory"),
   institutionVisibility: document.getElementById("institutionVisibility"),
+  institutionUserFilter: document.getElementById("institutionUserFilter"),
+  institutionUserFilterField: document.getElementById("institutionUserFilterField"),
+  institutionUserFilterList: document.getElementById("institutionUserFilterList"),
   institutionSubmitUrl: document.getElementById("institutionSubmitUrl"),
   institutionMaxAttachments: document.getElementById("institutionMaxAttachments"),
   institutionMaxTextLength: document.getElementById("institutionMaxTextLength"),
@@ -152,6 +154,9 @@ const els = {
   templateName: document.getElementById("templateName"),
   templateCategory: document.getElementById("templateCategory"),
   templateVisibility: document.getElementById("templateVisibility"),
+  templateUserFilter: document.getElementById("templateUserFilter"),
+  templateUserFilterField: document.getElementById("templateUserFilterField"),
+  templateUserFilterList: document.getElementById("templateUserFilterList"),
   templateBody: document.getElementById("templateBody"),
   templateVariablesSchema: document.getElementById("templateVariablesSchema"),
   templateDefaultValues: document.getElementById("templateDefaultValues"),
@@ -420,6 +425,52 @@ function isAdminRole(role) {
   return role === "admin_view" || role === "admin_full";
 }
 
+function getDirectoryScopeOptions(kind) {
+  if (isAdminRole(state.authUser?.role)) {
+    return kind === "institutions"
+      ? [
+          { value: "", label: "Все организации" },
+          { value: "owned", label: "Организации пользователей" }
+        ]
+      : [
+          { value: "", label: "Все шаблоны" },
+          { value: "owned", label: "Шаблоны пользователей" }
+        ];
+  }
+
+  return kind === "institutions"
+    ? [
+        { value: "", label: "Все организации" },
+        { value: "favorites", label: "Мои организации" }
+      ]
+    : [
+        { value: "", label: "Все шаблоны" },
+        { value: "favorites", label: "Мои шаблоны" }
+      ];
+}
+
+function getAdminUserFilterValue(user) {
+  return `${user.nickname} [${roleLabel(user.role)}]`;
+}
+
+function getAdminUserByFilterValue(value) {
+  const normalized = String(value || "").trim();
+  if (!normalized) {
+    return null;
+  }
+
+  return state.adminUsers.find((user) => getAdminUserFilterValue(user) === normalized) || null;
+}
+
+function getAdminUserFilterInputValue(userId) {
+  if (!userId) {
+    return "";
+  }
+
+  const user = state.adminUsers.find((item) => item.id === userId);
+  return user ? getAdminUserFilterValue(user) : "";
+}
+
 function getVisibilityLabel(visibility) {
   return visibility === "private" ? "Личное" : "Общее";
 }
@@ -455,10 +506,16 @@ function syncDirectoryVisibilityControls() {
 }
 
 function resetDirectoryFilters() {
+  state.casesUserFilter = "";
+  state.casesUserFilterText = "";
   state.institutionsCategoryFilter = "";
   state.templatesCategoryFilter = "";
   state.institutionsScopeFilter = "";
   state.templatesScopeFilter = "";
+  state.institutionsUserFilter = "";
+  state.institutionsUserFilterText = "";
+  state.templatesUserFilter = "";
+  state.templatesUserFilterText = "";
 }
 
 function showAuthGate() {
@@ -479,6 +536,7 @@ function renderAuthState() {
 
   els.topbarUser?.classList.toggle("hidden", !hasUser);
   els.btnAdminScreen?.classList.toggle("hidden", !isAdminRole(user?.role));
+  els.btnPurgeDeleted?.classList.toggle("hidden", user?.role !== "admin_full");
 
   if (els.topbarUserName) {
     els.topbarUserName.textContent = user?.nickname || "";
@@ -536,12 +594,67 @@ async function loadAdminUsers() {
   logRuntime("list users", data);
 }
 
+async function ensureAdminUsersLoaded() {
+  if (!isAdminRole(state.authUser?.role)) {
+    return;
+  }
+
+  if (!state.adminUsers.length) {
+    await loadAdminUsers();
+  }
+}
+
+function renderDirectoryUserFilters() {
+  const showAdminFilters = isAdminRole(state.authUser?.role);
+  const options = state.adminUsers
+    .map((user) => `<option value="${escapeHtml(getAdminUserFilterValue(user))}"></option>`)
+    .join("");
+
+  if (els.institutionUserFilterField) {
+    const visible = showAdminFilters && state.institutionsScopeFilter === "owned";
+    els.institutionUserFilterField.classList.toggle("hidden", !visible);
+  }
+  if (els.templateUserFilterField) {
+    const visible = showAdminFilters && state.templatesScopeFilter === "owned";
+    els.templateUserFilterField.classList.toggle("hidden", !visible);
+  }
+
+  if (els.institutionUserFilter) {
+    els.institutionUserFilter.value = state.institutionsUserFilterText || getAdminUserFilterInputValue(state.institutionsUserFilter);
+  }
+
+  if (els.institutionUserFilterList) {
+    els.institutionUserFilterList.innerHTML = options;
+  }
+
+  if (els.templateUserFilter) {
+    els.templateUserFilter.value = state.templatesUserFilterText || getAdminUserFilterInputValue(state.templatesUserFilter);
+  }
+
+  if (els.templateUserFilterList) {
+    els.templateUserFilterList.innerHTML = options;
+  }
+
+  if (els.casesUserFilterField) {
+    els.casesUserFilterField.classList.toggle("hidden", !showAdminFilters);
+  }
+
+  if (els.casesUserFilter) {
+    els.casesUserFilter.value = state.casesUserFilterText || getAdminUserFilterInputValue(state.casesUserFilter);
+  }
+
+  if (els.casesUserFilterList) {
+    els.casesUserFilterList.innerHTML = options;
+  }
+}
+
 async function applyAuthorizedAppState() {
   resetDirectoryFilters();
   renderAuthState();
   hideAuthGate();
   resetInstitutionForm();
   resetTemplateForm();
+  await ensureAdminUsersLoaded();
   await loadInstitutions();
   await loadTemplates();
   await loadCases();
@@ -632,6 +745,19 @@ async function logoutUser() {
   resetTemplateForm();
   showAuthGate();
 }
+
+async function purgeDeletedRecords() {
+  const confirmed = await confirmDestructiveAction("Будут окончательно удалены все помеченные обращения, шаблоны и организации. Подтвердите.");
+  if (!confirmed) return;
+
+  const result = await withButtonLoading(els.btnPurgeDeleted, "Удаляем...", async () => api.purgeDeleted());
+  logRuntime("purge deleted", result);
+
+  await ensureAdminUsersLoaded();
+  await loadInstitutions();
+  await loadTemplates();
+  await loadCases();
+}
 function openRuntimeLogModal() {
   els.runtimeLogModal.classList.remove("hidden");
 }
@@ -688,12 +814,14 @@ function saveCaseFiltersToSession() {
   sessionStorage.setItem("complaints_cases_search", state.casesSearch || "");
   sessionStorage.setItem("complaints_cases_institution_filter", state.casesInstitutionFilter || "");
   sessionStorage.setItem("complaints_cases_status_filter", state.casesStatusFilter || "");
+  sessionStorage.setItem("complaints_cases_user_filter", state.casesUserFilter || "");
 }
 
 function loadCaseFiltersFromSession() {
   state.casesSearch = sessionStorage.getItem("complaints_cases_search") || "";
   state.casesInstitutionFilter = sessionStorage.getItem("complaints_cases_institution_filter") || "";
   state.casesStatusFilter = sessionStorage.getItem("complaints_cases_status_filter") || "";
+  state.casesUserFilter = sessionStorage.getItem("complaints_cases_user_filter") || "";
 }
 
 function getCategoryLabel(value) {
@@ -719,23 +847,25 @@ function renderContextNav() {
     ];
   } else if (state.currentScreen === "institutions") {
     title = "Фильтры";
-    items = DIRECTORY_SCOPE_OPTIONS.institutions.concat(DIRECTORY_CATEGORIES).map((item) => ({
-      action: DIRECTORY_SCOPE_OPTIONS.institutions.some((scope) => scope.value === item.value && scope.label === item.label)
+    const scopeOptions = getDirectoryScopeOptions("institutions");
+    items = scopeOptions.concat(DIRECTORY_CATEGORIES).map((item) => ({
+      action: scopeOptions.some((scope) => scope.value === item.value && scope.label === item.label)
         ? `institutions-scope:${item.value}`
         : `institutions-category:${item.value}`,
       label: item.label,
-      active: DIRECTORY_SCOPE_OPTIONS.institutions.some((scope) => scope.value === item.value && scope.label === item.label)
+      active: scopeOptions.some((scope) => scope.value === item.value && scope.label === item.label)
         ? state.institutionsScopeFilter === item.value
         : state.institutionsCategoryFilter === item.value
     }));
   } else if (state.currentScreen === "templates") {
     title = "Фильтры";
-    items = DIRECTORY_SCOPE_OPTIONS.templates.concat(DIRECTORY_CATEGORIES).map((item) => ({
-      action: DIRECTORY_SCOPE_OPTIONS.templates.some((scope) => scope.value === item.value && scope.label === item.label)
+    const scopeOptions = getDirectoryScopeOptions("templates");
+    items = scopeOptions.concat(DIRECTORY_CATEGORIES).map((item) => ({
+      action: scopeOptions.some((scope) => scope.value === item.value && scope.label === item.label)
         ? `templates-scope:${item.value}`
         : `templates-category:${item.value}`,
       label: item.label,
-      active: DIRECTORY_SCOPE_OPTIONS.templates.some((scope) => scope.value === item.value && scope.label === item.label)
+      active: scopeOptions.some((scope) => scope.value === item.value && scope.label === item.label)
         ? state.templatesScopeFilter === item.value
         : state.templatesCategoryFilter === item.value
     }));
@@ -1068,9 +1198,14 @@ function renderCases() {
   const query = (state.casesSearch || "").trim().toLowerCase();
   const institutionFilter = state.casesInstitutionFilter || "";
   const statusFilter = state.casesStatusFilter || "";
+  const userFilter = state.casesUserFilter || "";
 
   const filteredCases = state.cases.filter((item) => {
     if (institutionFilter && item.institution_id !== institutionFilter) {
+      return false;
+    }
+
+    if (userFilter && item.owner_user_id !== userFilter) {
       return false;
     }
 
@@ -1097,6 +1232,8 @@ function renderCases() {
 
     return haystack.includes(query);
   });
+
+  renderDirectoryUserFilters();
 
   if (!filteredCases.length) {
     els.casesList.innerHTML = '<div class="notice">Ничего не найдено.</div>';
@@ -1166,7 +1303,16 @@ function renderCases() {
 function renderInstitutions() {
   const showOwner = isAdminRole(state.authUser?.role);
   const filteredInstitutions = state.institutions.filter((item) => {
-    if (state.institutionsScopeFilter === "favorites" && !item.is_favorite) {
+    if (showOwner) {
+      if (state.institutionsScopeFilter === "owned") {
+        if (item.visibility !== "private") {
+          return false;
+        }
+        if (state.institutionsUserFilter && item.owner_user_id !== state.institutionsUserFilter) {
+          return false;
+        }
+      }
+    } else if (state.institutionsScopeFilter === "favorites" && !item.is_favorite) {
       return false;
     }
     if (!state.institutionsCategoryFilter) {
@@ -1219,6 +1365,7 @@ function renderInstitutions() {
     });
   });
 
+  renderDirectoryUserFilters();
   fillInstitutionSelects();
   renderCaseFilters();
 }
@@ -1226,7 +1373,16 @@ function renderInstitutions() {
 function renderTemplates() {
   const showOwner = isAdminRole(state.authUser?.role);
   const filteredTemplates = state.templates.filter((item) => {
-    if (state.templatesScopeFilter === "favorites" && !item.is_favorite) {
+    if (showOwner) {
+      if (state.templatesScopeFilter === "owned") {
+        if (item.visibility !== "private") {
+          return false;
+        }
+        if (state.templatesUserFilter && item.owner_user_id !== state.templatesUserFilter) {
+          return false;
+        }
+      }
+    } else if (state.templatesScopeFilter === "favorites" && !item.is_favorite) {
       return false;
     }
     if (!state.templatesCategoryFilter) {
@@ -1279,6 +1435,7 @@ function renderTemplates() {
     });
   });
 
+  renderDirectoryUserFilters();
   fillTemplateSelect();
 }
 
@@ -1420,6 +1577,7 @@ function renderCaseFilters() {
   els.casesStatusFilter.innerHTML = statusOptions;
   els.casesStatusFilter.value = state.casesStatusFilter || "";
   els.casesSearchInput.value = state.casesSearch || "";
+  renderDirectoryUserFilters();
 }
 
 function renderWorkspaceSummary() {
@@ -2206,11 +2364,11 @@ async function prepareSubmit(options = {}) {
 }
 
 async function deleteCaseFromList(caseId, caseNumber) {
-  const confirmed = await confirmDestructiveAction("Операция удаления необратима. Подтвердите.");
+  const confirmed = await confirmDestructiveAction("Обращение будет скрыто и помечено на удаление. Подтвердите.");
   if (!confirmed) return;
 
   const data = await api.deleteCase(caseId);
-  logRuntime("delete case", data);
+  logRuntime("mark case deleted", data);
 
   if (state.currentCaseId === caseId) {
     state.currentCaseId = null;
@@ -2266,11 +2424,11 @@ async function openWorkspaceTabByName(tabName) {
 }
 
 async function deleteInstitutionFromList(institutionId, institutionName) {
-  const confirmed = await confirmDestructiveAction("Операция удаления необратима. Подтвердите.");
+  const confirmed = await confirmDestructiveAction("Организация будет скрыта и помечена на удаление. Подтвердите.");
   if (!confirmed) return;
 
   const data = await api.deleteInstitution(institutionId);
-  logRuntime("delete institution", data);
+  logRuntime("mark institution deleted", data);
 
   await loadInstitutions();
 }
@@ -2324,11 +2482,13 @@ function bindEvents() {
           scrollMainContentToTop();
         }
         if (btn.dataset.screen === "institutions") {
+          await ensureAdminUsersLoaded();
           resetInstitutionForm();
           els.institutionFormPanel?.classList.add("hidden");
           await loadInstitutions();
         }
         if (btn.dataset.screen === "templates") {
+          await ensureAdminUsersLoaded();
           resetTemplateForm();
           els.templateFormPanel?.classList.add("hidden");
           await loadTemplates();
@@ -2343,6 +2503,7 @@ function bindEvents() {
   els.btnLogin?.addEventListener("click", () => handle(loginUser));
   els.btnRegister?.addEventListener("click", () => handle(registerUser));
   els.btnLogout?.addEventListener("click", () => handle(logoutUser));
+  els.btnPurgeDeleted?.addEventListener("click", () => handle(purgeDeletedRecords));
   els.authLoginPassword?.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       handle(loginUser);
@@ -2385,6 +2546,10 @@ function bindEvents() {
 
       if (action.startsWith("institutions-scope:")) {
         state.institutionsScopeFilter = action.slice("institutions-scope:".length);
+        if (state.institutionsScopeFilter !== "owned") {
+          state.institutionsUserFilter = "";
+          state.institutionsUserFilterText = "";
+        }
         renderContextNav();
         renderInstitutions();
         return;
@@ -2399,6 +2564,10 @@ function bindEvents() {
 
       if (action.startsWith("templates-scope:")) {
         state.templatesScopeFilter = action.slice("templates-scope:".length);
+        if (state.templatesScopeFilter !== "owned") {
+          state.templatesUserFilter = "";
+          state.templatesUserFilterText = "";
+        }
         renderContextNav();
         renderTemplates();
       }
@@ -2456,10 +2625,34 @@ function bindEvents() {
     saveCaseFiltersToSession();
     renderCases();
   });
+  els.casesUserFilter?.addEventListener("input", (event) => {
+    const value = event.target.value || "";
+    state.casesUserFilterText = value;
+    const user = getAdminUserByFilterValue(value);
+    state.casesUserFilter = user?.id || "";
+    saveCaseFiltersToSession();
+    renderCases();
+  });
+  els.institutionUserFilter?.addEventListener("input", (event) => {
+    const value = event.target.value || "";
+    state.institutionsUserFilterText = value;
+    const user = getAdminUserByFilterValue(value);
+    state.institutionsUserFilter = user?.id || "";
+    renderInstitutions();
+  });
+  els.templateUserFilter?.addEventListener("input", (event) => {
+    const value = event.target.value || "";
+    state.templatesUserFilterText = value;
+    const user = getAdminUserByFilterValue(value);
+    state.templatesUserFilter = user?.id || "";
+    renderTemplates();
+  });
   els.btnResetCaseFilters?.addEventListener("click", () => {
     state.casesSearch = "";
     state.casesInstitutionFilter = "";
     state.casesStatusFilter = "";
+    state.casesUserFilter = "";
+    state.casesUserFilterText = "";
     saveCaseFiltersToSession();
     renderCaseFilters();
     renderCases();
@@ -2543,11 +2736,11 @@ function bindEvents() {
 }
 
 async function deleteTemplateFromList(templateId, templateName) {
-  const confirmed = await confirmDestructiveAction("Операция удаления необратима. Подтвердите.");
+  const confirmed = await confirmDestructiveAction("Шаблон будет скрыт и помечен на удаление. Подтвердите.");
   if (!confirmed) return;
 
   const data = await api.deleteTemplate(templateId);
-  logRuntime("delete template", data);
+  logRuntime("mark template deleted", data);
 
   await loadTemplates();
 }
