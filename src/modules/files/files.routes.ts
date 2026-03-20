@@ -8,6 +8,37 @@ import { UploadIncomingFilesBody } from './files.types';
 import { UploadResultFilesBody } from './files.types';
 import { nextcloudClient } from '../nextcloud/nextcloud.client';
 
+function guessPreviewMimeByFileName(fileName?: string | null): string | null {
+  const ext = String(fileName || '').split('.').pop()?.toLowerCase() || '';
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+  if (ext === 'png') return 'image/png';
+  if (ext === 'webp') return 'image/webp';
+  if (ext === 'pdf') return 'application/pdf';
+  if (ext === 'mp4') return 'video/mp4';
+  if (ext === 'webm') return 'video/webm';
+  if (ext === 'mov' || ext === 'qt') return 'video/quicktime';
+  return null;
+}
+
+function resolvePreviewMimeType(fileName?: string | null, mimeType?: string | null): string | null {
+  const normalized = String(mimeType || '').toLowerCase();
+  const allowed = new Set([
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'video/mp4',
+    'video/webm',
+    'video/quicktime',
+    'application/pdf'
+  ]);
+
+  if (allowed.has(normalized)) {
+    return normalized;
+  }
+
+  return guessPreviewMimeByFileName(fileName);
+}
+
 export async function registerFilesRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Params: { id: string } }>(
     `${env.API_BASE_PATH}/cases/:id/sync-files`,
@@ -196,19 +227,9 @@ export async function registerFilesRoutes(app: FastifyInstance): Promise<void> {
           });
         }
 
-        const mimeType = file.mime_type || 'application/octet-stream';
+        const mimeType = resolvePreviewMimeType(file.file_name, file.mime_type);
 
-        if (
-          ![
-            'image/jpeg',
-            'image/png',
-            'image/webp',
-            'video/mp4',
-            'video/webm',
-            'video/quicktime',
-            'application/pdf'
-          ].includes(mimeType)
-        ) {
+        if (!mimeType) {
           return reply.code(400).send({
             ok: false,
             error: 'preview is supported only for image, video and pdf files',

@@ -1656,6 +1656,18 @@ function isPdfMime(mimeType) {
   return mimeType === "application/pdf";
 }
 
+function guessMimeByFileName(fileName = "") {
+  const ext = String(fileName).split(".").pop()?.toLowerCase() || "";
+  if (["jpg", "jpeg"].includes(ext)) return "image/jpeg";
+  if (ext === "png") return "image/png";
+  if (ext === "webp") return "image/webp";
+  if (ext === "pdf") return "application/pdf";
+  if (ext === "mp4") return "video/mp4";
+  if (ext === "webm") return "video/webm";
+  if (["mov", "qt"].includes(ext)) return "video/quicktime";
+  return "";
+}
+
 function renderVariableToolbar(container, targetTextarea, mode = "token") {
   if (!container || !targetTextarea) return;
 
@@ -1725,7 +1737,7 @@ function closeImageModal() {
 
 function getPreviewMarkup(file, opts = {}) {
   const src = getPreviewUrl(state.currentCaseId, file.id);
-  const mimeType = file.mime_type || file.mimeType || "";
+  const mimeType = file.mime_type || file.mimeType || guessMimeByFileName(file.file_name || file.fileName || "");
   const title = file.file_name || file.fileName || "preview";
   const previewAttr = opts.attrName || "data-preview-file-id";
   const clickable = opts.clickable !== false;
@@ -1765,7 +1777,8 @@ function bindPreviewOpeners(root = document) {
     node.addEventListener("click", () => {
       const file = state.currentCaseFiles.find((item) => item.id === node.dataset.previewFileId);
       if (!file) return;
-      openImageModal(getPreviewUrl(state.currentCaseId, file.id), file.mime_type, file.file_name, file.id);
+      const mimeType = file.mime_type || guessMimeByFileName(file.file_name || "");
+      openImageModal(getPreviewUrl(state.currentCaseId, file.id), mimeType, file.file_name, file.id);
     });
   });
 
@@ -1773,7 +1786,8 @@ function bindPreviewOpeners(root = document) {
     node.addEventListener("click", () => {
       const file = state.resultFiles.find((item) => item.id === node.dataset.resultPreviewFileId);
       if (!file) return;
-      openImageModal(getPreviewUrl(state.currentCaseId, file.id), file.mime_type, file.file_name, null);
+      const mimeType = file.mime_type || guessMimeByFileName(file.file_name || "");
+      openImageModal(getPreviewUrl(state.currentCaseId, file.id), mimeType, file.file_name, null);
     });
   });
 }
