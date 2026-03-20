@@ -19,7 +19,8 @@ import { extractBearerToken } from './modules/auth/auth.utils';
 
 async function bootstrap(): Promise<void> {
   const app = Fastify({
-    logger: true
+    logger: true,
+    bodyLimit: 50 * 1024 * 1024
   });
 
   await app.register(cors, {

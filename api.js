@@ -215,7 +215,8 @@ export const api = {
   },
 
   async uploadResultFiles(caseId, files) {
-    const preparedFiles = await Promise.all((files || []).map(async (file) => {
+    let lastResponse = null;
+    for (const file of files || []) {
       const buffer = await file.arrayBuffer();
       const bytes = new Uint8Array(buffer);
       let binary = "";
@@ -224,21 +225,26 @@ export const api = {
         binary += String.fromCharCode(bytes[index]);
       }
 
-      return {
-        fileName: file.name,
-        mimeType: file.type || "application/octet-stream",
-        contentBase64: btoa(binary)
-      };
-    }));
+      lastResponse = await request(`/cases/${caseId}/result-files/upload`, {
+        method: "POST",
+        body: JSON.stringify({
+          files: [
+            {
+              fileName: file.name,
+              mimeType: file.type || "application/octet-stream",
+              contentBase64: btoa(binary)
+            }
+          ]
+        })
+      });
+    }
 
-    return request(`/cases/${caseId}/result-files/upload`, {
-      method: "POST",
-      body: JSON.stringify({ files: preparedFiles })
-    });
+    return lastResponse || { ok: true, files: [] };
   },
 
   async uploadIncomingFiles(caseId, files) {
-    const preparedFiles = await Promise.all((files || []).map(async (file) => {
+    let lastResponse = null;
+    for (const file of files || []) {
       const buffer = await file.arrayBuffer();
       const bytes = new Uint8Array(buffer);
       let binary = "";
@@ -247,17 +253,21 @@ export const api = {
         binary += String.fromCharCode(bytes[index]);
       }
 
-      return {
-        fileName: file.name,
-        mimeType: file.type || "application/octet-stream",
-        contentBase64: btoa(binary)
-      };
-    }));
+      lastResponse = await request(`/cases/${caseId}/files/upload`, {
+        method: "POST",
+        body: JSON.stringify({
+          files: [
+            {
+              fileName: file.name,
+              mimeType: file.type || "application/octet-stream",
+              contentBase64: btoa(binary)
+            }
+          ]
+        })
+      });
+    }
 
-    return request(`/cases/${caseId}/files/upload`, {
-      method: "POST",
-      body: JSON.stringify({ files: preparedFiles })
-    });
+    return lastResponse || { ok: true, files: [] };
   },
 
   listInstitutions() {
