@@ -188,6 +188,13 @@ export const api = {
     });
   },
 
+  deleteBackup(fileName) {
+    return request("/admin/backups", {
+      method: "DELETE",
+      body: JSON.stringify({ fileName })
+    });
+  },
+
   listCases() {
     return request("/cases");
   },

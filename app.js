@@ -938,7 +938,8 @@ function renderAdminBackups() {
       <div>${escapeHtml(formatBytes(item.sizeBytes))}</div>
       <div class="actions">
         ${state.authUser?.role === "admin_full"
-          ? `<button class="btn btn-secondary" type="button" data-restore-backup="${escapeHtml(item.fileName)}">Восстановить</button>`
+          ? `<button class="btn btn-secondary" type="button" data-restore-backup="${escapeHtml(item.fileName)}">Восстановить</button>
+             <button class="btn btn-secondary icon-delete-btn" type="button" title="Удалить копию" aria-label="Удалить копию" data-delete-backup="${escapeHtml(item.fileName)}">🗑</button>`
           : ""}
       </div>
     </div>
@@ -947,6 +948,11 @@ function renderAdminBackups() {
   document.querySelectorAll("[data-restore-backup]").forEach((btn) => {
     btn.addEventListener("click", () => {
       handle(() => restoreBackupFromAdmin(btn.dataset.restoreBackup));
+    });
+  });
+  document.querySelectorAll("[data-delete-backup]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      handle(() => deleteBackupFromAdmin(btn.dataset.deleteBackup));
     });
   });
 }
@@ -1264,6 +1270,18 @@ async function restoreBackupFromAdmin(fileName) {
   await loadTemplates();
   await loadCases();
   await loadDeletedAdminItems();
+  await loadAdminBackups();
+}
+
+async function deleteBackupFromAdmin(fileName) {
+  if (!requireAuthAction()) return;
+  if (!fileName) return;
+
+  const confirmed = await confirmDestructiveAction(`Резервная копия ${fileName} будет удалена. Подтвердите.`);
+  if (!confirmed) return;
+
+  const result = await api.deleteBackup(fileName);
+  logRuntime("delete backup", result);
   await loadAdminBackups();
 }
 

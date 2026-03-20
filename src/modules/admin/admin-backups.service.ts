@@ -166,6 +166,28 @@ export class AdminBackupsService {
       sizeBytes: stats.size
     };
   }
+
+  async deleteBackup(fileName: string): Promise<BackupRecord> {
+    if (!fileName.startsWith(BACKUP_PREFIX) || !fileName.endsWith(BACKUP_SUFFIX)) {
+      throw new Error('backup not found');
+    }
+
+    const backupPath = getBackupFilePath(path.basename(fileName));
+    let stats;
+    try {
+      stats = await fs.stat(backupPath);
+    } catch {
+      throw new Error('backup not found');
+    }
+
+    await fs.rm(backupPath, { force: true });
+
+    return {
+      fileName: path.basename(fileName),
+      createdAt: stats.mtime.toISOString(),
+      sizeBytes: stats.size
+    };
+  }
 }
 
 export const adminBackupsService = new AdminBackupsService();

@@ -235,4 +235,26 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(statusCode).send({ ok: false, error: message });
     }
   });
+
+  app.delete<{ Body: { fileName?: string } }>(`${env.API_BASE_PATH}/admin/backups`, async (request, reply) => {
+    try {
+      const user = requireAuthUser(request);
+      ensureRole(user, ['admin_full']);
+      const fileName = String(request.body?.fileName || '').trim();
+      if (!fileName) {
+        return reply.code(400).send({ ok: false, error: 'fileName is required' });
+      }
+      const backup = await adminBackupsService.deleteBackup(fileName);
+      return reply.send({ ok: true, backup });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'internal error';
+      const statusCode =
+        message === 'forbidden'
+          ? 403
+          : message === 'backup not found'
+            ? 404
+            : 500;
+      return reply.code(statusCode).send({ ok: false, error: message });
+    }
+  });
 }
