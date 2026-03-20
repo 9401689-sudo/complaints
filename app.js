@@ -2,6 +2,7 @@ import { api } from "./api.js";
 
 const state = {
   authUser: null,
+  authModalMode: "login",
   adminUsers: [],
   adminSection: "users",
   adminDeleted: {
@@ -101,7 +102,11 @@ const ROLE_LABELS = {
 };
 
 const els = {
-  authGate: document.getElementById("authGate"),
+  authModal: document.getElementById("authModal"),
+  authModalBackdrop: document.getElementById("authModalBackdrop"),
+  btnCloseAuthModal: document.getElementById("btnCloseAuthModal"),
+  authLoginPanel: document.getElementById("authLoginPanel"),
+  authRegisterPanel: document.getElementById("authRegisterPanel"),
   topbar: document.getElementById("topbar"),
   appShell: document.getElementById("appShell"),
   authLoginNickname: document.getElementById("authLoginNickname"),
@@ -110,8 +115,12 @@ const els = {
   authRegisterPassword: document.getElementById("authRegisterPassword"),
   btnLogin: document.getElementById("btnLogin"),
   btnRegister: document.getElementById("btnRegister"),
+  btnOpenAuthModal: document.getElementById("btnOpenAuthModal"),
+  btnShowRegisterPanel: document.getElementById("btnShowRegisterPanel"),
+  btnShowLoginPanel: document.getElementById("btnShowLoginPanel"),
   btnLogout: document.getElementById("btnLogout"),
   btnAdminScreen: document.getElementById("btnAdminScreen"),
+  topbarGuest: document.getElementById("topbarGuest"),
   topbarUser: document.getElementById("topbarUser"),
   topbarUserName: document.getElementById("topbarUserName"),
   topbarUserRole: document.getElementById("topbarUserRole"),
@@ -453,7 +462,13 @@ function getDirectoryScopeOptions(kind) {
       : [
           { value: "", label: "Все шаблоны" },
           { value: "owned", label: "Шаблоны пользователей" }
-        ];
+      ];
+  }
+
+  if (!isAuthenticated()) {
+    return kind === "institutions"
+      ? [{ value: "", label: "Все организации" }]
+      : [{ value: "", label: "Все шаблоны" }];
   }
 
   return kind === "institutions"
@@ -536,16 +551,71 @@ function resetDirectoryFilters() {
   state.templatesUserFilterText = "";
 }
 
-function showAuthGate() {
-  els.authGate?.classList.remove("hidden");
-  els.topbar?.classList.add("hidden");
-  els.appShell?.classList.add("hidden");
+function isAuthenticated() {
+  return Boolean(state.authUser);
 }
 
-function hideAuthGate() {
-  els.authGate?.classList.add("hidden");
-  els.topbar?.classList.remove("hidden");
-  els.appShell?.classList.remove("hidden");
+function setAuthModalMode(mode = "login") {
+  state.authModalMode = mode === "register" ? "register" : "login";
+  els.authLoginPanel?.classList.toggle("hidden", state.authModalMode !== "login");
+  els.authRegisterPanel?.classList.toggle("hidden", state.authModalMode !== "register");
+}
+
+function openAuthModal(mode = "login") {
+  setAuthModalMode(mode);
+  els.authModal?.classList.remove("hidden");
+}
+
+function closeAuthModal() {
+  els.authModal?.classList.add("hidden");
+}
+
+function requireAuthAction(message = "Это действие доступно только зарегистрированным пользователям.") {
+  if (isAuthenticated()) {
+    return true;
+  }
+  openAuthModal("login");
+  alert(message);
+  return false;
+}
+
+function applyReadonlyUiState() {
+  const readOnly = !isAuthenticated();
+
+  els.btnCreateCase?.classList.toggle("hidden", readOnly);
+  els.btnToggleInstitutionForm?.classList.toggle("hidden", readOnly);
+  els.btnToggleTemplateForm?.classList.toggle("hidden", readOnly);
+  els.btnCreateLinkedCase?.classList.toggle("hidden", readOnly);
+  els.btnSaveCaseMeta?.classList.toggle("hidden", readOnly);
+  els.btnSaveFilesSelection?.classList.toggle("hidden", readOnly);
+  els.btnSaveVariables?.classList.toggle("hidden", readOnly);
+  els.btnSaveText?.classList.toggle("hidden", readOnly);
+  els.btnRebuildSubmitPackage?.classList.toggle("hidden", readOnly);
+  els.btnUploadResultFiles?.classList.toggle("hidden", readOnly);
+  if (els.resultComment) {
+    els.resultComment.disabled = readOnly;
+  }
+  if (els.caseTitle) {
+    els.caseTitle.disabled = readOnly;
+  }
+  if (els.caseDescription) {
+    els.caseDescription.disabled = readOnly;
+  }
+  if (els.caseDate) {
+    els.caseDate.disabled = readOnly;
+  }
+  if (els.caseInstitutionSelect) {
+    els.caseInstitutionSelect.disabled = readOnly;
+  }
+  if (els.caseTemplateSelect) {
+    els.caseTemplateSelect.disabled = readOnly;
+  }
+  if (els.caseTextEditor) {
+    els.caseTextEditor.readOnly = readOnly;
+  }
+  els.variablesForm?.querySelectorAll("input, select, textarea, button").forEach((node) => {
+    node.disabled = readOnly;
+  });
 }
 
 function renderAuthState() {
@@ -553,6 +623,7 @@ function renderAuthState() {
   const hasUser = Boolean(user);
 
   els.topbarUser?.classList.toggle("hidden", !hasUser);
+  els.topbarGuest?.classList.toggle("hidden", hasUser);
   els.btnAdminScreen?.classList.toggle("hidden", !isAdminRole(user?.role));
 
   if (els.topbarUserName) {
@@ -563,6 +634,7 @@ function renderAuthState() {
   }
 
   syncDirectoryVisibilityControls();
+  applyReadonlyUiState();
 }
 
 function renderAdminUsers() {
@@ -889,9 +961,11 @@ function renderDirectoryUserFilters() {
 async function applyAuthorizedAppState() {
   resetDirectoryFilters();
   renderAuthState();
-  hideAuthGate();
+  closeAuthModal();
   resetInstitutionForm();
   resetTemplateForm();
+  els.institutionFormPanel?.classList.add("hidden");
+  els.templateFormPanel?.classList.add("hidden");
   await ensureAdminUsersLoaded();
   await loadInstitutions();
   await loadTemplates();
@@ -925,7 +999,16 @@ async function restoreAuthSession() {
   if (!token) {
     state.authUser = null;
     renderAuthState();
-    showAuthGate();
+    resetInstitutionForm();
+    resetTemplateForm();
+    els.institutionFormPanel?.classList.add("hidden");
+    els.templateFormPanel?.classList.add("hidden");
+    await loadInstitutions();
+    await loadTemplates();
+    await loadCases();
+    setScreen("dashboard");
+    setWorkspaceTab(null);
+    scrollMainContentToTop();
     return false;
   }
 
@@ -938,7 +1021,16 @@ async function restoreAuthSession() {
     api.clearAuthToken();
     state.authUser = null;
     renderAuthState();
-    showAuthGate();
+    resetInstitutionForm();
+    resetTemplateForm();
+    els.institutionFormPanel?.classList.add("hidden");
+    els.templateFormPanel?.classList.add("hidden");
+    await loadInstitutions();
+    await loadTemplates();
+    await loadCases();
+    setScreen("dashboard");
+    setWorkspaceTab(null);
+    scrollMainContentToTop();
     return false;
   }
 }
@@ -984,10 +1076,19 @@ async function logoutUser() {
   renderAuthState();
   resetInstitutionForm();
   resetTemplateForm();
-  showAuthGate();
+  els.institutionFormPanel?.classList.add("hidden");
+  els.templateFormPanel?.classList.add("hidden");
+  closeAuthModal();
+  await loadInstitutions();
+  await loadTemplates();
+  await loadCases();
+  setScreen("dashboard");
+  setWorkspaceTab(null);
+  scrollMainContentToTop();
 }
 
 async function purgeDeletedRecords() {
+  if (!requireAuthAction()) return;
   const confirmed = await confirmDestructiveAction("Будут окончательно удалены все помеченные обращения, шаблоны и организации. Подтвердите.");
   if (!confirmed) return;
 
@@ -1002,6 +1103,7 @@ async function purgeDeletedRecords() {
 }
 
 async function publishInstitutionFromAdmin(institutionId) {
+  if (!requireAuthAction()) return;
   const item = state.institutions.find((entry) => entry.id === institutionId);
   if (!item) return;
 
@@ -1020,6 +1122,7 @@ async function publishInstitutionFromAdmin(institutionId) {
 }
 
 async function publishTemplateFromAdmin(templateId) {
+  if (!requireAuthAction()) return;
   const item = state.templates.find((entry) => entry.id === templateId);
   if (!item) return;
 
@@ -1037,12 +1140,14 @@ async function publishTemplateFromAdmin(templateId) {
 }
 
 async function createBackupFromAdmin() {
+  if (!requireAuthAction()) return;
   const result = await withButtonLoading(els.btnCreateBackup, "Сохраняем...", async () => api.createBackup());
   logRuntime("create backup", result);
   await loadAdminBackups();
 }
 
 async function restoreBackupFromAdmin(fileName) {
+  if (!requireAuthAction()) return;
   if (!fileName) return;
 
   const confirmed = await confirmDestructiveAction(`База будет восстановлена из копии ${fileName}. Подтвердите.`);
@@ -1565,6 +1670,7 @@ function renderCases() {
   }
 
   const showOwner = isAdminRole(state.authUser?.role);
+  const canDeleteCases = isAuthenticated();
 
   els.casesList.innerHTML = filteredCases.map((item) => {
     const badges = getCaseStatusBadges(item)
@@ -1600,7 +1706,9 @@ function renderCases() {
           <div>${escapeHtml(item.case_date || "—")}</div>
         </div>
         <div class="actions">
-          <button class="btn btn-secondary icon-delete-btn" title="Удалить" aria-label="Удалить" data-delete-case-id="${item.id}" data-delete-case-number="${item.case_number}">🗑</button>
+          ${canDeleteCases
+            ? `<button class="btn btn-secondary icon-delete-btn" title="Удалить" aria-label="Удалить" data-delete-case-id="${item.id}" data-delete-case-number="${item.case_number}">🗑</button>`
+            : ""}
         </div>
       </div>
     `;
@@ -1625,6 +1733,7 @@ function renderCases() {
 }
 
 function renderInstitutions() {
+  const canUseFavorites = isAuthenticated();
   const showOwner = isAdminRole(state.authUser?.role);
   const filteredInstitutions = state.institutions.filter((item) => {
     if (showOwner) {
@@ -1657,7 +1766,7 @@ function renderInstitutions() {
         </div>
         <div>${escapeHtml(item.submit_url)}</div>
         <div class="actions">
-          ${item.visibility === "public"
+          ${item.visibility === "public" && canUseFavorites
             ? `<button class="btn btn-secondary icon-delete-btn favorite-btn ${item.is_favorite ? "active" : ""}" title="${item.is_favorite ? "Убрать из моих организаций" : "Добавить в мои организации"}" aria-label="${item.is_favorite ? "Убрать из моих организаций" : "Добавить в мои организации"}" data-favorite-institution-id="${item.id}">${item.is_favorite ? "★" : "☆"}</button>`
             : ""}
           ${canEditDirectoryItem(item)
@@ -1697,6 +1806,7 @@ function renderInstitutions() {
 }
 
 function renderTemplates() {
+  const canUseFavorites = isAuthenticated();
   const showOwner = isAdminRole(state.authUser?.role);
   const filteredTemplates = state.templates.filter((item) => {
     if (showOwner) {
@@ -1729,7 +1839,7 @@ function renderTemplates() {
         </div>
         <div></div>
         <div class="actions">
-          ${item.visibility === "public"
+          ${item.visibility === "public" && canUseFavorites
             ? `<button class="btn btn-secondary icon-delete-btn favorite-btn ${item.is_favorite ? "active" : ""}" title="${item.is_favorite ? "Убрать из моих шаблонов" : "Добавить в мои шаблоны"}" aria-label="${item.is_favorite ? "Убрать из моих шаблонов" : "Добавить в мои шаблоны"}" data-favorite-template-id="${item.id}">${item.is_favorite ? "★" : "☆"}</button>`
             : ""}
           ${canEditDirectoryItem(item)
@@ -1856,9 +1966,12 @@ function renderVariablesForm() {
       }
     });
   }
+
+  applyReadonlyUiState();
 }
 
 async function saveCaseMeta() {
+  if (!requireAuthAction()) return;
   if (!state.currentCaseId) return;
 
   return withButtonLoading(els.btnSaveCaseMeta, "Сохранение...", async () => {
@@ -1934,6 +2047,7 @@ function renderWorkspaceSummary() {
   updateWorkspaceTabAvailability();
   renderVariablesForm();
   renderRelatedCases();
+  applyReadonlyUiState();
 }
 
 function renderRelatedCases() {
@@ -2008,7 +2122,7 @@ function renderWorkspaceFiles() {
           <div class="row-meta" data-file-status-id="${file.id}" data-file-order-value="${file.sort_order ?? index}">${isSelected ? `В подаче · порядок ${file.sort_order ?? index}` : "Не выбран для подачи"}</div>
         </div>
         <div class="file-card-controls">
-          <label class="file-select-toggle"><input type="checkbox" data-file-selected-id="${file.id}" ${isSelected ? "checked" : ""} /> В подачу</label>
+          <label class="file-select-toggle"><input type="checkbox" data-file-selected-id="${file.id}" ${isSelected ? "checked" : ""} ${!isAuthenticated() ? "disabled" : ""} /> В подачу</label>
         </div>
       </div>
     `;
@@ -2017,6 +2131,7 @@ function renderWorkspaceFiles() {
   bindPreviewOpeners(els.workspaceFilesList);
   els.workspaceFilesList.querySelectorAll("[data-file-selected-id]").forEach((checkbox) => {
     checkbox.addEventListener("change", () => {
+      if (!isAuthenticated()) return;
       const fileId = checkbox.dataset.fileSelectedId;
       const card = checkbox.closest(".file-card");
       const status = els.workspaceFilesList.querySelector(`[data-file-status-id="${fileId}"]`);
@@ -2039,6 +2154,7 @@ function renderWorkspaceFiles() {
 
 function renderText() {
   els.caseTextEditor.value = state.textContent || "";
+  applyReadonlyUiState();
 }
 
 function formatUrlPreview(value, max = 88) {
@@ -2316,6 +2432,7 @@ async function refreshCurrentCaseData() {
 }
 
 async function createCase() {
+  if (!requireAuthAction()) return;
   return withButtonLoading(els.btnCreateCase, "Создание...", async () => {
     setCreateCaseProgress(true, "Создаём обращение и переносим файлы...");
     try {
@@ -2345,6 +2462,7 @@ async function loadInstitutions() {
 }
 
 async function createInstitution() {
+  if (!requireAuthAction()) return;
   return withButtonLoading(els.btnCreateInstitution, "Сохранение...", async () => {
     const payload = {
       name: els.institutionName.value.trim(),
@@ -2381,6 +2499,7 @@ async function loadTemplates() {
 }
 
 async function createTemplate() {
+  if (!requireAuthAction()) return;
   return withButtonLoading(els.btnCreateTemplate, "Сохранение...", async () => {
     const payload = {
       name: els.templateName.value.trim(),
@@ -2472,6 +2591,7 @@ function collectFileSelectionPayload() {
 }
 
 async function saveFiles() {
+  if (!requireAuthAction()) return;
   if (!state.currentCaseId) return;
 
   return withButtonLoading(els.btnSaveFilesSelection, "Сохранение...", async () => {
@@ -2500,6 +2620,7 @@ async function loadVariables() {
 }
 
 async function saveVariables() {
+  if (!requireAuthAction()) return;
   if (!state.currentCaseId) return;
 
   const payload = {};
@@ -2552,6 +2673,7 @@ async function loadText() {
 }
 
 async function saveText() {
+  if (!requireAuthAction()) return;
   if (!state.currentCaseId) return;
   const data = await api.saveText(state.currentCaseId, els.caseTextEditor.value);
   state.textContent = data.content || "";
@@ -2573,6 +2695,7 @@ async function loadResultFiles() {
 }
 
 async function createLinkedCase() {
+  if (!requireAuthAction()) return;
   if (!state.currentCaseId) return;
 
   const data = await api.createCase({ parentCaseId: state.currentCaseId });
@@ -2587,6 +2710,7 @@ async function createLinkedCase() {
 }
 
 async function uploadResultFiles() {
+  if (!requireAuthAction()) return;
   if (!state.currentCaseId || !els.resultFilesInput?.files?.length) return;
 
   const files = [...els.resultFilesInput.files];
@@ -2635,6 +2759,7 @@ async function openSubmitTab() {
 }
 
 async function rebuildSubmitPackage() {
+  if (!requireAuthAction()) return;
   if (!state.currentCaseId) return;
 
   setWorkspaceTab("submit");
@@ -2694,6 +2819,7 @@ async function prepareSubmit(options = {}) {
 }
 
 async function deleteCaseFromList(caseId, caseNumber) {
+  if (!requireAuthAction()) return;
   const confirmed = await confirmDestructiveAction("Обращение будет скрыто и помечено на удаление. Подтвердите.");
   if (!confirmed) return;
 
@@ -2716,6 +2842,7 @@ async function deleteCaseFromList(caseId, caseNumber) {
 }
 
 async function saveCaseAsTemplate() {
+  if (!requireAuthAction()) return;
   if (!state.currentCaseId) return;
 
   return withButtonLoading(els.btnSaveAsTemplate, "Сохранение...", async () => {
@@ -2754,6 +2881,7 @@ async function openWorkspaceTabByName(tabName) {
 }
 
 async function deleteInstitutionFromList(institutionId, institutionName) {
+  if (!requireAuthAction()) return;
   const confirmed = await confirmDestructiveAction("Организация будет скрыта и помечена на удаление. Подтвердите.");
   if (!confirmed) return;
 
@@ -2764,6 +2892,7 @@ async function deleteInstitutionFromList(institutionId, institutionName) {
 }
 
 async function toggleInstitutionFavorite(institutionId) {
+  if (!requireAuthAction()) return;
   const item = state.institutions.find((entry) => entry.id === institutionId);
   if (!item) return;
 
@@ -2837,6 +2966,11 @@ function bindEvents() {
 
   els.btnLogin?.addEventListener("click", () => handle(loginUser));
   els.btnRegister?.addEventListener("click", () => handle(registerUser));
+  els.btnOpenAuthModal?.addEventListener("click", () => openAuthModal("login"));
+  els.btnShowRegisterPanel?.addEventListener("click", () => setAuthModalMode("register"));
+  els.btnShowLoginPanel?.addEventListener("click", () => setAuthModalMode("login"));
+  els.btnCloseAuthModal?.addEventListener("click", closeAuthModal);
+  els.authModalBackdrop?.addEventListener("click", closeAuthModal);
   els.btnLogout?.addEventListener("click", () => handle(logoutUser));
   els.btnCreateBackup?.addEventListener("click", () => handle(createBackupFromAdmin));
   els.authLoginPassword?.addEventListener("keydown", (event) => {
@@ -3030,6 +3164,7 @@ function bindEvents() {
   els.btnCreateLinkedCase?.addEventListener("click", () => handle(createLinkedCase));
 
   els.btnToggleInstitutionForm?.addEventListener("click", () => {
+    if (!requireAuthAction()) return;
     resetInstitutionForm();
     els.institutionFormPanel.classList.remove("hidden");
   });
@@ -3037,6 +3172,7 @@ function bindEvents() {
   els.btnCreateInstitution?.addEventListener("click", () => handle(createInstitution));
 
   els.btnToggleTemplateForm?.addEventListener("click", () => {
+    if (!requireAuthAction()) return;
     resetTemplateForm();
     els.templateFormPanel.classList.remove("hidden");
   });
@@ -3071,9 +3207,15 @@ function bindEvents() {
     window.open(url, "_blank", "noopener,noreferrer");
   }));
   els.btnDownloadSubmitFiles?.addEventListener("click", () => handle(downloadSubmitFiles));
-  els.btnUploadResultFiles?.addEventListener("click", () => els.resultFilesInput?.click());
+  els.btnUploadResultFiles?.addEventListener("click", () => {
+    if (!requireAuthAction()) return;
+    els.resultFilesInput?.click();
+  });
   els.resultFilesInput?.addEventListener("change", () => handle(uploadResultFiles));
-  els.resultComment?.addEventListener("blur", () => handle(persistResultCommentIfNeeded));
+  els.resultComment?.addEventListener("blur", () => {
+    if (!isAuthenticated()) return;
+    handle(persistResultCommentIfNeeded);
+  });
   els.adminUsersList?.addEventListener("change", (event) => {
     const select = event.target.closest("[data-user-role-id]");
     if (!select || !canManageUsers()) return;
@@ -3089,6 +3231,7 @@ function bindEvents() {
 }
 
 async function deleteTemplateFromList(templateId, templateName) {
+  if (!requireAuthAction()) return;
   const confirmed = await confirmDestructiveAction("Шаблон будет скрыт и помечен на удаление. Подтвердите.");
   if (!confirmed) return;
 
@@ -3099,6 +3242,7 @@ async function deleteTemplateFromList(templateId, templateName) {
 }
 
 async function toggleTemplateFavorite(templateId) {
+  if (!requireAuthAction()) return;
   const item = state.templates.find((entry) => entry.id === templateId);
   if (!item) return;
 
@@ -3127,8 +3271,8 @@ async function bootstrap() {
   window.addEventListener("resize", updateDeviceMode);
   loadCaseFiltersFromSession();
   bindEvents();
+  setAuthModalMode("login");
   renderAuthState();
-  showAuthGate();
   await restoreAuthSession();
 }
 

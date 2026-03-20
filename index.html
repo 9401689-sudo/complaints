@@ -9,43 +9,7 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <section id="authGate" class="auth-gate hidden">
-      <div class="auth-card">
-        <div class="auth-card-brand">
-          <img src="./dialog.png" alt="Диалог граждан" class="auth-brand-logo" />
-          <h1>Вход в систему</h1>
-          <p>Никнейм и пароль. Регистрация открыта для новых пользователей.</p>
-        </div>
-        <div class="auth-forms">
-          <div class="auth-panel">
-            <h3>Вход</h3>
-            <div class="field">
-              <label for="authLoginNickname">Никнейм</label>
-              <input id="authLoginNickname" autocomplete="username" />
-            </div>
-            <div class="field">
-              <label for="authLoginPassword">Пароль</label>
-              <input id="authLoginPassword" type="password" autocomplete="current-password" />
-            </div>
-            <button class="btn btn-primary auth-submit-btn" id="btnLogin" type="button">Войти</button>
-          </div>
-          <div class="auth-panel">
-            <h3>Регистрация</h3>
-            <div class="field">
-              <label for="authRegisterNickname">Никнейм</label>
-              <input id="authRegisterNickname" autocomplete="username" />
-            </div>
-            <div class="field">
-              <label for="authRegisterPassword">Пароль</label>
-              <input id="authRegisterPassword" type="password" autocomplete="new-password" />
-            </div>
-            <button class="btn btn-primary auth-submit-btn" id="btnRegister" type="button">Зарегистрироваться</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <header class="topbar hidden" id="topbar">
+    <header class="topbar" id="topbar">
       <div class="topbar-brand">
         <button class="brand-link" id="btnBrandHome" type="button" aria-label="На главный экран">
           <img src="./dialog.png" alt="Диалог граждан" class="brand-logo" />
@@ -64,8 +28,11 @@
         </div>
         <button class="btn btn-secondary" id="btnLogout" type="button">Выйти</button>
       </div>
+      <div class="topbar-guest" id="topbarGuest">
+        <button class="btn btn-primary" id="btnOpenAuthModal" type="button">Войти</button>
+      </div>
     </header>
-    <div class="app-shell hidden" id="appShell">
+    <div class="app-shell" id="appShell">
       <aside class="sidebar">
         <div class="sidebar-brand context-sidebar-brand">
           <div id="contextNavTitle" class="context-nav-title">Раздел</div>
@@ -542,7 +509,7 @@
   </div>
 </div>
 
-<div id="confirmModal" class="image-modal hidden">
+    <div id="confirmModal" class="image-modal hidden">
   <div class="image-modal-backdrop" id="confirmModalBackdrop"></div>
   <div class="image-modal-content confirm-modal-content">
     <div class="panel confirm-modal-panel">
@@ -555,8 +522,48 @@
         <button class="btn btn-primary" id="btnConfirmModalCancel" type="button">Отмена</button>
       </div>
     </div>
-  </div>
-</div>
+      </div>
+    </div>
+
+    <div id="authModal" class="image-modal hidden">
+      <div class="image-modal-backdrop" id="authModalBackdrop"></div>
+      <div class="image-modal-content auth-modal-content">
+        <button class="image-modal-close" id="btnCloseAuthModal" type="button">×</button>
+        <div class="auth-card-brand">
+          <img src="./dialog.png" alt="Диалог граждан" class="auth-brand-logo" />
+          <h1>Вход в систему</h1>
+          <p>Вход и регистрация для работы с обращениями.</p>
+        </div>
+
+        <div id="authLoginPanel" class="auth-panel">
+          <h3>Войти</h3>
+          <div class="field">
+            <label for="authLoginNickname">Никнейм</label>
+            <input id="authLoginNickname" autocomplete="username" />
+          </div>
+          <div class="field">
+            <label for="authLoginPassword">Пароль</label>
+            <input id="authLoginPassword" type="password" autocomplete="current-password" />
+          </div>
+          <button class="btn btn-primary auth-submit-btn" id="btnLogin" type="button">Войти</button>
+          <button class="btn btn-link auth-switch-btn" id="btnShowRegisterPanel" type="button">Еще не зарегистрированы? Зарегистрироваться</button>
+        </div>
+
+        <div id="authRegisterPanel" class="auth-panel hidden">
+          <h3>Регистрация</h3>
+          <div class="field">
+            <label for="authRegisterNickname">Никнейм</label>
+            <input id="authRegisterNickname" autocomplete="username" />
+          </div>
+          <div class="field">
+            <label for="authRegisterPassword">Пароль</label>
+            <input id="authRegisterPassword" type="password" autocomplete="new-password" />
+          </div>
+          <button class="btn btn-primary auth-submit-btn" id="btnRegister" type="button">Зарегистрироваться</button>
+          <button class="btn btn-link auth-switch-btn" id="btnShowLoginPanel" type="button">Уже зарегистрированы? Войти</button>
+        </div>
+      </div>
+    </div>
 
     <script type="module" src="./app.js"></script>
   </body>

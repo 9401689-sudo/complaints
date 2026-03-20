@@ -48,6 +48,7 @@ async function bootstrap(): Promise<void> {
 
   app.addHook('onRequest', async (request, reply) => {
     const path = request.raw.url?.split('?')[0] || '';
+    const isGetRequest = request.method === 'GET';
     const publicPaths = new Set([
       '/health',
       `${env.API_BASE_PATH}/health`,
@@ -55,8 +56,16 @@ async function bootstrap(): Promise<void> {
       `${env.API_BASE_PATH}/auth/register`,
       `${env.API_BASE_PATH}/auth/login`
     ]);
+    const publicGetPrefixes = [
+      `${env.API_BASE_PATH}/cases`,
+      `${env.API_BASE_PATH}/institutions`,
+      `${env.API_BASE_PATH}/templates`
+    ];
+    const isPublicGetRoute =
+      isGetRequest &&
+      publicGetPrefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 
-    if (request.method === 'OPTIONS' || publicPaths.has(path)) {
+    if (request.method === 'OPTIONS' || publicPaths.has(path) || isPublicGetRoute) {
       return;
     }
 
