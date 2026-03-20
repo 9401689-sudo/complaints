@@ -13,21 +13,35 @@ function guessPreviewMimeByFileName(fileName?: string | null): string | null {
   if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
   if (ext === 'png') return 'image/png';
   if (ext === 'webp') return 'image/webp';
+  if (ext === 'gif') return 'image/gif';
+  if (ext === 'bmp') return 'image/bmp';
+  if (ext === 'tif' || ext === 'tiff') return 'image/tiff';
+  if (ext === 'heic') return 'image/heic';
+  if (ext === 'heif') return 'image/heif';
   if (ext === 'pdf') return 'application/pdf';
   if (ext === 'mp4') return 'video/mp4';
   if (ext === 'webm') return 'video/webm';
+  if (ext === 'm4v') return 'video/x-m4v';
+  if (ext === 'mkv') return 'video/x-matroska';
   if (ext === 'mov' || ext === 'qt') return 'video/quicktime';
   return null;
 }
 
-function resolvePreviewMimeType(fileName?: string | null, mimeType?: string | null): string | null {
+function resolvePreviewMimeType(fileName?: string | null, mimeType?: string | null): string {
   const normalized = String(mimeType || '').toLowerCase();
   const allowed = new Set([
     'image/jpeg',
     'image/png',
     'image/webp',
+    'image/gif',
+    'image/bmp',
+    'image/tiff',
+    'image/heic',
+    'image/heif',
     'video/mp4',
     'video/webm',
+    'video/x-m4v',
+    'video/x-matroska',
     'video/quicktime',
     'application/pdf'
   ]);
@@ -36,7 +50,7 @@ function resolvePreviewMimeType(fileName?: string | null, mimeType?: string | nu
     return normalized;
   }
 
-  return guessPreviewMimeByFileName(fileName);
+  return guessPreviewMimeByFileName(fileName) || 'application/octet-stream';
 }
 
 export async function registerFilesRoutes(app: FastifyInstance): Promise<void> {
@@ -228,13 +242,6 @@ export async function registerFilesRoutes(app: FastifyInstance): Promise<void> {
         }
 
         const mimeType = resolvePreviewMimeType(file.file_name, file.mime_type);
-
-        if (!mimeType) {
-          return reply.code(400).send({
-            ok: false,
-            error: 'preview is supported only for image, video and pdf files',
-          });
-        }
 
         const buffer = await nextcloudClient.downloadBinaryFile(file.file_path);
 
