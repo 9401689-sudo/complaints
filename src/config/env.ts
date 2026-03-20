@@ -27,6 +27,7 @@ const envSchema = z.object({
   POSTGRES_PASSWORD: z.string().min(1),
   POSTGRES_SSL: booleanFromEnv,
   POSTGRES_SCHEMA: z.string().min(1).default('complaints'),
+  BACKUP_DIR: z.string().min(1).default('/app/backups'),
 
   REDIS_HOST: z.string().min(1),
   REDIS_PORT: z.coerce.number().default(6379),

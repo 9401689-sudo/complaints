@@ -765,9 +765,9 @@ textarea {
 }
 
 .favorite-btn.active {
-  color: #c18712;
-  border-color: rgba(193, 135, 18, 0.35);
-  background: rgba(193, 135, 18, 0.12);
+  color: #447fa8;
+  border-color: rgba(68, 127, 168, 0.35);
+  background: rgba(68, 127, 168, 0.12);
 }
 
 .runtime-log-panel {

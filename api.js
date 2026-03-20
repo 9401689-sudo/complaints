@@ -143,6 +143,27 @@ export const api = {
     });
   },
 
+  listDeletedAdminItems() {
+    return request("/admin/deleted");
+  },
+
+  listBackups() {
+    return request("/admin/backups");
+  },
+
+  createBackup() {
+    return request("/admin/backups", {
+      method: "POST"
+    });
+  },
+
+  restoreBackup(fileName) {
+    return request("/admin/backups/restore", {
+      method: "POST",
+      body: JSON.stringify({ fileName })
+    });
+  },
+
   listCases() {
     return request("/cases");
   },

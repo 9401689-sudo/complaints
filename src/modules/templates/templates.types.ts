@@ -11,6 +11,7 @@ export interface TemplateRecord {
   body_template: string;
   variables_schema: unknown[];
   default_values: Record<string, unknown>;
+  deleted_at?: string | null;
   created_at: string;
   updated_at: string;
 }

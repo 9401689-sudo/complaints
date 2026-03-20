@@ -285,6 +285,53 @@ export class CasesService {
     };
   }
 
+  async listDeletedCases(): Promise<CaseRecord[]> {
+    const result = await postgres.query<CaseRecord>(
+      `
+      select
+        c.id,
+        c.case_number,
+        c.case_status,
+        c.parent_case_id,
+        c.owner_user_id,
+        c.institution_id,
+        c.template_id,
+        c.title,
+        c.description,
+        c.nextcloud_case_folder,
+        c.nextcloud_incoming_folder,
+        c.nextcloud_artifacts_folder,
+        c.nextcloud_result_folder,
+        c.case_date,
+        c.registration_date,
+        c.submission_number,
+        c.response_comment,
+        c.submitted_at,
+        c.deleted_at,
+        c.created_at,
+        c.updated_at,
+        i.name as institution_name,
+        t.name as template_name,
+        u.nickname as owner_nickname,
+        0 as linked_cases_count,
+        exists(
+          select 1
+          from case_files cf
+          where cf.case_id = c.id
+            and cf.file_path like c.nextcloud_result_folder || '/%'
+        ) as has_reply
+      from cases c
+      left join institutions i on i.id = c.institution_id
+      left join templates t on t.id = c.template_id
+      left join users u on u.id = c.owner_user_id
+      where c.deleted_at is not null
+      order by c.deleted_at desc nulls last, c.updated_at desc
+      `
+    );
+
+    return result.rows;
+  }
+
   async generateText(caseId: string, authUser?: AuthUser | null) {
     const caseRow = await this.getCaseById(caseId, authUser);
 

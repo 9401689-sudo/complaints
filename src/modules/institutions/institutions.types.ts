@@ -11,6 +11,7 @@ export interface InstitutionRecord {
   max_attachments: number;
   max_text_length: number;
   accepted_formats: string[];
+  deleted_at?: string | null;
   created_at: string;
 }
 

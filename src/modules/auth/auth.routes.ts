@@ -6,6 +6,7 @@ import { casesService } from '../cases/cases.service';
 import { institutionsService } from '../institutions/institutions.service';
 import { templatesService } from '../templates/templates.service';
 import { redis } from '../redis/redis';
+import { adminBackupsService } from '../admin/admin-backups.service';
 
 export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Body: { nickname?: string; password?: string } }>(`${env.API_BASE_PATH}/auth/register`, async (request, reply) => {
@@ -102,6 +103,78 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'internal error';
       const statusCode = message === 'forbidden' ? 403 : 500;
+      return reply.code(statusCode).send({ ok: false, error: message });
+    }
+  });
+
+  app.get(`${env.API_BASE_PATH}/admin/deleted`, async (request, reply) => {
+    try {
+      const user = requireAuthUser(request);
+      ensureRole(user, ['admin_view', 'admin_full']);
+
+      const [cases, institutions, templates] = await Promise.all([
+        casesService.listDeletedCases(),
+        institutionsService.listDeletedInstitutions(),
+        templatesService.listDeletedTemplates()
+      ]);
+
+      return reply.send({
+        ok: true,
+        cases,
+        institutions,
+        templates
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'internal error';
+      const statusCode = message === 'forbidden' ? 403 : 500;
+      return reply.code(statusCode).send({ ok: false, error: message });
+    }
+  });
+
+  app.get(`${env.API_BASE_PATH}/admin/backups`, async (request, reply) => {
+    try {
+      const user = requireAuthUser(request);
+      ensureRole(user, ['admin_view', 'admin_full']);
+      const backups = await adminBackupsService.listBackups();
+      return reply.send({ ok: true, backups });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'internal error';
+      const statusCode = message === 'forbidden' ? 403 : 500;
+      return reply.code(statusCode).send({ ok: false, error: message });
+    }
+  });
+
+  app.post(`${env.API_BASE_PATH}/admin/backups`, async (request, reply) => {
+    try {
+      const user = requireAuthUser(request);
+      ensureRole(user, ['admin_full']);
+      const backup = await adminBackupsService.createBackup();
+      return reply.send({ ok: true, backup });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'internal error';
+      const statusCode = message === 'forbidden' ? 403 : 500;
+      return reply.code(statusCode).send({ ok: false, error: message });
+    }
+  });
+
+  app.post<{ Body: { fileName?: string } }>(`${env.API_BASE_PATH}/admin/backups/restore`, async (request, reply) => {
+    try {
+      const user = requireAuthUser(request);
+      ensureRole(user, ['admin_full']);
+      const fileName = String(request.body?.fileName || '').trim();
+      if (!fileName) {
+        return reply.code(400).send({ ok: false, error: 'fileName is required' });
+      }
+      const backup = await adminBackupsService.restoreBackup(fileName);
+      return reply.send({ ok: true, backup });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'internal error';
+      const statusCode =
+        message === 'forbidden'
+          ? 403
+          : message === 'backup not found'
+            ? 404
+            : 500;
       return reply.code(statusCode).send({ ok: false, error: message });
     }
   });

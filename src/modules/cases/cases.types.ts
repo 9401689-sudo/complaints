@@ -17,6 +17,7 @@ export interface CaseRecord {
   submission_number: string | null;
   response_comment: string | null;
   submitted_at: string | null;
+  deleted_at?: string | null;
   created_at: string;
   updated_at: string;
   institution_name?: string | null;

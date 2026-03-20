@@ -432,6 +432,34 @@ export class InstitutionsService {
     return { count: ids.length };
   }
 
+  async listDeletedInstitutions(): Promise<InstitutionRecord[]> {
+    const result = await postgres.query<InstitutionRecord>(
+      `
+      select
+        i.id,
+        i.name,
+        i.category,
+        i.visibility,
+        i.owner_user_id,
+        u.nickname as owner_nickname,
+        i.submit_url,
+        i.max_attachments,
+        i.max_text_length,
+        i.accepted_formats,
+        i.deleted_at,
+        i.created_at,
+        false as can_edit,
+        false as is_favorite
+      from institutions i
+      left join users u on u.id = i.owner_user_id
+      where i.deleted_at is not null
+      order by i.deleted_at desc nulls last, i.created_at desc
+      `
+    );
+
+    return result.rows;
+  }
+
   async addFavorite(id: string, authUser: AuthUser): Promise<InstitutionRecord> {
     const existing = await this.getInstitutionById(id, authUser);
 

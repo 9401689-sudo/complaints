@@ -268,27 +268,47 @@
               <h2>Админка</h2>
               <p>Управление пользователями и ролями доступа</p>
             </div>
-            <div class="actions">
-              <button class="btn btn-secondary" id="btnPurgeDeleted" type="button">Удалить помеченные</button>
-            </div>
           </div>
-          <div class="panel">
+          <div class="panel" id="adminUsersPanel">
             <div class="panel-header">
               <h3>Пользователи</h3>
             </div>
             <div id="adminUsersList" class="table-like"></div>
           </div>
-          <div class="panel">
+          <div class="panel hidden" id="adminPrivateInstitutionsPanel">
             <div class="panel-header">
               <h3>Личные организации</h3>
             </div>
             <div id="adminPrivateInstitutionsList" class="table-like"></div>
           </div>
-          <div class="panel">
+          <div class="panel hidden" id="adminPrivateTemplatesPanel">
             <div class="panel-header">
               <h3>Личные шаблоны</h3>
             </div>
             <div id="adminPrivateTemplatesList" class="table-like"></div>
+          </div>
+          <div class="panel hidden" id="adminDeletedPanel">
+            <div class="panel-header">
+              <h3>Помеченные на удаление обращения</h3>
+            </div>
+            <div id="adminDeletedCasesList" class="table-like"></div>
+            <div class="panel-header top-space">
+              <h3>Помеченные на удаление организации</h3>
+            </div>
+            <div id="adminDeletedInstitutionsList" class="table-like"></div>
+            <div class="panel-header top-space">
+              <h3>Помеченные на удаление шаблоны</h3>
+            </div>
+            <div id="adminDeletedTemplatesList" class="table-like"></div>
+          </div>
+          <div class="panel hidden" id="adminBackupsPanel">
+            <div class="panel-header">
+              <h3>Бэкапы базы</h3>
+              <div class="actions">
+                <button class="btn btn-primary" id="btnCreateBackup" type="button">Сохранить БД</button>
+              </div>
+            </div>
+            <div id="adminBackupsList" class="table-like"></div>
           </div>
         </section>
 

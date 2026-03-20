@@ -3,6 +3,13 @@ import { api } from "./api.js";
 const state = {
   authUser: null,
   adminUsers: [],
+  adminSection: "users",
+  adminDeleted: {
+    cases: [],
+    institutions: [],
+    templates: []
+  },
+  adminBackups: [],
   currentScreen: "dashboard",
   currentCaseId: null,
   currentCase: null,
@@ -105,13 +112,22 @@ const els = {
   btnRegister: document.getElementById("btnRegister"),
   btnLogout: document.getElementById("btnLogout"),
   btnAdminScreen: document.getElementById("btnAdminScreen"),
-  btnPurgeDeleted: document.getElementById("btnPurgeDeleted"),
   topbarUser: document.getElementById("topbarUser"),
   topbarUserName: document.getElementById("topbarUserName"),
   topbarUserRole: document.getElementById("topbarUserRole"),
   adminUsersList: document.getElementById("adminUsersList"),
+  adminUsersPanel: document.getElementById("adminUsersPanel"),
   adminPrivateInstitutionsList: document.getElementById("adminPrivateInstitutionsList"),
+  adminPrivateInstitutionsPanel: document.getElementById("adminPrivateInstitutionsPanel"),
   adminPrivateTemplatesList: document.getElementById("adminPrivateTemplatesList"),
+  adminPrivateTemplatesPanel: document.getElementById("adminPrivateTemplatesPanel"),
+  adminDeletedPanel: document.getElementById("adminDeletedPanel"),
+  adminDeletedCasesList: document.getElementById("adminDeletedCasesList"),
+  adminDeletedInstitutionsList: document.getElementById("adminDeletedInstitutionsList"),
+  adminDeletedTemplatesList: document.getElementById("adminDeletedTemplatesList"),
+  adminBackupsPanel: document.getElementById("adminBackupsPanel"),
+  adminBackupsList: document.getElementById("adminBackupsList"),
+  btnCreateBackup: document.getElementById("btnCreateBackup"),
   screens: [...document.querySelectorAll("[data-screen-panel]")],
   navButtons: [...document.querySelectorAll(".nav-btn")],
   tabButtons: [...document.querySelectorAll(".tab-btn")],
@@ -538,7 +554,6 @@ function renderAuthState() {
 
   els.topbarUser?.classList.toggle("hidden", !hasUser);
   els.btnAdminScreen?.classList.toggle("hidden", !isAdminRole(user?.role));
-  els.btnPurgeDeleted?.classList.toggle("hidden", user?.role !== "admin_full");
 
   if (els.topbarUserName) {
     els.topbarUserName.textContent = user?.nickname || "";
@@ -583,6 +598,14 @@ function renderAdminUsers() {
       </div>
     `;
   }).join("");
+}
+
+function renderAdminPanels() {
+  els.adminUsersPanel?.classList.toggle("hidden", state.adminSection !== "users");
+  els.adminPrivateInstitutionsPanel?.classList.toggle("hidden", state.adminSection !== "private_institutions");
+  els.adminPrivateTemplatesPanel?.classList.toggle("hidden", state.adminSection !== "private_templates");
+  els.adminDeletedPanel?.classList.toggle("hidden", state.adminSection !== "deleted");
+  els.adminBackupsPanel?.classList.toggle("hidden", state.adminSection !== "backups");
 }
 
 function renderAdminDirectories() {
@@ -651,6 +674,123 @@ function renderAdminDirectories() {
   });
 }
 
+function renderDeletedAdminItems() {
+  if (!els.adminDeletedCasesList || !els.adminDeletedInstitutionsList || !els.adminDeletedTemplatesList) {
+    return;
+  }
+
+  const deletedCases = state.adminDeleted.cases || [];
+  const deletedInstitutions = state.adminDeleted.institutions || [];
+  const deletedTemplates = state.adminDeleted.templates || [];
+
+  els.adminDeletedCasesList.innerHTML = deletedCases.length
+    ? deletedCases.map((item) => {
+        const badges = getCaseStatusBadges(item)
+          .map((badge) => `<span class="status-badge ${badge.cls}">${escapeHtml(badge.text)}</span>`)
+          .join("");
+
+        return `
+          <div class="table-row cases-row cases-row-admin">
+            <div>
+              <div class="row-title">${escapeHtml(item.title || "Без названия")}</div>
+              <div class="row-meta">${escapeHtml(item.description || "")}</div>
+              <div class="status-badges">${badges}</div>
+            </div>
+            <div>
+              <div class="row-meta">Номер</div>
+              <div>${escapeHtml(item.case_number || "—")}</div>
+            </div>
+            <div>
+              <div class="row-meta">Организация</div>
+              <div>${escapeHtml(item.institution_name || "—")}</div>
+            </div>
+            <div>
+              <div class="row-meta">Шаблон</div>
+              <div>${escapeHtml(item.template_name || "—")}</div>
+            </div>
+            <div>
+              <div class="row-meta">Пользователь</div>
+              <div>${escapeHtml(item.owner_nickname || "—")}</div>
+            </div>
+            <div>
+              <div class="row-meta">Удалено</div>
+              <div>${escapeHtml(item.deleted_at ? new Date(item.deleted_at).toLocaleString("ru-RU") : "—")}</div>
+            </div>
+            <div class="actions"></div>
+          </div>
+        `;
+      }).join("")
+    : '<div class="table-empty">Помеченных обращений нет.</div>';
+
+  els.adminDeletedInstitutionsList.innerHTML = deletedInstitutions.length
+    ? deletedInstitutions.map((item) => `
+      <div class="table-row compact-3">
+        <div>
+          <div class="row-title">${escapeHtml(item.name)}</div>
+          <div class="row-meta">${escapeHtml(getCategoryLabel(item.category || "authority"))} · ${escapeHtml(getVisibilityLabel(item.visibility))}</div>
+          <div class="row-meta">Автор: ${escapeHtml(item.owner_nickname || "—")}</div>
+        </div>
+        <div>${escapeHtml(item.submit_url || "—")}</div>
+        <div>
+          <div class="row-meta">Удалено</div>
+          <div>${escapeHtml(item.deleted_at ? new Date(item.deleted_at).toLocaleString("ru-RU") : "—")}</div>
+        </div>
+      </div>
+    `).join("")
+    : '<div class="table-empty">Помеченных организаций нет.</div>';
+
+  els.adminDeletedTemplatesList.innerHTML = deletedTemplates.length
+    ? deletedTemplates.map((item) => `
+      <div class="table-row compact-3">
+        <div>
+          <div class="row-title">${escapeHtml(item.name)}</div>
+          <div class="row-meta">${escapeHtml(getCategoryLabel(item.category || "authority"))} · ${escapeHtml(getVisibilityLabel(item.visibility))}</div>
+          <div class="row-meta">Автор: ${escapeHtml(item.owner_nickname || "—")}</div>
+        </div>
+        <div>${escapeHtml(item.body_template ? "Есть текст" : "Без текста")}</div>
+        <div>
+          <div class="row-meta">Удалено</div>
+          <div>${escapeHtml(item.deleted_at ? new Date(item.deleted_at).toLocaleString("ru-RU") : "—")}</div>
+        </div>
+      </div>
+    `).join("")
+    : '<div class="table-empty">Помеченных шаблонов нет.</div>';
+}
+
+function renderAdminBackups() {
+  if (!els.adminBackupsList) {
+    return;
+  }
+
+  els.btnCreateBackup?.classList.toggle("hidden", state.authUser?.role !== "admin_full");
+
+  if (!state.adminBackups.length) {
+    els.adminBackupsList.innerHTML = '<div class="table-empty">Резервных копий пока нет.</div>';
+    return;
+  }
+
+  els.adminBackupsList.innerHTML = state.adminBackups.map((item) => `
+    <div class="table-row compact-3">
+      <div>
+        <div class="row-title">${escapeHtml(item.fileName)}</div>
+        <div class="row-meta">Создан: ${escapeHtml(new Date(item.createdAt).toLocaleString("ru-RU"))}</div>
+      </div>
+      <div>${escapeHtml(formatBytes(item.sizeBytes))}</div>
+      <div class="actions">
+        ${state.authUser?.role === "admin_full"
+          ? `<button class="btn btn-secondary" type="button" data-restore-backup="${escapeHtml(item.fileName)}">Восстановить</button>`
+          : ""}
+      </div>
+    </div>
+  `).join("");
+
+  document.querySelectorAll("[data-restore-backup]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      handle(() => restoreBackupFromAdmin(btn.dataset.restoreBackup));
+    });
+  });
+}
+
 async function loadAdminUsers() {
   if (!isAdminRole(state.authUser?.role)) {
     return;
@@ -660,7 +800,36 @@ async function loadAdminUsers() {
   state.adminUsers = data.users || [];
   renderAdminUsers();
   renderAdminDirectories();
+  renderAdminPanels();
   logRuntime("list users", data);
+}
+
+async function loadDeletedAdminItems() {
+  if (!isAdminRole(state.authUser?.role)) {
+    return;
+  }
+
+  const data = await api.listDeletedAdminItems();
+  state.adminDeleted = {
+    cases: data.cases || [],
+    institutions: data.institutions || [],
+    templates: data.templates || []
+  };
+  renderDeletedAdminItems();
+  renderAdminPanels();
+  logRuntime("list deleted admin items", data);
+}
+
+async function loadAdminBackups() {
+  if (!isAdminRole(state.authUser?.role)) {
+    return;
+  }
+
+  const data = await api.listBackups();
+  state.adminBackups = data.backups || [];
+  renderAdminBackups();
+  renderAdminPanels();
+  logRuntime("list backups", data);
 }
 
 async function ensureAdminUsersLoaded() {
@@ -808,6 +977,9 @@ async function logoutUser() {
   state.resultFiles = [];
   state.relatedCases = [];
   state.adminUsers = [];
+  state.adminDeleted = { cases: [], institutions: [], templates: [] };
+  state.adminBackups = [];
+  state.adminSection = "users";
   resetDirectoryFilters();
   renderAuthState();
   resetInstitutionForm();
@@ -819,13 +991,14 @@ async function purgeDeletedRecords() {
   const confirmed = await confirmDestructiveAction("Будут окончательно удалены все помеченные обращения, шаблоны и организации. Подтвердите.");
   if (!confirmed) return;
 
-  const result = await withButtonLoading(els.btnPurgeDeleted, "Удаляем...", async () => api.purgeDeleted());
+  const result = await api.purgeDeleted();
   logRuntime("purge deleted", result);
 
   await ensureAdminUsersLoaded();
   await loadInstitutions();
   await loadTemplates();
   await loadCases();
+  await loadDeletedAdminItems();
 }
 
 async function publishInstitutionFromAdmin(institutionId) {
@@ -861,6 +1034,29 @@ async function publishTemplateFromAdmin(templateId) {
 
   await loadTemplates();
   renderAdminDirectories();
+}
+
+async function createBackupFromAdmin() {
+  const result = await withButtonLoading(els.btnCreateBackup, "Сохраняем...", async () => api.createBackup());
+  logRuntime("create backup", result);
+  await loadAdminBackups();
+}
+
+async function restoreBackupFromAdmin(fileName) {
+  if (!fileName) return;
+
+  const confirmed = await confirmDestructiveAction(`База будет восстановлена из копии ${fileName}. Подтвердите.`);
+  if (!confirmed) return;
+
+  const result = await api.restoreBackup(fileName);
+  logRuntime("restore backup", result);
+
+  await ensureAdminUsersLoaded();
+  await loadInstitutions();
+  await loadTemplates();
+  await loadCases();
+  await loadDeletedAdminItems();
+  await loadAdminBackups();
 }
 function openRuntimeLogModal() {
   els.runtimeLogModal.classList.remove("hidden");
@@ -932,6 +1128,25 @@ function getCategoryLabel(value) {
   return DIRECTORY_CATEGORY_LABELS[value] || "Без категории";
 }
 
+function formatBytes(value) {
+  const bytes = Number(value || 0);
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return "0 Б";
+  }
+
+  const units = ["Б", "КБ", "МБ", "ГБ"];
+  let current = bytes;
+  let index = 0;
+
+  while (current >= 1024 && index < units.length - 1) {
+    current /= 1024;
+    index += 1;
+  }
+
+  const digits = current >= 10 || index === 0 ? 0 : 1;
+  return `${current.toFixed(digits)} ${units[index]}`;
+}
+
 function renderContextNav() {
   if (!els.contextNav || !els.contextNavTitle) {
     return;
@@ -976,7 +1191,12 @@ function renderContextNav() {
   } else if (state.currentScreen === "admin") {
     title = "Админка";
     items = [
-      { action: "screen:admin", label: "Пользователи", active: true }
+      { action: "admin-section:users", label: "Пользователи", active: state.adminSection === "users" },
+      { action: "admin-section:private_institutions", label: "Личные организации", active: state.adminSection === "private_institutions" },
+      { action: "admin-section:private_templates", label: "Личные шаблоны", active: state.adminSection === "private_templates" },
+      { action: "admin-section:deleted", label: "Просмотр помеченных", active: state.adminSection === "deleted" },
+      { action: "admin-action:purge-deleted", label: "Удаление помеченных", active: false },
+      { action: "admin-section:backups", label: "Бэкапы", active: state.adminSection === "backups" }
     ];
   } else {
     title = "Обращения";
@@ -2604,9 +2824,12 @@ function bindEvents() {
           await loadTemplates();
         }
         if (btn.dataset.screen === "admin") {
+          state.adminSection = "users";
           await loadInstitutions();
           await loadTemplates();
           await loadAdminUsers();
+          await loadAdminBackups();
+          renderAdminPanels();
           scrollMainContentToTop();
         }
       });
@@ -2615,7 +2838,7 @@ function bindEvents() {
   els.btnLogin?.addEventListener("click", () => handle(loginUser));
   els.btnRegister?.addEventListener("click", () => handle(registerUser));
   els.btnLogout?.addEventListener("click", () => handle(logoutUser));
-  els.btnPurgeDeleted?.addEventListener("click", () => handle(purgeDeletedRecords));
+  els.btnCreateBackup?.addEventListener("click", () => handle(createBackupFromAdmin));
   els.authLoginPassword?.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       handle(loginUser);
@@ -2682,6 +2905,24 @@ function bindEvents() {
         }
         renderContextNav();
         renderTemplates();
+        return;
+      }
+
+      if (action.startsWith("admin-section:")) {
+        state.adminSection = action.slice("admin-section:".length);
+        renderContextNav();
+        renderAdminPanels();
+        if (state.adminSection === "deleted") {
+          await handle(loadDeletedAdminItems);
+        } else if (state.adminSection === "backups") {
+          await handle(loadAdminBackups);
+        }
+        return;
+      }
+
+      if (action === "admin-action:purge-deleted") {
+        await handle(purgeDeletedRecords);
+        return;
       }
     });
 

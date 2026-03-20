@@ -424,6 +424,35 @@ export class TemplatesService {
     return { count: ids.length };
   }
 
+  async listDeletedTemplates(): Promise<TemplateRecord[]> {
+    const result = await postgres.query<TemplateRecord>(
+      `
+      select
+        t.id,
+        t.name,
+        t.category,
+        t.visibility,
+        t.owner_user_id,
+        u.nickname as owner_nickname,
+        t.institution_id,
+        t.body_template,
+        t.variables_schema,
+        t.default_values,
+        t.deleted_at,
+        t.created_at,
+        t.updated_at,
+        false as can_edit,
+        false as is_favorite
+      from templates t
+      left join users u on u.id = t.owner_user_id
+      where t.deleted_at is not null
+      order by t.deleted_at desc nulls last, t.updated_at desc
+      `
+    );
+
+    return result.rows;
+  }
+
   async addFavorite(id: string, authUser: AuthUser): Promise<TemplateRecord> {
     const existing = await this.getTemplateById(id, authUser);
 
