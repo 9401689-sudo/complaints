@@ -126,6 +126,7 @@ const els = {
   institutionsList: document.getElementById("institutionsList"),
   institutionName: document.getElementById("institutionName"),
   institutionCategory: document.getElementById("institutionCategory"),
+  institutionVisibility: document.getElementById("institutionVisibility"),
   institutionSubmitUrl: document.getElementById("institutionSubmitUrl"),
   institutionMaxAttachments: document.getElementById("institutionMaxAttachments"),
   institutionMaxTextLength: document.getElementById("institutionMaxTextLength"),
@@ -137,6 +138,7 @@ const els = {
   templatesList: document.getElementById("templatesList"),
   templateName: document.getElementById("templateName"),
   templateCategory: document.getElementById("templateCategory"),
+  templateVisibility: document.getElementById("templateVisibility"),
   templateBody: document.getElementById("templateBody"),
   templateVariablesSchema: document.getElementById("templateVariablesSchema"),
   templateDefaultValues: document.getElementById("templateDefaultValues"),
@@ -405,8 +407,38 @@ function isAdminRole(role) {
   return role === "admin_view" || role === "admin_full";
 }
 
+function getVisibilityLabel(visibility) {
+  return visibility === "private" ? "Личное" : "Общее";
+}
+
+function canEditDirectoryItem(item) {
+  return Boolean(item?.can_edit);
+}
+
+function canManageDirectories() {
+  return state.authUser?.role === "admin_full";
+}
+
 function canManageUsers() {
   return state.authUser?.role === "admin_full";
+}
+
+function syncDirectoryVisibilityControls() {
+  const allowPublic = canManageDirectories();
+
+  if (els.institutionVisibility) {
+    if (!allowPublic) {
+      els.institutionVisibility.value = "private";
+    }
+    els.institutionVisibility.disabled = !allowPublic;
+  }
+
+  if (els.templateVisibility) {
+    if (!allowPublic) {
+      els.templateVisibility.value = "private";
+    }
+    els.templateVisibility.disabled = !allowPublic;
+  }
 }
 
 function showAuthGate() {
@@ -434,6 +466,8 @@ function renderAuthState() {
   if (els.topbarUserRole) {
     els.topbarUserRole.textContent = roleLabel(user?.role);
   }
+
+  syncDirectoryVisibilityControls();
 }
 
 function renderAdminUsers() {
@@ -485,6 +519,8 @@ async function loadAdminUsers() {
 async function applyAuthorizedAppState() {
   renderAuthState();
   hideAuthGate();
+  resetInstitutionForm();
+  resetTemplateForm();
   await loadInstitutions();
   await loadTemplates();
   await loadCases();
@@ -570,6 +606,8 @@ async function logoutUser() {
   state.relatedCases = [];
   state.adminUsers = [];
   renderAuthState();
+  resetInstitutionForm();
+  resetTemplateForm();
   showAuthGate();
 }
 function openRuntimeLogModal() {
@@ -743,25 +781,31 @@ function resetInstitutionForm() {
   state.editingInstitutionId = null;
   els.institutionName.value = "";
   els.institutionCategory.value = "authority";
+  els.institutionVisibility.value = canManageDirectories() ? "public" : "private";
   els.institutionSubmitUrl.value = "";
   els.institutionMaxAttachments.value = "5";
   els.institutionMaxTextLength.value = "4000";
   els.institutionAcceptedFormats.value = "image/jpeg,image/png";
   els.btnCreateInstitution.textContent = "Сохранить организацию";
+  syncDirectoryVisibilityControls();
 }
 
 function resetTemplateForm() {
   state.editingTemplateId = null;
   els.templateName.value = "";
   els.templateCategory.value = "authority";
+  els.templateVisibility.value = canManageDirectories() ? "public" : "private";
   els.templateBody.value = "";
   els.btnCreateTemplate.textContent = "Сохранить шаблон";
+  syncDirectoryVisibilityControls();
 }
 
 function openInstitutionEdit(item) {
+  if (!canEditDirectoryItem(item)) return;
   state.editingInstitutionId = item.id;
   els.institutionName.value = item.name || "";
   els.institutionCategory.value = item.category || "authority";
+  els.institutionVisibility.value = item.visibility || "private";
   els.institutionSubmitUrl.value = item.submit_url || "";
   els.institutionMaxAttachments.value = String(item.max_attachments ?? 5);
   els.institutionMaxTextLength.value = String(item.max_text_length ?? 4000);
@@ -769,16 +813,20 @@ function openInstitutionEdit(item) {
     ? item.accepted_formats.join(",")
     : "image/jpeg,image/png";
   els.btnCreateInstitution.textContent = "Сохранить изменения";
+  syncDirectoryVisibilityControls();
   els.institutionFormPanel.classList.remove("hidden");
   setScreen("institutions");
 }
 
 function openTemplateEdit(item) {
+  if (!canEditDirectoryItem(item)) return;
   state.editingTemplateId = item.id;
   els.templateName.value = item.name || "";
   els.templateCategory.value = item.category || "authority";
+  els.templateVisibility.value = item.visibility || "private";
   els.templateBody.value = item.body_template || "";
   els.btnCreateTemplate.textContent = "Сохранить изменения";
+  syncDirectoryVisibilityControls();
   els.templateFormPanel.classList.remove("hidden");
   setScreen("templates");
 }
@@ -1033,7 +1081,7 @@ function renderCases() {
       .join("");
 
     return `
-      <div class="table-row cases-row clickable-row" data-open-case-id="${item.id}">
+      <div class="table-row cases-row ${showOwner ? "cases-row-admin" : ""} clickable-row" data-open-case-id="${item.id}">
         <div>
           <div class="row-title">${escapeHtml(item.title || "Без названия")}</div>
           <div class="row-meta">${escapeHtml(item.description || "")}</div>
@@ -1086,6 +1134,7 @@ function renderCases() {
 }
 
 function renderInstitutions() {
+  const showOwner = isAdminRole(state.authUser?.role);
   const filteredInstitutions = state.institutions.filter((item) => {
     if (!state.institutionsCategoryFilter) {
       return true;
@@ -1097,14 +1146,17 @@ function renderInstitutions() {
     els.institutionsList.innerHTML = '<div class="notice">Организаций пока нет.</div>';
   } else {
     els.institutionsList.innerHTML = filteredInstitutions.map((item) => `
-      <div class="table-row compact-3 clickable-row" data-edit-institution-id="${item.id}">
+      <div class="table-row compact-3 ${canEditDirectoryItem(item) ? "clickable-row" : ""}" data-edit-institution-id="${item.id}">
         <div>
           <div class="row-title">${escapeHtml(item.name)}</div>
-          <div class="row-meta">${escapeHtml(getCategoryLabel(item.category || "authority"))}</div>
+          <div class="row-meta">${escapeHtml(getCategoryLabel(item.category || "authority"))} · ${escapeHtml(getVisibilityLabel(item.visibility))}</div>
+          ${showOwner && item.owner_nickname ? `<div class="row-meta">Автор: ${escapeHtml(item.owner_nickname)}</div>` : ""}
         </div>
         <div>${escapeHtml(item.submit_url)}</div>
         <div class="actions">
-          <button class="btn btn-secondary icon-delete-btn" title="Удалить" aria-label="Удалить" data-delete-institution-id="${item.id}" data-delete-institution-name="${escapeHtml(item.name)}">🗑</button>
+          ${canEditDirectoryItem(item)
+            ? `<button class="btn btn-secondary icon-delete-btn" title="Удалить" aria-label="Удалить" data-delete-institution-id="${item.id}" data-delete-institution-name="${escapeHtml(item.name)}">🗑</button>`
+            : ""}
         </div>
       </div>
     `).join("");
@@ -1114,7 +1166,7 @@ function renderInstitutions() {
     btn.addEventListener("click", (event) => {
       if (event.target.closest("button")) return;
       const item = state.institutions.find((x) => x.id === btn.dataset.editInstitutionId);
-      if (item) openInstitutionEdit(item);
+      if (item && canEditDirectoryItem(item)) openInstitutionEdit(item);
     });
   });
   document.querySelectorAll("[data-delete-institution-id]").forEach((btn) => {
@@ -1132,6 +1184,7 @@ function renderInstitutions() {
 }
 
 function renderTemplates() {
+  const showOwner = isAdminRole(state.authUser?.role);
   const filteredTemplates = state.templates.filter((item) => {
     if (!state.templatesCategoryFilter) {
       return true;
@@ -1143,14 +1196,17 @@ function renderTemplates() {
     els.templatesList.innerHTML = '<div class="notice">Шаблонов пока нет.</div>';
   } else {
     els.templatesList.innerHTML = filteredTemplates.map((item) => `
-      <div class="table-row compact-3 clickable-row" data-edit-template-id="${item.id}">
+      <div class="table-row compact-3 ${canEditDirectoryItem(item) ? "clickable-row" : ""}" data-edit-template-id="${item.id}">
         <div>
           <div class="row-title">${escapeHtml(item.name)}</div>
-          <div class="row-meta">${escapeHtml(getCategoryLabel(item.category || "authority"))}</div>
+          <div class="row-meta">${escapeHtml(getCategoryLabel(item.category || "authority"))} · ${escapeHtml(getVisibilityLabel(item.visibility))}</div>
+          ${showOwner && item.owner_nickname ? `<div class="row-meta">Автор: ${escapeHtml(item.owner_nickname)}</div>` : ""}
         </div>
         <div></div>
         <div class="actions">
-          <button class="btn btn-secondary icon-delete-btn" title="Удалить" aria-label="Удалить" data-delete-template-id="${item.id}" data-delete-template-name="${escapeHtml(item.name)}">🗑</button>
+          ${canEditDirectoryItem(item)
+            ? `<button class="btn btn-secondary icon-delete-btn" title="Удалить" aria-label="Удалить" data-delete-template-id="${item.id}" data-delete-template-name="${escapeHtml(item.name)}">🗑</button>`
+            : ""}
         </div>
       </div>
     `).join("");
@@ -1160,7 +1216,7 @@ function renderTemplates() {
     btn.addEventListener("click", (event) => {
       if (event.target.closest("button")) return;
       const item = state.templates.find((x) => x.id === btn.dataset.editTemplateId);
-      if (item) openTemplateEdit(item);
+      if (item && canEditDirectoryItem(item)) openTemplateEdit(item);
     });
   });
   document.querySelectorAll("[data-delete-template-id]").forEach((btn) => {
@@ -1178,7 +1234,7 @@ function renderTemplates() {
 
 function fillInstitutionSelects() {
   const options = ['<option value="">— не выбрано —</option>']
-    .concat(state.institutions.map((item) => `<option value="${item.id}">${escapeHtml(item.name)}</option>`))
+    .concat(state.institutions.map((item) => `<option value="${item.id}">${escapeHtml(item.name)} (${escapeHtml(getVisibilityLabel(item.visibility))})</option>`))
     .join("");
 
   els.caseInstitutionSelect.innerHTML = options;
@@ -1186,7 +1242,7 @@ function fillInstitutionSelects() {
 
 function fillTemplateSelect() {
   const options = ['<option value="">— не выбрано —</option>']
-    .concat(state.templates.map((item) => `<option value="${item.id}">${escapeHtml(item.name)}</option>`))
+    .concat(state.templates.map((item) => `<option value="${item.id}">${escapeHtml(item.name)} (${escapeHtml(getVisibilityLabel(item.visibility))})</option>`))
     .join("");
 
   els.caseTemplateSelect.innerHTML = options;
@@ -1323,7 +1379,14 @@ function renderWorkspaceSummary() {
     ? `${caseData.title}`
     : (caseData.case_number ? `Обращение ${caseData.case_number}` : "Обращение");
 
-  els.workspaceSubtitle.textContent = caseData.description || state.currentCaseId || "";
+  const subtitleParts = [];
+  if (caseData.description) {
+    subtitleParts.push(caseData.description);
+  }
+  if (isAdminRole(state.authUser?.role)) {
+    subtitleParts.push(`Пользователь: ${caseData.owner_nickname || "—"}`);
+  }
+  els.workspaceSubtitle.textContent = subtitleParts.join(" · ");
 
   els.caseInstitutionSelect.value = caseData.institution_id || "";
   els.caseTemplateSelect.value = caseData.template_id || "";
@@ -1749,6 +1812,7 @@ async function createInstitution() {
     const payload = {
       name: els.institutionName.value.trim(),
       category: els.institutionCategory.value || "authority",
+      visibility: els.institutionVisibility.value || "private",
       submitUrl: els.institutionSubmitUrl.value.trim(),
       maxAttachments: Number(els.institutionMaxAttachments.value || 5),
       maxTextLength: Number(els.institutionMaxTextLength.value || 4000),
@@ -1783,6 +1847,7 @@ async function createTemplate() {
     const payload = {
       name: els.templateName.value.trim(),
       category: els.templateCategory.value || "authority",
+      visibility: els.templateVisibility.value || "private",
       bodyTemplate: els.templateBody.value,
       variablesSchema: getTemplateVariablesSchema(),
       defaultValues: getDefaultTemplateValues()

@@ -138,17 +138,24 @@
                 <label for="institutionName">Название</label>
                 <input id="institutionName" />
               </div>
-              <div class="field">
-                <label for="institutionCategory">Категория</label>
-                <select id="institutionCategory">
-                  <option value="authority">Органы власти</option>
-                  <option value="state_org">Государственные организации</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="institutionSubmitUrl">URL подачи</label>
-                <input id="institutionSubmitUrl" />
-              </div>
+                <div class="field">
+                  <label for="institutionCategory">Категория</label>
+                  <select id="institutionCategory">
+                    <option value="authority">Органы власти</option>
+                    <option value="state_org">Государственные организации</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="institutionVisibility">Доступ</label>
+                  <select id="institutionVisibility">
+                    <option value="private">Личное</option>
+                    <option value="public">Общее</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="institutionSubmitUrl">URL подачи</label>
+                  <input id="institutionSubmitUrl" />
+                </div>
               <div class="field">
                 <label for="institutionMaxAttachments">Макс. вложений</label>
                 <input id="institutionMaxAttachments" type="number" value="5" />
@@ -198,17 +205,24 @@
                 <label for="templateName">Название</label>
                 <input id="templateName" />
               </div>
-              <div class="field">
-                <label for="templateCategory">Категория</label>
-                <select id="templateCategory">
-                  <option value="authority">Органы власти</option>
-                  <option value="state_org">Государственные организации</option>
-                </select>
-              </div>
-              <div class="field full">
-                <label>Вставка переменных</label>
-                <div id="templateVariableToolbar" class="variable-toolbar"></div>
-              </div>
+                <div class="field">
+                  <label for="templateCategory">Категория</label>
+                  <select id="templateCategory">
+                    <option value="authority">Органы власти</option>
+                    <option value="state_org">Государственные организации</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="templateVisibility">Доступ</label>
+                  <select id="templateVisibility">
+                    <option value="private">Личное</option>
+                    <option value="public">Общее</option>
+                  </select>
+                </div>
+                <div class="field full">
+                  <label>Вставка переменных</label>
+                  <div id="templateVariableToolbar" class="variable-toolbar"></div>
+                </div>
               <div class="field full">
                 <label for="templateBody">Текст шаблона</label>
                 <textarea id="templateBody"></textarea>

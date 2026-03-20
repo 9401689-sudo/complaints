@@ -653,6 +653,10 @@ textarea {
   grid-template-columns: 1.5fr 0.9fr 1fr 1fr 1fr auto;
 }
 
+.cases-row.cases-row-admin {
+  grid-template-columns: 1.5fr 0.9fr 1fr 1fr 1fr 1fr auto;
+}
+
 .cases-row .row-title {
   font-size: 16px;
 }

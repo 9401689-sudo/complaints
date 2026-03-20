@@ -9,7 +9,7 @@ import {
 export async function registerInstitutionsRoutes(app: FastifyInstance): Promise<void> {
   app.get(`${env.API_BASE_PATH}/institutions`, async (request, reply) => {
     try {
-      const institutions = await institutionsService.listInstitutions();
+      const institutions = await institutionsService.listInstitutions(request.authUser);
 
       return reply.send({
         ok: true,
@@ -30,7 +30,8 @@ export async function registerInstitutionsRoutes(app: FastifyInstance): Promise<
     async (request, reply) => {
       try {
         const institution = await institutionsService.getInstitutionById(
-          request.params.id
+          request.params.id,
+          request.authUser
         );
 
         if (!institution) {
@@ -59,7 +60,7 @@ export async function registerInstitutionsRoutes(app: FastifyInstance): Promise<
     `${env.API_BASE_PATH}/institutions/:id`,
     async (request, reply) => {
       try {
-        const deleted = await institutionsService.deleteInstitution(request.params.id);
+        const deleted = await institutionsService.deleteInstitution(request.params.id, request.authUser);
 
         return reply.send({
           ok: true,
@@ -73,6 +74,8 @@ export async function registerInstitutionsRoutes(app: FastifyInstance): Promise<
         const statusCode =
           message === 'institution not found'
             ? 404
+            : message === 'institution access denied'
+              ? 403
             : message === 'institution is used in cases or templates'
               ? 409
               : 500;
@@ -89,7 +92,7 @@ export async function registerInstitutionsRoutes(app: FastifyInstance): Promise<
     `${env.API_BASE_PATH}/institutions`,
     async (request, reply) => {
       try {
-        const institution = await institutionsService.createInstitution(request.body);
+        const institution = await institutionsService.createInstitution(request.body, request.authUser);
 
         return reply.code(201).send({
           ok: true,
@@ -101,8 +104,9 @@ export async function registerInstitutionsRoutes(app: FastifyInstance): Promise<
         const message = error instanceof Error ? error.message : 'internal error';
         const statusCode =
           message.includes('required') || message.includes('must be') ? 400 : 500;
+        const finalStatusCode = message === 'visibility is invalid' ? 400 : statusCode;
 
-        return reply.code(statusCode).send({
+        return reply.code(finalStatusCode).send({
           ok: false,
           error: message,
         });
@@ -116,7 +120,8 @@ export async function registerInstitutionsRoutes(app: FastifyInstance): Promise<
       try {
         const institution = await institutionsService.updateInstitution(
           request.params.id,
-          request.body
+          request.body,
+          request.authUser
         );
 
         return reply.send({
@@ -131,7 +136,9 @@ export async function registerInstitutionsRoutes(app: FastifyInstance): Promise<
         const statusCode =
           message === 'institution not found'
             ? 404
-            : message.includes('required') || message.includes('must be')
+            : message === 'institution access denied'
+              ? 403
+            : message.includes('required') || message.includes('must be') || message.includes('visibility is invalid')
               ? 400
               : 500;
 

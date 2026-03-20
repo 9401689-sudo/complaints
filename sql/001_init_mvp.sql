@@ -54,6 +54,8 @@ create table if not exists institutions (
   id uuid primary key default uuid_generate_v4(),
   name text not null,
   category text not null default 'authority',
+  visibility text not null default 'public',
+  owner_user_id uuid references users(id) on delete set null,
   submit_url text not null,
   max_attachments integer not null default 5,
   max_text_length integer not null default 4000,
@@ -65,6 +67,8 @@ create table if not exists templates (
   id uuid primary key default uuid_generate_v4(),
   name text not null,
   category text not null default 'authority',
+  visibility text not null default 'public',
+  owner_user_id uuid references users(id) on delete set null,
   institution_id uuid references institutions(id) on delete set null,
   body_template text not null,
   variables_schema jsonb not null default '[]'::jsonb,
@@ -130,6 +134,10 @@ alter table institutions drop column if exists active;
 alter table templates drop column if exists active;
 alter table institutions add column if not exists category text not null default 'authority';
 alter table templates add column if not exists category text not null default 'authority';
+alter table institutions add column if not exists visibility text not null default 'public';
+alter table templates add column if not exists visibility text not null default 'public';
+alter table institutions add column if not exists owner_user_id uuid references users(id) on delete set null;
+alter table templates add column if not exists owner_user_id uuid references users(id) on delete set null;
 
 create table if not exists case_variables (
   id uuid primary key default uuid_generate_v4(),

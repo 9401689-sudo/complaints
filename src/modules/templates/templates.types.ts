@@ -2,6 +2,10 @@ export interface TemplateRecord {
   id: string;
   name: string;
   category: string;
+  visibility: 'public' | 'private';
+  owner_user_id: string | null;
+  owner_nickname?: string | null;
+  can_edit?: boolean;
   institution_id: string | null;
   body_template: string;
   variables_schema: unknown[];
@@ -13,6 +17,7 @@ export interface TemplateRecord {
 export interface CreateTemplateBody {
   name: string;
   category?: string;
+  visibility?: 'public' | 'private';
   bodyTemplate: string;
   variablesSchema?: unknown[];
   defaultValues?: Record<string, unknown>;
@@ -21,6 +26,7 @@ export interface CreateTemplateBody {
 export interface UpdateTemplateBody {
   name?: string;
   category?: string;
+  visibility?: 'public' | 'private';
   bodyTemplate?: string;
   variablesSchema?: unknown[];
   defaultValues?: Record<string, unknown>;

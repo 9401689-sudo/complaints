@@ -2,6 +2,10 @@ export interface InstitutionRecord {
   id: string;
   name: string;
   category: string;
+  visibility: 'public' | 'private';
+  owner_user_id: string | null;
+  owner_nickname?: string | null;
+  can_edit?: boolean;
   submit_url: string;
   max_attachments: number;
   max_text_length: number;
@@ -12,6 +16,7 @@ export interface InstitutionRecord {
 export interface CreateInstitutionBody {
   name: string;
   category?: string;
+  visibility?: 'public' | 'private';
   submitUrl: string;
   maxAttachments?: number;
   maxTextLength?: number;
@@ -21,6 +26,7 @@ export interface CreateInstitutionBody {
 export interface UpdateInstitutionBody {
   name?: string;
   category?: string;
+  visibility?: 'public' | 'private';
   submitUrl?: string;
   maxAttachments?: number;
   maxTextLength?: number;

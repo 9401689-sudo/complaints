@@ -888,33 +888,39 @@ export class CasesService {
 
     const result = await postgres.query<TemplateRow>(
       `
-      insert into templates (
-        name,
-        category,
-        institution_id,
-        body_template,
-        variables_schema,
-        default_values
-      )
-      values ($1, $2, $3, $4, $5::jsonb, $6::jsonb)
-      returning
-        id,
-        name,
-        category,
-        institution_id,
-        body_template,
-        variables_schema,
-        default_values,
+        insert into templates (
+          name,
+          category,
+          visibility,
+          owner_user_id,
+          institution_id,
+          body_template,
+          variables_schema,
+          default_values
+        )
+        values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb)
+        returning
+          id,
+          name,
+          category,
+          visibility,
+          owner_user_id,
+          institution_id,
+          body_template,
+          variables_schema,
+          default_values,
         created_at,
         updated_at
-      `,
-        [
-        templateName,
-        'authority',
-        caseRow.institution_id,
-        templateContent,
-        JSON.stringify([
-          { key: 'complaint_date', label: 'Дата', type: 'date', required: false },
+        `,
+          [
+          templateName,
+          'authority',
+          authUser?.role === 'admin_full' ? 'public' : 'private',
+          authUser?.id ?? null,
+          caseRow.institution_id,
+          templateContent,
+          JSON.stringify([
+            { key: 'complaint_date', label: 'Дата', type: 'date', required: false },
           { key: 'address', label: 'Адрес', type: 'text', required: false },
           { key: 'license_plate', label: 'Гос.номер', type: 'text', required: false }
         ]),
