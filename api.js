@@ -183,6 +183,18 @@ export const api = {
     return request("/institutions");
   },
 
+  addInstitutionFavorite(id) {
+    return request(`/institutions/${id}/favorite`, {
+      method: "POST"
+    });
+  },
+
+  removeInstitutionFavorite(id) {
+    return request(`/institutions/${id}/favorite`, {
+      method: "DELETE"
+    });
+  },
+
   createInstitution(payload) {
     return request("/institutions", {
       method: "POST",
@@ -205,6 +217,18 @@ export const api = {
 
   listTemplates() {
     return request("/templates");
+  },
+
+  addTemplateFavorite(id) {
+    return request(`/templates/${id}/favorite`, {
+      method: "POST"
+    });
+  },
+
+  removeTemplateFavorite(id) {
+    return request(`/templates/${id}/favorite`, {
+      method: "DELETE"
+    });
   },
 
   createTemplate(payload) {

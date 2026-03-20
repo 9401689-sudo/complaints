@@ -146,6 +146,20 @@ create table if not exists case_variables (
   var_value text,
   created_at timestamptz not null default now(),
   unique(case_id, var_key)
+  );
+
+create table if not exists institution_favorites (
+  user_id uuid not null references users(id) on delete cascade,
+  institution_id uuid not null references institutions(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, institution_id)
+);
+
+create table if not exists template_favorites (
+  user_id uuid not null references users(id) on delete cascade,
+  template_id uuid not null references templates(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, template_id)
 );
 
 create table if not exists case_files (

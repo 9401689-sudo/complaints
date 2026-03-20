@@ -748,6 +748,19 @@ textarea {
   line-height: 1;
 }
 
+.favorite-btn {
+  min-width: 52px;
+  padding: 8px 10px;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.favorite-btn.active {
+  color: #c18712;
+  border-color: rgba(193, 135, 18, 0.35);
+  background: rgba(193, 135, 18, 0.12);
+}
+
 .runtime-log-panel {
   width: 100%;
   height: 100%;

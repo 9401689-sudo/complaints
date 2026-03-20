@@ -38,7 +38,13 @@ export class InstitutionsService {
           i.max_text_length,
           i.accepted_formats,
           i.created_at,
-          (i.visibility = 'private' and i.owner_user_id = $1) as can_edit
+          (i.visibility = 'private' and i.owner_user_id = $1) as can_edit,
+          exists(
+            select 1
+            from institution_favorites f
+            where f.user_id = $1
+              and f.institution_id = i.id
+          ) as is_favorite
         from institutions i
         left join users u on u.id = i.owner_user_id
         where i.visibility = 'public' or i.owner_user_id = $1
@@ -66,7 +72,13 @@ export class InstitutionsService {
         i.max_text_length,
         i.accepted_formats,
         i.created_at,
-        ${canManageDirectory(authUser?.role) ? 'true' : "(i.visibility = 'private' and i.owner_user_id = $1)"} as can_edit
+        ${canManageDirectory(authUser?.role) ? 'true' : "(i.visibility = 'private' and i.owner_user_id = $1)"} as can_edit,
+        ${authUser?.id ? `exists(
+          select 1
+          from institution_favorites f
+          where f.user_id = $1
+            and f.institution_id = i.id
+        )` : 'false'} as is_favorite
       from institutions i
       left join users u on u.id = i.owner_user_id
       order by
@@ -95,7 +107,13 @@ export class InstitutionsService {
           i.max_text_length,
           i.accepted_formats,
           i.created_at,
-          (i.visibility = 'private' and i.owner_user_id = $2) as can_edit
+          (i.visibility = 'private' and i.owner_user_id = $2) as can_edit,
+          exists(
+            select 1
+            from institution_favorites f
+            where f.user_id = $2
+              and f.institution_id = i.id
+          ) as is_favorite
         from institutions i
         left join users u on u.id = i.owner_user_id
         where i.id = $1
@@ -122,7 +140,13 @@ export class InstitutionsService {
         i.max_text_length,
         i.accepted_formats,
         i.created_at,
-        ${canManageDirectory(authUser?.role) ? 'true' : "(i.visibility = 'private' and i.owner_user_id = $2)"} as can_edit
+        ${canManageDirectory(authUser?.role) ? 'true' : "(i.visibility = 'private' and i.owner_user_id = $2)"} as can_edit,
+        ${authUser?.id ? `exists(
+          select 1
+          from institution_favorites f
+          where f.user_id = $2
+            and f.institution_id = i.id
+        )` : 'false'} as is_favorite
       from institutions i
       left join users u on u.id = i.owner_user_id
       where i.id = $1
@@ -355,6 +379,44 @@ export class InstitutionsService {
       id: existing.id,
       name: existing.name,
     };
+  }
+
+  async addFavorite(id: string, authUser: AuthUser): Promise<InstitutionRecord> {
+    const existing = await this.getInstitutionById(id, authUser);
+
+    if (!existing) {
+      throw new Error('institution not found');
+    }
+
+    await postgres.query(
+      `
+      insert into institution_favorites (user_id, institution_id)
+      values ($1, $2)
+      on conflict (user_id, institution_id) do nothing
+      `,
+      [authUser.id, id]
+    );
+
+    return (await this.getInstitutionById(id, authUser)) ?? existing;
+  }
+
+  async removeFavorite(id: string, authUser: AuthUser): Promise<InstitutionRecord> {
+    const existing = await this.getInstitutionById(id, authUser);
+
+    if (!existing) {
+      throw new Error('institution not found');
+    }
+
+    await postgres.query(
+      `
+      delete from institution_favorites
+      where user_id = $1
+        and institution_id = $2
+      `,
+      [authUser.id, id]
+    );
+
+    return (await this.getInstitutionById(id, authUser)) ?? existing;
   }
 }
 

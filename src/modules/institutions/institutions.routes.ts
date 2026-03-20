@@ -56,6 +56,62 @@ export async function registerInstitutionsRoutes(app: FastifyInstance): Promise<
     }
   );
 
+  app.post<{ Params: { id: string } }>(
+    `${env.API_BASE_PATH}/institutions/:id/favorite`,
+    async (request, reply) => {
+      try {
+        if (!request.authUser) {
+          return reply.code(401).send({ ok: false, error: 'unauthorized' });
+        }
+
+        const institution = await institutionsService.addFavorite(request.params.id, request.authUser);
+
+        return reply.send({
+          ok: true,
+          institution,
+        });
+      } catch (error) {
+        request.log.error(error);
+
+        const message = error instanceof Error ? error.message : 'internal error';
+        const statusCode = message === 'institution not found' ? 404 : 500;
+
+        return reply.code(statusCode).send({
+          ok: false,
+          error: message,
+        });
+      }
+    }
+  );
+
+  app.delete<{ Params: { id: string } }>(
+    `${env.API_BASE_PATH}/institutions/:id/favorite`,
+    async (request, reply) => {
+      try {
+        if (!request.authUser) {
+          return reply.code(401).send({ ok: false, error: 'unauthorized' });
+        }
+
+        const institution = await institutionsService.removeFavorite(request.params.id, request.authUser);
+
+        return reply.send({
+          ok: true,
+          institution,
+        });
+      } catch (error) {
+        request.log.error(error);
+
+        const message = error instanceof Error ? error.message : 'internal error';
+        const statusCode = message === 'institution not found' ? 404 : 500;
+
+        return reply.code(statusCode).send({
+          ok: false,
+          error: message,
+        });
+      }
+    }
+  );
+
   app.delete<{ Params: { id: string } }>(
     `${env.API_BASE_PATH}/institutions/:id`,
     async (request, reply) => {

@@ -6,6 +6,7 @@ export interface TemplateRecord {
   owner_user_id: string | null;
   owner_nickname?: string | null;
   can_edit?: boolean;
+  is_favorite?: boolean;
   institution_id: string | null;
   body_template: string;
   variables_schema: unknown[];

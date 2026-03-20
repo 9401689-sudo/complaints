@@ -57,6 +57,62 @@ export async function registerTemplatesRoutes(app: FastifyInstance): Promise<voi
     }
   );
 
+  app.post<{ Params: { id: string } }>(
+    `${env.API_BASE_PATH}/templates/:id/favorite`,
+    async (request, reply) => {
+      try {
+        if (!request.authUser) {
+          return reply.code(401).send({ ok: false, error: 'unauthorized' });
+        }
+
+        const template = await templatesService.addFavorite(request.params.id, request.authUser);
+
+        return reply.send({
+          ok: true,
+          template,
+        });
+      } catch (error) {
+        request.log.error(error);
+
+        const message = error instanceof Error ? error.message : 'internal error';
+        const statusCode = message === 'template not found' ? 404 : 500;
+
+        return reply.code(statusCode).send({
+          ok: false,
+          error: message,
+        });
+      }
+    }
+  );
+
+  app.delete<{ Params: { id: string } }>(
+    `${env.API_BASE_PATH}/templates/:id/favorite`,
+    async (request, reply) => {
+      try {
+        if (!request.authUser) {
+          return reply.code(401).send({ ok: false, error: 'unauthorized' });
+        }
+
+        const template = await templatesService.removeFavorite(request.params.id, request.authUser);
+
+        return reply.send({
+          ok: true,
+          template,
+        });
+      } catch (error) {
+        request.log.error(error);
+
+        const message = error instanceof Error ? error.message : 'internal error';
+        const statusCode = message === 'template not found' ? 404 : 500;
+
+        return reply.code(statusCode).send({
+          ok: false,
+          error: message,
+        });
+      }
+    }
+  );
+
   app.get<{ Params: { id: string } }>(
     `${env.API_BASE_PATH}/templates/:id`,
     async (request, reply) => {

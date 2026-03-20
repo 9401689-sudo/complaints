@@ -39,7 +39,13 @@ export class TemplatesService {
           t.default_values,
           t.created_at,
           t.updated_at,
-          (t.visibility = 'private' and t.owner_user_id = $1) as can_edit
+          (t.visibility = 'private' and t.owner_user_id = $1) as can_edit,
+          exists(
+            select 1
+            from template_favorites f
+            where f.user_id = $1
+              and f.template_id = t.id
+          ) as is_favorite
         from templates t
         left join users u on u.id = t.owner_user_id
         where t.visibility = 'public' or t.owner_user_id = $1
@@ -68,7 +74,13 @@ export class TemplatesService {
         t.default_values,
         t.created_at,
         t.updated_at,
-        ${canManageDirectory(authUser?.role) ? 'true' : "(t.visibility = 'private' and t.owner_user_id = $1)"} as can_edit
+        ${canManageDirectory(authUser?.role) ? 'true' : "(t.visibility = 'private' and t.owner_user_id = $1)"} as can_edit,
+        ${authUser?.id ? `exists(
+          select 1
+          from template_favorites f
+          where f.user_id = $1
+            and f.template_id = t.id
+        )` : 'false'} as is_favorite
       from templates t
       left join users u on u.id = t.owner_user_id
       order by
@@ -98,7 +110,13 @@ export class TemplatesService {
           t.default_values,
           t.created_at,
           t.updated_at,
-          (t.visibility = 'private' and t.owner_user_id = $2) as can_edit
+          (t.visibility = 'private' and t.owner_user_id = $2) as can_edit,
+          exists(
+            select 1
+            from template_favorites f
+            where f.user_id = $2
+              and f.template_id = t.id
+          ) as is_favorite
         from templates t
         left join users u on u.id = t.owner_user_id
         where t.id = $1
@@ -126,7 +144,13 @@ export class TemplatesService {
         t.default_values,
         t.created_at,
         t.updated_at,
-        ${canManageDirectory(authUser?.role) ? 'true' : "(t.visibility = 'private' and t.owner_user_id = $2)"} as can_edit
+        ${canManageDirectory(authUser?.role) ? 'true' : "(t.visibility = 'private' and t.owner_user_id = $2)"} as can_edit,
+        ${authUser?.id ? `exists(
+          select 1
+          from template_favorites f
+          where f.user_id = $2
+            and f.template_id = t.id
+        )` : 'false'} as is_favorite
       from templates t
       left join users u on u.id = t.owner_user_id
       where t.id = $1
@@ -348,6 +372,44 @@ export class TemplatesService {
       id: existing.id,
       name: existing.name
     };
+  }
+
+  async addFavorite(id: string, authUser: AuthUser): Promise<TemplateRecord> {
+    const existing = await this.getTemplateById(id, authUser);
+
+    if (!existing) {
+      throw new Error('template not found');
+    }
+
+    await postgres.query(
+      `
+      insert into template_favorites (user_id, template_id)
+      values ($1, $2)
+      on conflict (user_id, template_id) do nothing
+      `,
+      [authUser.id, id]
+    );
+
+    return (await this.getTemplateById(id, authUser)) ?? existing;
+  }
+
+  async removeFavorite(id: string, authUser: AuthUser): Promise<TemplateRecord> {
+    const existing = await this.getTemplateById(id, authUser);
+
+    if (!existing) {
+      throw new Error('template not found');
+    }
+
+    await postgres.query(
+      `
+      delete from template_favorites
+      where user_id = $1
+        and template_id = $2
+      `,
+      [authUser.id, id]
+    );
+
+    return (await this.getTemplateById(id, authUser)) ?? existing;
   }
 }
 
