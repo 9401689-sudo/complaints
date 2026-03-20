@@ -9,6 +9,8 @@ services:
       - .env
     ports:
       - "127.0.0.1:3018:3018"
+    volumes:
+      - ./backups:/app/backups
     networks:
       - proxy
       - n8n_default

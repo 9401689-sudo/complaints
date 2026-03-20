@@ -366,6 +366,11 @@ body.is-mobile .pdf-modal-frame {
   justify-content: flex-start;
 }
 
+#btnToggleInstitutionForm,
+#btnToggleTemplateForm {
+  margin-left: auto;
+}
+
 .workspace-tabs.hidden {
   display: none;
 }
