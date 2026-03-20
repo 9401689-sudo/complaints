@@ -264,6 +264,92 @@ export class AuthService {
     return user;
   }
 
+  async deleteUser(userId: string, actorUserId?: string | null): Promise<{ id: string; nickname: string }> {
+    const target = await postgres.query<{ id: string; nickname: string }>(
+      `
+      select id, nickname
+      from users
+      where id = $1
+      limit 1
+      `,
+      [userId]
+    );
+
+    const user = target.rows[0];
+    if (!user) {
+      throw new Error('user not found');
+    }
+
+    if (actorUserId && actorUserId === userId) {
+      throw new Error('cannot delete self');
+    }
+
+    const relations = await postgres.query<{
+      cases_count: number;
+      institutions_count: number;
+      templates_count: number;
+    }>(
+      `
+      select
+        (select count(*)::int from cases c where c.owner_user_id = $1 and c.deleted_at is null) as cases_count,
+        (select count(*)::int from institutions i where i.owner_user_id = $1 and i.deleted_at is null) as institutions_count,
+        (select count(*)::int from templates t where t.owner_user_id = $1 and t.deleted_at is null) as templates_count
+      `,
+      [userId]
+    );
+
+    const counts = relations.rows[0];
+    const hasRelations = Number(counts?.cases_count || 0) > 0
+      || Number(counts?.institutions_count || 0) > 0
+      || Number(counts?.templates_count || 0) > 0;
+
+    if (hasRelations) {
+      throw new Error('user has related entities');
+    }
+
+    await postgres.query('begin');
+    try {
+      await postgres.query(
+        `
+        delete from institution_favorites
+        where user_id = $1
+        `,
+        [userId]
+      );
+
+      await postgres.query(
+        `
+        delete from template_favorites
+        where user_id = $1
+        `,
+        [userId]
+      );
+
+      await postgres.query(
+        `
+        delete from user_sessions
+        where user_id = $1
+        `,
+        [userId]
+      );
+
+      await postgres.query(
+        `
+        delete from users
+        where id = $1
+        `,
+        [userId]
+      );
+
+      await postgres.query('commit');
+    } catch (error) {
+      await postgres.query('rollback');
+      throw error;
+    }
+
+    return user;
+  }
+
   private async createSession(userId: string): Promise<{ token: string }> {
     const token = randomBytes(32).toString('hex');
     const tokenHash = hashToken(token);

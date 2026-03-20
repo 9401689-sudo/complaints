@@ -78,6 +78,24 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
+  app.delete<{ Params: { id: string } }>(`${env.API_BASE_PATH}/auth/users/:id`, async (request, reply) => {
+    try {
+      const user = requireAuthUser(request);
+      ensureRole(user, ['admin_full']);
+      const deleted = await authService.deleteUser(request.params.id, user.id);
+      return reply.send({ ok: true, user: deleted });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'internal error';
+      const statusCode =
+        message === 'user not found'
+          ? 404
+          : message === 'cannot delete self' || message === 'user has related entities'
+            ? 400
+            : 500;
+      return reply.code(statusCode).send({ ok: false, error: message });
+    }
+  });
+
   app.post(`${env.API_BASE_PATH}/admin/purge-deleted`, async (request, reply) => {
     try {
       const user = requireAuthUser(request);

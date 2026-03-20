@@ -121,6 +121,9 @@ const els = {
   btnLogout: document.getElementById("btnLogout"),
   guestInfoPanel: document.getElementById("guestInfoPanel"),
   dashboardCasesZone: document.getElementById("dashboardCasesZone"),
+  dashboardTitle: document.getElementById("dashboardTitle"),
+  dashboardSubtitle: document.getElementById("dashboardSubtitle"),
+  btnAboutScreen: document.querySelector('.nav-btn[data-screen="dashboard"]'),
   btnAdminScreen: document.getElementById("btnAdminScreen"),
   topbarGuest: document.getElementById("topbarGuest"),
   topbarUser: document.getElementById("topbarUser"),
@@ -514,6 +517,13 @@ function canEditDirectoryItem(item) {
   return Boolean(item?.can_edit);
 }
 
+function canOpenDirectoryItem(item) {
+  if (!isAuthenticated()) {
+    return false;
+  }
+  return Boolean(item);
+}
+
 function canManageDirectories() {
   return state.authUser?.role === "admin_full";
 }
@@ -626,6 +636,19 @@ function renderAuthState() {
 
   els.topbarUser?.classList.toggle("hidden", !hasUser);
   els.topbarGuest?.classList.toggle("hidden", hasUser);
+  if (els.btnAboutScreen) {
+    els.btnAboutScreen.classList.remove("hidden");
+    els.btnAboutScreen.textContent = hasUser ? "Обращения" : "О сервисе";
+  }
+  if (els.dashboardTitle) {
+    els.dashboardTitle.textContent = hasUser ? "Обращения" : "О сервисе";
+  }
+  if (els.dashboardSubtitle) {
+    els.dashboardSubtitle.textContent = hasUser
+      ? "Создание, список и открытие обращения"
+      : "Описание возможностей и режимов работы";
+  }
+  els.guestInfoPanel?.classList.toggle("hidden", hasUser);
   els.dashboardCasesZone?.classList.toggle("hidden", !hasUser);
   els.btnAdminScreen?.classList.toggle("hidden", !isAdminRole(user?.role));
 
@@ -660,6 +683,10 @@ function renderAdminUsers() {
         </select>
       `
       : `<span class="status-badge info">${escapeHtml(roleLabel(user.role))}</span>`;
+    const canDeleteUser = canManageUsers() && state.authUser?.id !== user.id;
+    const deleteButton = canDeleteUser
+      ? `<button class="btn btn-secondary icon-delete-btn" title="Удалить пользователя" aria-label="Удалить пользователя" data-delete-user-id="${escapeHtml(user.id)}" data-delete-user-nickname="${escapeHtml(user.nickname)}">🗑</button>`
+      : "";
 
     return `
       <div class="table-row admin-user-row">
@@ -669,6 +696,7 @@ function renderAdminUsers() {
         </div>
         <div class="row-actions">
           ${roleControl}
+          ${deleteButton}
         </div>
       </div>
     `;
@@ -924,11 +952,11 @@ function renderDirectoryUserFilters() {
     .join("");
 
   if (els.institutionUserFilterField) {
-    const visible = showAdminFilters && state.institutionsScopeFilter === "owned";
+    const visible = showAdminFilters;
     els.institutionUserFilterField.classList.toggle("hidden", !visible);
   }
   if (els.templateUserFilterField) {
-    const visible = showAdminFilters && state.templatesScopeFilter === "owned";
+    const visible = showAdminFilters;
     els.templateUserFilterField.classList.toggle("hidden", !visible);
   }
 
@@ -1166,6 +1194,33 @@ async function restoreBackupFromAdmin(fileName) {
   await loadDeletedAdminItems();
   await loadAdminBackups();
 }
+
+async function deleteUserFromAdmin(userId, nickname) {
+  if (!canManageUsers()) return;
+  if (!userId) return;
+  const confirmed = await confirmDestructiveAction(`Пользователь ${nickname || ""} будет удалён. Подтвердите.`);
+  if (!confirmed) return;
+  const data = await api.deleteUser(userId);
+  logRuntime("delete user", data);
+  state.adminUsers = state.adminUsers.filter((item) => item.id !== userId);
+  if (state.casesUserFilter === userId) {
+    state.casesUserFilter = "";
+    state.casesUserFilterText = "";
+  }
+  if (state.institutionsUserFilter === userId) {
+    state.institutionsUserFilter = "";
+    state.institutionsUserFilterText = "";
+  }
+  if (state.templatesUserFilter === userId) {
+    state.templatesUserFilter = "";
+    state.templatesUserFilterText = "";
+  }
+  renderAdminUsers();
+  renderDirectoryUserFilters();
+  await loadInstitutions();
+  await loadTemplates();
+  await loadCases();
+}
 function openRuntimeLogModal() {
   els.runtimeLogModal.classList.remove("hidden");
 }
@@ -1274,28 +1329,32 @@ function renderContextNav() {
     ];
   } else if (state.currentScreen === "institutions") {
     title = "Фильтры";
-    const scopeOptions = getDirectoryScopeOptions("institutions");
-    items = scopeOptions.concat(DIRECTORY_CATEGORIES).map((item) => ({
-      action: scopeOptions.some((scope) => scope.value === item.value && scope.label === item.label)
-        ? `institutions-scope:${item.value}`
-        : `institutions-category:${item.value}`,
+    const scopeOptions = isAuthenticated() ? getDirectoryScopeOptions("institutions") : [];
+    const scopeItems = scopeOptions.map((item) => ({
+      action: `institutions-scope:${item.value}`,
       label: item.label,
-      active: scopeOptions.some((scope) => scope.value === item.value && scope.label === item.label)
-        ? state.institutionsScopeFilter === item.value
-        : state.institutionsCategoryFilter === item.value
+      active: state.institutionsScopeFilter === item.value
     }));
+    const categoryItems = DIRECTORY_CATEGORIES.map((item) => ({
+      action: `institutions-category:${item.value}`,
+      label: item.label,
+      active: state.institutionsCategoryFilter === item.value
+    }));
+    items = scopeItems.concat(scopeItems.length ? [{ action: "__divider__", label: "", active: false }] : []).concat(categoryItems);
   } else if (state.currentScreen === "templates") {
     title = "Фильтры";
-    const scopeOptions = getDirectoryScopeOptions("templates");
-    items = scopeOptions.concat(DIRECTORY_CATEGORIES).map((item) => ({
-      action: scopeOptions.some((scope) => scope.value === item.value && scope.label === item.label)
-        ? `templates-scope:${item.value}`
-        : `templates-category:${item.value}`,
+    const scopeOptions = isAuthenticated() ? getDirectoryScopeOptions("templates") : [];
+    const scopeItems = scopeOptions.map((item) => ({
+      action: `templates-scope:${item.value}`,
       label: item.label,
-      active: scopeOptions.some((scope) => scope.value === item.value && scope.label === item.label)
-        ? state.templatesScopeFilter === item.value
-        : state.templatesCategoryFilter === item.value
+      active: state.templatesScopeFilter === item.value
     }));
+    const categoryItems = DIRECTORY_CATEGORIES.map((item) => ({
+      action: `templates-category:${item.value}`,
+      label: item.label,
+      active: state.templatesCategoryFilter === item.value
+    }));
+    items = scopeItems.concat(scopeItems.length ? [{ action: "__divider__", label: "", active: false }] : []).concat(categoryItems);
   } else if (state.currentScreen === "admin") {
     title = "Админка";
     items = [
@@ -1307,16 +1366,26 @@ function renderContextNav() {
       { action: "admin-section:backups", label: "Бэкапы", active: state.adminSection === "backups" }
     ];
   } else {
-    title = "О сервисе";
-    items = [];
+    if (isAuthenticated()) {
+      title = "Обращения";
+      items = [];
+    } else {
+      title = "О сервисе";
+      items = [];
+    }
   }
 
   els.contextNavTitle.textContent = title;
-  els.contextNav.innerHTML = items.map((item) => `
-    <button class="context-btn ${item.active ? "active" : ""}" type="button" data-context-action="${escapeHtml(item.action)}">
-      ${escapeHtml(item.label)}
-    </button>
-  `).join("");
+  els.contextNav.innerHTML = items.map((item) => {
+    if (item.action === "__divider__") {
+      return '<div class="context-divider" aria-hidden="true"></div>';
+    }
+    return `
+      <button class="context-btn ${item.active ? "active" : ""}" type="button" data-context-action="${escapeHtml(item.action)}">
+        ${escapeHtml(item.label)}
+      </button>
+    `;
+  }).join("");
 }
 
 function setScreen(name) {
@@ -1369,6 +1438,13 @@ function updateWorkspaceTabAvailability() {
 
 function resetInstitutionForm() {
   state.editingInstitutionId = null;
+  if (els.institutionName) els.institutionName.disabled = false;
+  if (els.institutionCategory) els.institutionCategory.disabled = false;
+  if (els.institutionSubmitUrl) els.institutionSubmitUrl.disabled = false;
+  if (els.institutionMaxAttachments) els.institutionMaxAttachments.disabled = false;
+  if (els.institutionMaxTextLength) els.institutionMaxTextLength.disabled = false;
+  if (els.institutionAcceptedFormats) els.institutionAcceptedFormats.disabled = false;
+  if (els.btnCreateInstitution) els.btnCreateInstitution.classList.remove("hidden");
   els.institutionName.value = "";
   els.institutionCategory.value = "authority";
   els.institutionVisibility.value = canManageDirectories() ? "public" : "private";
@@ -1382,6 +1458,10 @@ function resetInstitutionForm() {
 
 function resetTemplateForm() {
   state.editingTemplateId = null;
+  if (els.templateName) els.templateName.disabled = false;
+  if (els.templateCategory) els.templateCategory.disabled = false;
+  if (els.templateBody) els.templateBody.disabled = false;
+  if (els.btnCreateTemplate) els.btnCreateTemplate.classList.remove("hidden");
   els.templateName.value = "";
   els.templateCategory.value = "authority";
   els.templateVisibility.value = canManageDirectories() ? "public" : "private";
@@ -1391,8 +1471,17 @@ function resetTemplateForm() {
 }
 
 function openInstitutionEdit(item) {
-  if (!canEditDirectoryItem(item)) return;
+  const canEdit = canEditDirectoryItem(item);
   state.editingInstitutionId = item.id;
+  if (els.institutionName) els.institutionName.disabled = !canEdit;
+  if (els.institutionCategory) els.institutionCategory.disabled = !canEdit;
+  if (els.institutionSubmitUrl) els.institutionSubmitUrl.disabled = !canEdit;
+  if (els.institutionMaxAttachments) els.institutionMaxAttachments.disabled = !canEdit;
+  if (els.institutionMaxTextLength) els.institutionMaxTextLength.disabled = !canEdit;
+  if (els.institutionAcceptedFormats) els.institutionAcceptedFormats.disabled = !canEdit;
+  if (els.btnCreateInstitution) {
+    els.btnCreateInstitution.classList.toggle("hidden", !canEdit);
+  }
   els.institutionName.value = item.name || "";
   els.institutionCategory.value = item.category || "authority";
   els.institutionVisibility.value = item.visibility || "private";
@@ -1402,20 +1491,26 @@ function openInstitutionEdit(item) {
   els.institutionAcceptedFormats.value = Array.isArray(item.accepted_formats)
     ? item.accepted_formats.join(",")
     : "image/jpeg,image/png";
-  els.btnCreateInstitution.textContent = "Сохранить изменения";
+  els.btnCreateInstitution.textContent = canEdit ? "Сохранить изменения" : "Сохранить организацию";
   syncDirectoryVisibilityControls();
   els.institutionFormPanel.classList.remove("hidden");
   setScreen("institutions");
 }
 
 function openTemplateEdit(item) {
-  if (!canEditDirectoryItem(item)) return;
+  const canEdit = canEditDirectoryItem(item);
   state.editingTemplateId = item.id;
+  if (els.templateName) els.templateName.disabled = !canEdit;
+  if (els.templateCategory) els.templateCategory.disabled = !canEdit;
+  if (els.templateBody) els.templateBody.disabled = !canEdit;
+  if (els.btnCreateTemplate) {
+    els.btnCreateTemplate.classList.toggle("hidden", !canEdit);
+  }
   els.templateName.value = item.name || "";
   els.templateCategory.value = item.category || "authority";
   els.templateVisibility.value = item.visibility || "private";
   els.templateBody.value = item.body_template || "";
-  els.btnCreateTemplate.textContent = "Сохранить изменения";
+  els.btnCreateTemplate.textContent = canEdit ? "Сохранить изменения" : "Сохранить шаблон";
   syncDirectoryVisibilityControls();
   els.templateFormPanel.classList.remove("hidden");
   setScreen("templates");
@@ -1734,7 +1829,7 @@ function renderCases() {
 }
 
 function renderInstitutions() {
-  const canUseFavorites = isAuthenticated();
+  const canUseFavorites = isAuthenticated() && !isAdminRole(state.authUser?.role);
   const showOwner = isAdminRole(state.authUser?.role);
   const filteredInstitutions = state.institutions.filter((item) => {
     if (showOwner) {
@@ -1742,9 +1837,9 @@ function renderInstitutions() {
         if (item.visibility !== "private") {
           return false;
         }
-        if (state.institutionsUserFilter && item.owner_user_id !== state.institutionsUserFilter) {
-          return false;
-        }
+      }
+      if (state.institutionsUserFilter && item.owner_user_id !== state.institutionsUserFilter) {
+        return false;
       }
     } else if (state.institutionsScopeFilter === "favorites" && !item.is_favorite) {
       return false;
@@ -1759,7 +1854,7 @@ function renderInstitutions() {
     els.institutionsList.innerHTML = '<div class="notice">Организаций пока нет.</div>';
   } else {
     els.institutionsList.innerHTML = filteredInstitutions.map((item) => `
-      <div class="table-row compact-3 ${canEditDirectoryItem(item) ? "clickable-row" : ""}" data-edit-institution-id="${item.id}">
+      <div class="table-row compact-3 ${canOpenDirectoryItem(item) ? "clickable-row" : ""}" data-edit-institution-id="${item.id}">
         <div>
           <div class="row-title">${escapeHtml(item.name)}</div>
           <div class="row-meta">${escapeHtml(getCategoryLabel(item.category || "authority"))} · ${escapeHtml(getVisibilityLabel(item.visibility))}</div>
@@ -1782,7 +1877,7 @@ function renderInstitutions() {
     btn.addEventListener("click", (event) => {
       if (event.target.closest("button")) return;
       const item = state.institutions.find((x) => x.id === btn.dataset.editInstitutionId);
-      if (item && canEditDirectoryItem(item)) openInstitutionEdit(item);
+      if (item && canOpenDirectoryItem(item)) openInstitutionEdit(item);
     });
   });
   document.querySelectorAll("[data-delete-institution-id]").forEach((btn) => {
@@ -1807,7 +1902,7 @@ function renderInstitutions() {
 }
 
 function renderTemplates() {
-  const canUseFavorites = isAuthenticated();
+  const canUseFavorites = isAuthenticated() && !isAdminRole(state.authUser?.role);
   const showOwner = isAdminRole(state.authUser?.role);
   const filteredTemplates = state.templates.filter((item) => {
     if (showOwner) {
@@ -1815,9 +1910,9 @@ function renderTemplates() {
         if (item.visibility !== "private") {
           return false;
         }
-        if (state.templatesUserFilter && item.owner_user_id !== state.templatesUserFilter) {
-          return false;
-        }
+      }
+      if (state.templatesUserFilter && item.owner_user_id !== state.templatesUserFilter) {
+        return false;
       }
     } else if (state.templatesScopeFilter === "favorites" && !item.is_favorite) {
       return false;
@@ -1832,7 +1927,7 @@ function renderTemplates() {
     els.templatesList.innerHTML = '<div class="notice">Шаблонов пока нет.</div>';
   } else {
     els.templatesList.innerHTML = filteredTemplates.map((item) => `
-      <div class="table-row compact-3 ${canEditDirectoryItem(item) ? "clickable-row" : ""}" data-edit-template-id="${item.id}">
+      <div class="table-row compact-3 ${canOpenDirectoryItem(item) ? "clickable-row" : ""}" data-edit-template-id="${item.id}">
         <div>
           <div class="row-title">${escapeHtml(item.name)}</div>
           <div class="row-meta">${escapeHtml(getCategoryLabel(item.category || "authority"))} · ${escapeHtml(getVisibilityLabel(item.visibility))}</div>
@@ -1855,7 +1950,7 @@ function renderTemplates() {
     btn.addEventListener("click", (event) => {
       if (event.target.closest("button")) return;
       const item = state.templates.find((x) => x.id === btn.dataset.editTemplateId);
-      if (item && canEditDirectoryItem(item)) openTemplateEdit(item);
+      if (item && canOpenDirectoryItem(item)) openTemplateEdit(item);
     });
   });
   document.querySelectorAll("[data-delete-template-id]").forEach((btn) => {
@@ -3030,6 +3125,14 @@ function bindEvents() {
     if (!button) return;
 
     const action = button.dataset.contextAction || "";
+    if (action.startsWith("screen:")) {
+      const screenName = action.slice("screen:".length);
+      setScreen(screenName);
+      if (screenName === "dashboard" && isAuthenticated()) {
+        await handle(loadCases);
+      }
+      return;
+    }
     if (action.startsWith("tab:")) {
       await handle(() => openWorkspaceTabByName(action.slice(4)));
       return;
@@ -3259,6 +3362,11 @@ function bindEvents() {
       logRuntime("update user role", data);
     });
   });
+  els.adminUsersList?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-delete-user-id]");
+    if (!button || !canManageUsers()) return;
+    handle(() => deleteUserFromAdmin(button.dataset.deleteUserId, button.dataset.deleteUserNickname));
+  });
 }
 
 async function deleteTemplateFromList(templateId, templateName) {
@@ -3291,6 +3399,9 @@ async function handle(fn) {
     await fn();
   } catch (error) {
     const message = String(error?.message || "");
+    if (message.toLowerCase().includes("generated text artifact not found")) {
+      return;
+    }
     if (error?.status === 401 || message.toLowerCase().includes("unauthorized")) {
       if (!isAuthenticated()) {
         openAuthModal("login");

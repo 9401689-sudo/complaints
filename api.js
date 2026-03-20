@@ -137,6 +137,12 @@ export const api = {
     });
   },
 
+  deleteUser(userId) {
+    return request(`/auth/users/${userId}`, {
+      method: "DELETE"
+    });
+  },
+
   purgeDeleted() {
     return request("/admin/purge-deleted", {
       method: "POST"
