@@ -1307,10 +1307,8 @@ function renderContextNav() {
       { action: "admin-section:backups", label: "Бэкапы", active: state.adminSection === "backups" }
     ];
   } else {
-    title = "Обращения";
-    items = [
-      { action: "screen:dashboard", label: "Список обращений", active: true }
-    ];
+    title = "О сервисе";
+    items = [];
   }
 
   els.contextNavTitle.textContent = title;
@@ -2459,11 +2457,21 @@ async function createCase() {
 }
 
 async function loadInstitutions() {
-  const data = await api.listInstitutions();
-  state.institutions = data.institutions || [];
-  renderInstitutions();
-  renderAdminDirectories();
-  logRuntime("list institutions", data);
+  try {
+    const data = await api.listInstitutions();
+    state.institutions = data.institutions || [];
+    renderInstitutions();
+    renderAdminDirectories();
+    logRuntime("list institutions", data);
+  } catch (error) {
+    const message = String(error?.message || "");
+    if (error?.status === 401 || message.toLowerCase().includes("unauthorized")) {
+      state.institutions = [];
+      renderInstitutions();
+      return;
+    }
+    throw error;
+  }
 }
 
 async function createInstitution() {
@@ -2495,12 +2503,22 @@ async function createInstitution() {
 }
 
 async function loadTemplates() {
-  const data = await api.listTemplates();
-  state.templates = data.templates || [];
-  renderTemplates();
-  renderAdminDirectories();
-  renderVariableToolbar(els.templateVariableToolbar, els.templateBody);
-  logRuntime("list templates", data);
+  try {
+    const data = await api.listTemplates();
+    state.templates = data.templates || [];
+    renderTemplates();
+    renderAdminDirectories();
+    renderVariableToolbar(els.templateVariableToolbar, els.templateBody);
+    logRuntime("list templates", data);
+  } catch (error) {
+    const message = String(error?.message || "");
+    if (error?.status === 401 || message.toLowerCase().includes("unauthorized")) {
+      state.templates = [];
+      renderTemplates();
+      return;
+    }
+    throw error;
+  }
 }
 
 async function createTemplate() {
@@ -3297,6 +3315,10 @@ async function bootstrap() {
 }
 
 bootstrap().catch((error) => {
+  const message = String(error?.message || "");
+  if (message.toLowerCase().includes("unauthorized")) {
+    return;
+  }
   logRuntime("bootstrap error", error?.message || String(error));
   alert(error?.message || "Bootstrap error");
 });
