@@ -476,10 +476,12 @@ function getDirectoryScopeOptions(kind) {
     return kind === "institutions"
       ? [
           { value: "", label: "Все организации" },
+          { value: "public", label: "Общие" },
           { value: "owned", label: "Организации пользователей" }
         ]
       : [
           { value: "", label: "Все шаблоны" },
+          { value: "public", label: "Общие" },
           { value: "owned", label: "Шаблоны пользователей" }
       ];
   }
@@ -1982,6 +1984,11 @@ function renderInstitutions() {
           return false;
         }
       }
+      if (state.institutionsScopeFilter === "public") {
+        if (item.visibility !== "public") {
+          return false;
+        }
+      }
       if (state.institutionsUserFilter && item.owner_user_id !== state.institutionsUserFilter) {
         return false;
       }
@@ -2063,6 +2070,11 @@ function renderTemplates() {
     if (showOwner) {
       if (state.templatesScopeFilter === "owned") {
         if (item.visibility !== "private") {
+          return false;
+        }
+      }
+      if (state.templatesScopeFilter === "public") {
+        if (item.visibility !== "public") {
           return false;
         }
       }
