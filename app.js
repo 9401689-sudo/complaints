@@ -74,12 +74,14 @@ const FIXED_VARIABLES = [
 const DIRECTORY_CATEGORIES = [
   { value: "", label: "Все категории" },
   { value: "authority", label: "Органы власти" },
-  { value: "state_org", label: "Государственные организации" }
+  { value: "state_org", label: "Государственные организации" },
+  { value: "other_org", label: "Прочие организации" }
 ];
 
 const DIRECTORY_CATEGORY_LABELS = {
   authority: "Органы власти",
-  state_org: "Государственные организации"
+  state_org: "Государственные организации",
+  other_org: "Прочие организации"
 };
 
 const CASE_STATUS_FILTER_OPTIONS = [

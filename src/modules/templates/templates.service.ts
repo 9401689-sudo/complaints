@@ -6,7 +6,7 @@ import {
   UpdateTemplateBody,
 } from './templates.types';
 
-const ALLOWED_CATEGORIES = new Set(['authority', 'state_org']);
+const ALLOWED_CATEGORIES = new Set(['authority', 'state_org', 'other_org']);
 const ALLOWED_VISIBILITY = new Set(['public', 'private']);
 
 function isAdminRole(role?: string | null): boolean {
