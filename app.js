@@ -1,4 +1,39 @@
 import { api } from "./api.js";
+import {
+  CASE_STATUS_CLASSES,
+  CASE_STATUS_FILTER_OPTIONS,
+  CASE_STATUS_LABELS,
+  DIRECTORY_CATEGORIES,
+  DIRECTORY_CATEGORY_LABELS,
+  FIXED_VARIABLES,
+  ROLE_LABELS,
+  canEditDirectoryItem,
+  canManageDirectoriesByRole,
+  canManageUsersByRole,
+  canOpenDirectoryItem as canOpenDirectoryItemByAuth,
+  collapseDuplicateDateSuffixes,
+  formatComplaintDate,
+  formatDateForInput,
+  getAdminUserFilterValue as getAdminUserFilterValueByRole,
+  getCaseStatusBadges as deriveCaseStatusBadges,
+  getDefaultTemplateValues,
+  getDirectoryScopeOptions as deriveDirectoryScopeOptions,
+  getPreviewMarkup as buildPreviewMarkup,
+  getPreviewUrl,
+  getRenderableVariableValue,
+  getTemplateVariablesSchema,
+  getTodayInputValue,
+  getVisibilityLabel,
+  guessMimeByFileName,
+  isAdminRole,
+  isPdfMime,
+  isVideoMime,
+  maskDateInputValue,
+  normalizeVariableState,
+  normalizeDisplayDate,
+  parseStrictDisplayDate,
+  roleLabel as getRoleLabel
+} from "./frontend-utils/safe-modules-boundary.js";
 
 const state = {
   authUser: null,
@@ -47,67 +82,6 @@ const state = {
   currentWorkspaceTab: "variables",
 };
 
-const FIXED_VARIABLES = [
-  {
-    key: "complaint_date",
-    enabledKey: "complaint_date_enabled",
-    label: "Дата",
-    type: "date",
-    token: "{{complaint_date}}"
-  },
-  {
-    key: "address",
-    enabledKey: "address_enabled",
-    label: "Адрес",
-    type: "text",
-    token: "{{address}}"
-  },
-  {
-    key: "license_plate",
-    enabledKey: "license_plate_enabled",
-    label: "Гос.номер",
-    type: "text",
-    token: "{{license_plate}}"
-  }
-];
-
-const DIRECTORY_CATEGORIES = [
-  { value: "", label: "Все категории" },
-  { value: "authority", label: "Органы власти" },
-  { value: "state_org", label: "Государственные организации" },
-  { value: "other_org", label: "Прочие организации" }
-];
-
-const DIRECTORY_CATEGORY_LABELS = {
-  authority: "Органы власти",
-  state_org: "Государственные организации",
-  other_org: "Прочие организации"
-};
-
-const CASE_STATUS_FILTER_OPTIONS = [
-  { value: "", label: "Все статусы" },
-  { value: "created_group", label: "Создано" },
-  { value: "sent", label: "Отправлено" },
-  { value: "has_reply", label: "Есть ответ" }
-];
-
-const CASE_STATUS_LABELS = {
-  created: "СОЗДАНО",
-  sent: "ОТПРАВЛЕНО",
-  has_reply: "ЕСТЬ ОТВЕТ"
-};
-
-const CASE_STATUS_CLASSES = {
-  created: "info",
-  sent: "ready",
-  has_reply: "ready"
-};
-
-const ROLE_LABELS = {
-  user: "пользователь",
-  admin_view: "только просмотр",
-  admin_full: "полный доступ"
-};
 
 const els = {
   authModal: document.getElementById("authModal"),
@@ -283,230 +257,25 @@ const els = {
 
 els.templateVariableToolbar = document.getElementById("templateVariableToolbar");
 
-function getTodayInputValue() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function formatDateForInput(date) {
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = String(date.getFullYear());
-  return `${day}.${month}.${year}`;
-}
-
-function normalizeDisplayDate(value) {
-  const raw = String(value || "").trim();
-
-  if (!raw) {
-    return "";
-  }
-
-  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (isoMatch) {
-    const [, year, month, day] = isoMatch;
-    return `${day}.${month}.${year}`;
-  }
-
-  return maskDateInputValue(raw);
-}
-
-function maskDateInputValue(value) {
-  const digits = String(value || "").replace(/\D/g, "").slice(0, 8);
-  const parts = [];
-
-  if (digits.length > 0) {
-    parts.push(digits.slice(0, 2));
-  }
-  if (digits.length > 2) {
-    parts.push(digits.slice(2, 4));
-  }
-  if (digits.length > 4) {
-    parts.push(digits.slice(4, 8));
-  }
-
-  return parts.join(".");
-}
-
 function applyDateMask(input) {
   if (!input) return;
   input.value = maskDateInputValue(input.value);
 }
 
-function parseStrictDisplayDate(value, fieldLabel) {
-  const raw = String(value || "").trim();
-
-  if (!raw) {
-    return "";
-  }
-
-  const match = raw.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-  if (!match) {
-    throw new Error(`${fieldLabel}: используйте формат дд.мм.гггг`);
-  }
-
-  const [, dayText, monthText, yearText] = match;
-  const day = Number(dayText);
-  const month = Number(monthText);
-  const year = Number(yearText);
-  const currentYear = new Date().getFullYear();
-
-  if (day < 1 || day > 31) {
-    throw new Error(`${fieldLabel}: день должен быть в диапазоне 01-31`);
-  }
-
-  if (month < 1 || month > 12) {
-    throw new Error(`${fieldLabel}: месяц должен быть в диапазоне 01-12`);
-  }
-
-  if (year < 2000 || year > currentYear) {
-    throw new Error(`${fieldLabel}: год должен быть в диапазоне 2000-${currentYear}`);
-  }
-
-  const maxDay = new Date(year, month, 0).getDate();
-  if (day > maxDay) {
-    throw new Error(`${fieldLabel}: такой даты не существует`);
-  }
-
-  return `${dayText}.${monthText}.${yearText}`;
-}
-
-function formatComplaintDate(value) {
-  const raw = String(value || "").trim();
-
-  if (!raw) {
-    return "";
-  }
-
-  const displayMatch = raw.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-  if (displayMatch) {
-    const [, day, month, year] = displayMatch;
-    const date = new Date(Number(year), Number(month) - 1, Number(day));
-
-    if (!Number.isNaN(date.getTime())) {
-      return new Intl.DateTimeFormat("ru-RU", {
-        day: "numeric",
-        month: "long",
-        year: "numeric"
-      }).format(date) + " г.";
-    }
-  }
-
-  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) {
-    return raw;
-  }
-
-  const [, year, month, day] = match;
-  const date = new Date(Number(year), Number(month) - 1, Number(day));
-
-  if (Number.isNaN(date.getTime())) {
-    return raw;
-  }
-
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "numeric",
-    month: "long",
-    year: "numeric"
-  }).format(date) + " г.";
-}
-
-function collapseDuplicateDateSuffixes(text) {
-  return String(text || "").replace(
-    /(\d{1,2}\s+[А-Яа-яЁё]+\s+\d{4})\s*г\.\s*г\./g,
-    "$1 г."
-  );
-}
-
-function getRenderableVariableValue(field, variables) {
-  const enabled = String(variables[field.enabledKey] ?? "true").toLowerCase() === "true";
-
-  if (!enabled) {
-    return "";
-  }
-
-  const rawValue = String(variables[field.key] ?? "");
-  return field.key === "complaint_date" ? formatComplaintDate(rawValue) : rawValue;
-}
-
-function getDefaultTemplateValues() {
-  return {
-    complaint_date: "",
-    address: "",
-    license_plate: ""
-  };
-}
-
-function getTemplateVariablesSchema() {
-  return FIXED_VARIABLES.map(({ key, label, type }) => ({
-    key,
-    label,
-    type,
-    required: false
-  }));
-}
-
-function normalizeVariableState(variables = {}) {
-  const normalized = { ...variables };
-
-  for (const field of FIXED_VARIABLES) {
-    const rawEnabled = normalized[field.enabledKey];
-    const enabled = rawEnabled === undefined ? true : String(rawEnabled).toLowerCase() === "true";
-    normalized[field.enabledKey] = String(enabled);
-
-    if (normalized[field.key] === undefined || normalized[field.key] === null || normalized[field.key] === "") {
-      normalized[field.key] = field.key === "complaint_date" ? formatDateForInput(new Date()) : "";
-    }
-
-    if (field.key === "complaint_date") {
-      normalized[field.key] = normalizeDisplayDate(normalized[field.key]);
-    }
-  }
-
-  return normalized;
+function getDirectoryScopeOptions(kind) {
+  return deriveDirectoryScopeOptions({
+    kind,
+    isAuthenticated: isAuthenticated(),
+    isAdmin: isAdminRole(state.authUser?.role)
+  });
 }
 
 function roleLabel(role) {
-  return ROLE_LABELS[role] || role || "Пользователь";
-}
-
-function isAdminRole(role) {
-  return role === "admin_view" || role === "admin_full";
-}
-
-function getDirectoryScopeOptions(kind) {
-  if (isAdminRole(state.authUser?.role)) {
-    return kind === "institutions"
-      ? [
-          { value: "", label: "Все организации" },
-          { value: "public", label: "Общие" },
-          { value: "owned", label: "Организации пользователей" }
-        ]
-      : [
-          { value: "", label: "Все шаблоны" },
-          { value: "public", label: "Общие" },
-          { value: "owned", label: "Шаблоны пользователей" }
-      ];
-  }
-
-  if (!isAuthenticated()) {
-    return kind === "institutions"
-      ? [{ value: "", label: "Все организации" }]
-      : [{ value: "", label: "Все шаблоны" }];
-  }
-
-  return kind === "institutions"
-    ? [
-        { value: "", label: "Все организации" },
-        { value: "favorites", label: "Мои организации" }
-      ]
-    : [
-        { value: "", label: "Все шаблоны" },
-        { value: "favorites", label: "Мои шаблоны" }
-      ];
+  return getRoleLabel(role, ROLE_LABELS);
 }
 
 function getAdminUserFilterValue(user) {
-  return `${user.nickname} [${roleLabel(user.role)}]`;
+  return getAdminUserFilterValueByRole(user, ROLE_LABELS);
 }
 
 function getAdminUserByFilterValue(value) {
@@ -527,27 +296,16 @@ function getAdminUserFilterInputValue(userId) {
   return user ? getAdminUserFilterValue(user) : "";
 }
 
-function getVisibilityLabel(visibility) {
-  return visibility === "private" ? "Личное" : "Общее";
-}
-
-function canEditDirectoryItem(item) {
-  return Boolean(item?.can_edit);
-}
-
 function canOpenDirectoryItem(item) {
-  if (!isAuthenticated()) {
-    return false;
-  }
-  return Boolean(item);
+  return canOpenDirectoryItemByAuth(item, isAuthenticated());
 }
 
 function canManageDirectories() {
-  return state.authUser?.role === "admin_full";
+  return canManageDirectoriesByRole(state.authUser?.role);
 }
 
 function canManageUsers() {
-  return state.authUser?.role === "admin_full";
+  return canManageUsersByRole(state.authUser?.role);
 }
 
 function syncDirectoryVisibilityControls() {
@@ -1109,6 +867,15 @@ async function completeAuth(payload) {
 async function restoreAuthSession() {
   const token = api.getAuthToken();
 
+  const loadGuestDictionariesSafely = async () => {
+    try {
+      await loadInstitutions();
+      await loadTemplates();
+    } catch (error) {
+      logRuntime("guest bootstrap data unavailable", error?.message || String(error));
+    }
+  };
+
   if (!token) {
     state.authUser = null;
     renderAuthState();
@@ -1116,8 +883,7 @@ async function restoreAuthSession() {
     resetTemplateForm();
     els.institutionFormPanel?.classList.add("hidden");
     els.templateFormPanel?.classList.add("hidden");
-    await loadInstitutions();
-    await loadTemplates();
+    await loadGuestDictionariesSafely();
     state.cases = [];
     setScreen("dashboard");
     setWorkspaceTab(null);
@@ -1138,8 +904,7 @@ async function restoreAuthSession() {
     resetTemplateForm();
     els.institutionFormPanel?.classList.add("hidden");
     els.templateFormPanel?.classList.add("hidden");
-    await loadInstitutions();
-    await loadTemplates();
+    await loadGuestDictionariesSafely();
     state.cases = [];
     setScreen("dashboard");
     setWorkspaceTab(null);
@@ -1641,45 +1406,6 @@ function openTemplateEdit(item) {
   setScreen("templates");
 }
 
-function getPreviewUrl(caseId, fileId) {
-  const path = window.location.pathname || '/';
-  const [, prefix] = path.split('/');
-  const appPrefix = prefix || 'complaints';
-  const token = encodeURIComponent(api.getAuthToken() || "");
-  return `https://complaints-api.doorsvip.ru/${appPrefix}/api/cases/${caseId}/files/${fileId}/preview?token=${token}`;
-}
-
-function isImageMime(mimeType) {
-  return ["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp", "image/tiff", "image/heic", "image/heif"].includes(mimeType || "");
-}
-
-function isVideoMime(mimeType) {
-  return ["video/mp4", "video/webm", "video/quicktime", "video/x-m4v", "video/x-matroska"].includes(mimeType || "");
-}
-
-function isPdfMime(mimeType) {
-  return mimeType === "application/pdf";
-}
-
-function guessMimeByFileName(fileName = "") {
-  const ext = String(fileName).split(".").pop()?.toLowerCase() || "";
-  if (["jpg", "jpeg"].includes(ext)) return "image/jpeg";
-  if (ext === "png") return "image/png";
-  if (ext === "webp") return "image/webp";
-  if (ext === "gif") return "image/gif";
-  if (ext === "bmp") return "image/bmp";
-  if (["tif", "tiff"].includes(ext)) return "image/tiff";
-  if (ext === "heic") return "image/heic";
-  if (ext === "heif") return "image/heif";
-  if (ext === "pdf") return "application/pdf";
-  if (ext === "mp4") return "video/mp4";
-  if (ext === "webm") return "video/webm";
-  if (ext === "m4v") return "video/x-m4v";
-  if (ext === "mkv") return "video/x-matroska";
-  if (["mov", "qt"].includes(ext)) return "video/quicktime";
-  return "";
-}
-
 function renderVariableToolbar(container, targetTextarea, mode = "token") {
   if (!container || !targetTextarea) return;
 
@@ -1693,7 +1419,7 @@ function renderVariableToolbar(container, targetTextarea, mode = "token") {
       if (!field) return;
 
       if (mode === "value") {
-        const variables = normalizeVariableState(state.variables);
+        const variables = normalizeVariableState(state.variables, FIXED_VARIABLES);
         insertAtCursor(targetTextarea, getRenderableVariableValue(field, variables));
         return;
       }
@@ -1748,40 +1474,11 @@ function closeImageModal() {
 }
 
 function getPreviewMarkup(file, opts = {}) {
-  const src = getPreviewUrl(state.currentCaseId, file.id);
-  const mimeType = file.mime_type || file.mimeType || guessMimeByFileName(file.file_name || file.fileName || "");
-  const title = file.file_name || file.fileName || "preview";
-  const previewAttr = opts.attrName || "data-preview-file-id";
-  const clickable = opts.clickable !== false;
-  const wrapperAttr = clickable ? `${previewAttr}="${file.id}"` : "";
-
-  if (isImageMime(mimeType)) {
-    return `<button class="preview-button" type="button" ${wrapperAttr}><img class="image-thumb" src="${src}" alt="${escapeHtml(title)}" /></button>`;
-  }
-
-  if (isVideoMime(mimeType)) {
-    return `
-      <button class="preview-button" type="button" ${wrapperAttr}>
-        <video class="media-thumb" src="${src}" muted preload="metadata" playsinline></video>
-        <span class="thumb-badge">Видео</span>
-      </button>
-    `;
-  }
-
-  if (isPdfMime(mimeType)) {
-    return `
-      <button class="preview-button" type="button" ${wrapperAttr}>
-        <iframe class="pdf-thumb" src="${src}#toolbar=0&navpanes=0&scrollbar=0" title="${escapeHtml(title)}"></iframe>
-        <span class="thumb-badge">PDF</span>
-      </button>
-    `;
-  }
-
-  return `
-    <button class="preview-button" type="button" ${wrapperAttr}>
-      <span class="file-thumb media-tile">${escapeHtml((mimeType || "FILE").toUpperCase())}</span>
-    </button>
-  `;
+  return buildPreviewMarkup(file, opts, {
+    currentCaseId: state.currentCaseId,
+    token: api.getAuthToken(),
+    escapeHtml
+  });
 }
 
 function bindPreviewOpeners(root = document) {
@@ -1790,7 +1487,7 @@ function bindPreviewOpeners(root = document) {
       const file = state.currentCaseFiles.find((item) => item.id === node.dataset.previewFileId);
       if (!file) return;
       const mimeType = file.mime_type || guessMimeByFileName(file.file_name || "");
-      openImageModal(getPreviewUrl(state.currentCaseId, file.id), mimeType, file.file_name, file.id);
+      openImageModal(getPreviewUrl(state.currentCaseId, file.id, api.getAuthToken()), mimeType, file.file_name, file.id);
     });
   });
 
@@ -1799,7 +1496,7 @@ function bindPreviewOpeners(root = document) {
       const file = state.resultFiles.find((item) => item.id === node.dataset.resultPreviewFileId);
       if (!file) return;
       const mimeType = file.mime_type || guessMimeByFileName(file.file_name || "");
-      openImageModal(getPreviewUrl(state.currentCaseId, file.id), mimeType, file.file_name, null);
+      openImageModal(getPreviewUrl(state.currentCaseId, file.id, api.getAuthToken()), mimeType, file.file_name, null);
     });
   });
 }
@@ -1826,7 +1523,7 @@ function buildComputedTextPreview() {
       ? template.default_values
       : {}),
     ...(state.variables || {})
-  });
+  }, FIXED_VARIABLES);
 
   const rendered = template.body_template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key) => {
     const field = FIXED_VARIABLES.find((item) => item.key === key);
@@ -1841,29 +1538,7 @@ function buildComputedTextPreview() {
 }
 
 function getCaseStatusBadges(item) {
-  const badges = [];
-
-  if (!item.institution_id) {
-    badges.push({ text: "НЕТ ОРГАНИЗАЦИИ", cls: "warn" });
-  }
-
-  if (!item.template_id) {
-    badges.push({ text: "НЕТ ШАБЛОНА", cls: "warn" });
-  }
-
-  const primaryStatus = String(item.case_status || "").trim() || "created";
-  if (CASE_STATUS_LABELS[primaryStatus]) {
-    badges.push({
-      text: CASE_STATUS_LABELS[primaryStatus],
-      cls: CASE_STATUS_CLASSES[primaryStatus] || "info"
-    });
-  }
-
-  if (Number(item.linked_cases_count || 0) > 0) {
-    badges.push({ text: "ЕСТЬ СВЯЗАННЫЕ", cls: "info" });
-  }
-
-  return badges;
+  return deriveCaseStatusBadges(item, CASE_STATUS_LABELS, CASE_STATUS_CLASSES);
 }
 
 function renderCases() {
@@ -2192,8 +1867,8 @@ function renderVariablesForm() {
 
   const defaults = normalizeVariableState(template.default_values && typeof template.default_values === "object"
     ? template.default_values
-    : {});
-  const current = normalizeVariableState(state.variables);
+    : {}, FIXED_VARIABLES);
+  const current = normalizeVariableState(state.variables, FIXED_VARIABLES);
 
   els.variablesEmptyState.classList.add("hidden");
   els.variablesEmptyState.textContent = "";
@@ -2815,7 +2490,7 @@ async function createTemplate() {
       category: els.templateCategory.value || "authority",
       visibility: els.templateVisibility.value || "private",
       bodyTemplate: els.templateBody.value,
-      variablesSchema: getTemplateVariablesSchema(),
+      variablesSchema: getTemplateVariablesSchema(FIXED_VARIABLES),
       defaultValues: getDefaultTemplateValues()
     };
 
@@ -2947,12 +2622,12 @@ async function uploadWorkspaceFiles() {
 async function loadVariables() {
   if (!state.currentCaseId) return;
   if (!state.currentCase?.case?.template_id) {
-    state.variables = normalizeVariableState({});
+    state.variables = normalizeVariableState({}, FIXED_VARIABLES);
     renderVariablesForm();
     return;
   }
   const data = await api.getVariables(state.currentCaseId);
-  state.variables = normalizeVariableState(data.variables || {});
+  state.variables = normalizeVariableState(data.variables || {}, FIXED_VARIABLES);
   renderVariablesForm();
   logRuntime("get variables", data);
 }
@@ -2962,7 +2637,7 @@ async function saveVariables() {
   if (!state.currentCaseId) return;
 
   const payload = {};
-  const normalized = normalizeVariableState(state.variables);
+  const normalized = normalizeVariableState(state.variables, FIXED_VARIABLES);
 
   FIXED_VARIABLES.forEach((field) => {
     const valueInput = els.variablesForm.querySelector(`[data-variable-input-key="${field.key}"]`);
@@ -2981,7 +2656,7 @@ async function saveVariables() {
   });
 
   const data = await api.saveVariables(state.currentCaseId, payload);
-  state.variables = normalizeVariableState(data.variables || normalized);
+  state.variables = normalizeVariableState(data.variables || normalized, FIXED_VARIABLES);
   state.submitData = null;
   renderVariablesForm();
   logRuntime("save variables", data);
@@ -3733,7 +3408,6 @@ bootstrap().catch((error) => {
     return;
   }
   logRuntime("bootstrap error", error?.message || String(error));
-  alert(error?.message || "Bootstrap error");
 });
 
 

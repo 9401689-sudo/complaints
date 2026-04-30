@@ -19,11 +19,13 @@ function setAuthToken(token) {
   }
 }
 
-async function request(path, options = {}) {
-  const url = `${API_BASE}${path}`;
+function buildUrl(path) {
+  return `${API_BASE}${path}`;
+}
 
+function buildAuthHeaders(inputHeaders = {}, includeJsonContentType = false) {
   const headers = {
-    ...(options.headers || {})
+    ...inputHeaders
   };
 
   const token = getAuthToken();
@@ -31,9 +33,31 @@ async function request(path, options = {}) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  if (options.body !== undefined && !headers["Content-Type"]) {
+  if (includeJsonContentType && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
+
+  return headers;
+}
+
+function parseDownloadFilename(contentDisposition) {
+  const match = contentDisposition.match(/filename\*=UTF-8''([^;]+)|filename=\"?([^\";]+)\"?/i);
+  return decodeURIComponent(match?.[1] || match?.[2] || "download.bin");
+}
+
+function createHttpError(message, status, url, payload) {
+  const error = new Error(message);
+  error.status = status;
+  error.url = url;
+  if (payload !== undefined) {
+    error.payload = payload;
+  }
+  return error;
+}
+
+async function request(path, options = {}) {
+  const url = buildUrl(path);
+  const headers = buildAuthHeaders(options.headers || {}, options.body !== undefined);
 
   const response = await fetch(url, {
     ...options,
@@ -48,27 +72,15 @@ async function request(path, options = {}) {
     const message = isJson
       ? payload?.error || payload?.message || `HTTP ${response.status}`
       : `HTTP ${response.status}`;
-
-    const error = new Error(message);
-    error.status = response.status;
-    error.payload = payload;
-    error.url = url;
-    throw error;
+    throw createHttpError(message, response.status, url, payload);
   }
 
   return payload;
 }
 
 async function requestBlob(path, options = {}) {
-  const url = `${API_BASE}${path}`;
-  const headers = {
-    ...(options.headers || {})
-  };
-
-  const token = getAuthToken();
-  if (token && !headers.Authorization) {
-    headers.Authorization = `Bearer ${token}`;
-  }
+  const url = buildUrl(path);
+  const headers = buildAuthHeaders(options.headers || {});
 
   const response = await fetch(url, {
     ...options,
@@ -76,16 +88,11 @@ async function requestBlob(path, options = {}) {
   });
 
   if (!response.ok) {
-    const message = `HTTP ${response.status}`;
-    const error = new Error(message);
-    error.status = response.status;
-    error.url = url;
-    throw error;
+    throw createHttpError(`HTTP ${response.status}`, response.status, url);
   }
 
   const contentDisposition = response.headers.get("content-disposition") || "";
-  const match = contentDisposition.match(/filename\*=UTF-8''([^;]+)|filename=\"?([^\";]+)\"?/i);
-  const filename = decodeURIComponent(match?.[1] || match?.[2] || "download.bin");
+  const filename = parseDownloadFilename(contentDisposition);
   const blob = await response.blob();
 
   return { blob, filename };

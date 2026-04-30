@@ -8,6 +8,7 @@
 
 ## Current posture
 
-- Codebase remains functionally monolithic on frontend, but with mapped seams and documented boundaries.
+- Codebase remains functionally monolithic on frontend orchestration layer, but safe utility seams were extracted and centralized under `frontend-utils/` with a single boundary module (`safe-modules-boundary.js`).
+- Baseline verification is now codified as `npm run verify:baseline` for bounded refactor stages.
 - Next recommended phase:
   - cautious feature-development + targeted refactors based on documented value/risk map.

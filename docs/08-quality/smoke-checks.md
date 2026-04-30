@@ -22,6 +22,14 @@
 
 ## Script references
 
+- Primary bounded-refactor baseline:
+  - `npm run verify:baseline`
+  - script: `scripts/verify-baseline.ps1`
+  - includes:
+    - frontend syntax check
+    - backend `tsc` build check
+    - critical route surface grep checks
+
 - Deployment helper scripts:
   - `scripts/deploy-complaints-m.sh`
   - `scripts/deploy-complaints-m.ps1`
