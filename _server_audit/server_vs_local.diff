@@ -1,0 +1,3416 @@
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/.env" /tmp/server-copy-Complaints_m/.env
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/.env"	2026-03-21 01:00:26.595249500 +0300
++++ /tmp/server-copy-Complaints_m/.env	2026-04-30 15:22:40.369093347 +0300
+@@ -2,10 +2,10 @@
+ # SERVER
+ ################################
+ 
+-PORT=3017
++PORT=3018
+ 
+-BASE_PUBLIC_URL=https://www.doorsvip.ru/complaints
+-API_BASE_PATH=/complaints/api
++BASE_PUBLIC_URL=https://www.doorsvip.ru/complaints_m
++API_BASE_PATH=/complaints_m/api
+ 
+ 
+ ################################
+@@ -16,7 +16,7 @@
+ POSTGRES_PORT=5432
+ POSTGRES_DB=postgres
+ POSTGRES_USER=supabase_admin
+-POSTGRES_PASSWORD=da663429d4706d683be08c7b118da81f
++POSTGRES_PASSWORD=your-super-secret-and-long-postgres-password
+ POSTGRES_SSL=false
+ BACKUP_DIR=/app/backups
+ 
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/.env.server.bak" /tmp/server-copy-Complaints_m/.env.server.bak
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/.env.server.bak"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/.env.server.bak	2026-03-21 01:19:29.888348943 +0300
+@@ -0,0 +1,22 @@
++PORT=3018
++
++BASE_PUBLIC_URL=https://www.doorsvip.ru/complaints_m
++API_BASE_PATH=/complaints_m/api
++
++POSTGRES_HOST=supabase-db
++POSTGRES_PORT=5432
++POSTGRES_DB=postgres
++POSTGRES_USER=supabase_admin
++POSTGRES_PASSWORD=da663429d4706d683be08c7b118da81f
++POSTGRES_SSL=false
++
++REDIS_HOST=redis
++REDIS_PORT=6379
++REDIS_DB=0
++REDIS_PASSWORD=UJHJitr_2004
++
++NEXTCLOUD_BASE_URL=https://cloud.doorsvip.ru
++NEXTCLOUD_USERNAME=nextcloud
++NEXTCLOUD_PASSWORD=UJHJitr_2004
++NEXTCLOUD_ROOT_PATH=/complaints_m/cases
++BACKUP_DIR=/app/backups
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/.gitignore" /tmp/server-copy-Complaints_m/.gitignore
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/.gitignore"	2026-05-21 14:30:54.429484400 +0300
++++ /tmp/server-copy-Complaints_m/.gitignore	2026-03-20 00:50:15.171221022 +0300
+@@ -3,27 +3,4 @@
+ complaints/
+ *.tar.gz
+ complaints-backend@1.0.0
+-tsc
+-
+-# Secrets and local env files
+-.env
+-.env.*
+-*_secret*
+-*_secrets*
+-*.pem
+-*.key
+-id_rsa*
+-
+-# Common local build/vendor directories
+-node_modules/
+-vendor/
+-dist/
+-build/
+-.next/
+-
+-# Allow only encrypted secrets in repository
+-!_server_secrets/
+-!_server_secrets/README.md
+-!_server_secrets/*.gpg
+-!_server_secrets/*.age
+-!_server_secrets/*.enc
++tsc
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/_server_audit/inventory.md" /tmp/server-copy-Complaints_m/_server_audit/inventory.md
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/_server_audit/inventory.md"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/_server_audit/inventory.md	2026-05-21 14:28:02.439873787 +0300
+@@ -0,0 +1,125 @@
++# Server Inventory (pre-migration)
++
++## Project path
++- `/var/www/complaints-backend/complaints_m`
++
++## Git state
++- Current branch: `multi-user`
++- Last commit: `103341d Complete full refactor pass, baseline verification, and docs sync`
++- Remote:
++  - `origin git@github.com:9401689-sudo/complaints.git (fetch)`
++  - `origin git@github.com:9401689-sudo/complaints.git (push)`
++
++### Working tree status
++- Tracked modified files:
++  - `.env`
++- Staged files:
++  - none
++- Untracked files:
++  - `.env.server.bak`
++  - `auth-scope-policy-utils.js`
++  - `case-status-badge-utils.js`
++  - `case-status-constants.js`
++  - `context-nav-model-utils.js`
++  - `date-text-utils.js`
++  - `directory-category-constants.js`
++  - `display-format-utils.js`
++  - `file-preview-display-utils.js`
++  - `filter-option-derivation-utils.js`
++  - `fixed-variables-config.js`
++  - `label-lookup-utils.js`
++  - `list-filter-query-utils.js`
++  - `mime-preview-lookup-utils.js`
++  - `preview-markup-template-utils.js`
++  - `preview-text-format-utils.js`
++  - `readonly-ui-decision-utils.js`
++  - `safe-modules-boundary.js`
++  - `scripts/smoke-check-app-boundary-imports.sh`
++  - `scripts/smoke-check-auth-scope-policy-utils.sh`
++  - `scripts/smoke-check-case-status-badge-utils.sh`
++  - `scripts/smoke-check-context-nav-model-utils.sh`
++  - `scripts/smoke-check-date-text-utils.sh`
++  - `scripts/smoke-check-display-format-utils.sh`
++  - `scripts/smoke-check-extracted-constants.sh`
++  - `scripts/smoke-check-file-preview-display-utils.sh`
++  - `scripts/smoke-check-filter-option-derivation-utils.sh`
++  - `scripts/smoke-check-fixed-variables-config.sh`
++  - `scripts/smoke-check-label-lookup-utils.sh`
++  - `scripts/smoke-check-list-filter-query-utils.sh`
++  - `scripts/smoke-check-mime-preview-lookup-utils.sh`
++  - `scripts/smoke-check-preview-markup-template-utils.sh`
++  - `scripts/smoke-check-preview-text-format-utils.sh`
++  - `scripts/smoke-check-readonly-ui-decision-utils.sh`
++  - `scripts/smoke-check-safe-boundary-completeness.sh`
++  - `scripts/smoke-check-submit-workspace-precondition-utils.sh`
++  - `scripts/smoke-check-template-workspace-derivation-utils.sh`
++  - `scripts/smoke-check-text-display-utils.sh`
++  - `scripts/smoke-check-variable-template-transform-utils.sh`
++  - `scripts/smoke-check-workspace-status-progress-text-utils.sh`
++  - `submit-workspace-precondition-utils.js`
++  - `template-workspace-derivation-utils.js`
++  - `text-display-utils.js`
++  - `variable-template-transform-utils.js`
++  - `workspace-status-progress-text-utils.js`
++
++## Environment files (.env*)
++- `./.env`
++- `./.env.save`
++- `./.env.server.bak`
++
++## Docker / deploy / infra-related files
++### Docker
++- `./docker-compose.yml`
++- `./Dockerfile`
++
++### Deploy scripts
++- `./scripts/deploy-complaints-m.ps1`
++- `./scripts/deploy-complaints-m.sh`
++
++### Scripts and migration-related references
++- Script directories:
++  - `./scripts`
++  - `./src/scripts`
++- Script files:
++  - `./scripts/verify-baseline.ps1`
++  - `./scripts/smoke-check-*.sh` (multiple files, see untracked list)
++  - `./src/scripts/create-admin-user.ts`
++  - `./src/scripts/restore-case-from-nextcloud.ts`
++- Migration/README docs found nearby:
++  - `./docs/04-data/migrations-and-sql.md`
++  - `./docs/06-infrastructure/deployment-runbook.md`
++  - `./docs/README.md`
++  - `./docs/00-overview/README.md`
++
++### nginx/apache/systemd configs рядом с проектом
++- Dedicated runtime config files (`nginx.conf`, `apache*.conf`, `*.service`) in project root tree: not found.
++- Only documentation-style `.conf` hits were detected by broad filename pattern.
++
++## Runtime directories (potentially important)
++Detected inside project tree:
++- `./backups`
++
++Also matched by generic name pattern (not application runtime payload, but git internals):
++- `./.git/logs`
++
++No explicit matches found for:
++- `uploads`
++- `storage`
++- `data`
++- `media`
++- `public/uploads`
++- top-level `logs`
++
++## What is already in git vs not
++### Already tracked in git
++- Main project files and docs currently at commit `103341d`.
++- `.env` is tracked and currently locally modified on server.
++
++### Not tracked in git (server-local)
++- All files listed in “Untracked files” above (helper JS and smoke scripts cluster + `.env.server.bak`).
++
++## Notes for migration preparation
++- Server working tree is **not clean** (`.env` modified + large untracked set).
++- Before migration/copy, preserve both:
++  1. tracked state at commit `103341d`, and
++  2. server-local deltas listed above (especially `.env` and untracked scripts/helpers).
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/_server_audit/server_vs_local.diff" /tmp/server-copy-Complaints_m/_server_audit/server_vs_local.diff
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/_server_audit/server_vs_local.diff"	2026-05-21 14:39:06.569164500 +0300
++++ /tmp/server-copy-Complaints_m/_server_audit/server_vs_local.diff	1970-01-01 03:00:00.000000000 +0300
+@@ -1,213 +0,0 @@
+-diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/.env" /tmp/server-copy-Complaints_m/.env
+---- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/.env"	2026-03-21 01:00:26.595249500 +0300
+-+++ /tmp/server-copy-Complaints_m/.env	2026-04-30 15:22:40.369093347 +0300
+-@@ -2,10 +2,10 @@
+- # SERVER
+- ################################
+- 
+--PORT=3017
+-+PORT=3018
+- 
+--BASE_PUBLIC_URL=https://www.doorsvip.ru/complaints
+--API_BASE_PATH=/complaints/api
+-+BASE_PUBLIC_URL=https://www.doorsvip.ru/complaints_m
+-+API_BASE_PATH=/complaints_m/api
+- 
+- 
+- ################################
+-@@ -16,7 +16,7 @@
+- POSTGRES_PORT=5432
+- POSTGRES_DB=postgres
+- POSTGRES_USER=supabase_admin
+--POSTGRES_PASSWORD=da663429d4706d683be08c7b118da81f
+-+POSTGRES_PASSWORD=your-super-secret-and-long-postgres-password
+- POSTGRES_SSL=false
+- BACKUP_DIR=/app/backups
+- 
+-diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/.env.server.bak" /tmp/server-copy-Complaints_m/.env.server.bak
+---- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/.env.server.bak"	1970-01-01 03:00:00.000000000 +0300
+-+++ /tmp/server-copy-Complaints_m/.env.server.bak	2026-03-21 01:19:29.888348943 +0300
+-@@ -0,0 +1,22 @@
+-+PORT=3018
+-+
+-+BASE_PUBLIC_URL=https://www.doorsvip.ru/complaints_m
+-+API_BASE_PATH=/complaints_m/api
+-+
+-+POSTGRES_HOST=supabase-db
+-+POSTGRES_PORT=5432
+-+POSTGRES_DB=postgres
+-+POSTGRES_USER=supabase_admin
+-+POSTGRES_PASSWORD=da663429d4706d683be08c7b118da81f
+-+POSTGRES_SSL=false
+-+
+-+REDIS_HOST=redis
+-+REDIS_PORT=6379
+-+REDIS_DB=0
+-+REDIS_PASSWORD=UJHJitr_2004
+-+
+-+NEXTCLOUD_BASE_URL=https://cloud.doorsvip.ru
+-+NEXTCLOUD_USERNAME=nextcloud
+-+NEXTCLOUD_PASSWORD=UJHJitr_2004
+-+NEXTCLOUD_ROOT_PATH=/complaints_m/cases
+-+BACKUP_DIR=/app/backups
+-diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/.gitignore" /tmp/server-copy-Complaints_m/.gitignore
+---- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/.gitignore"	2026-05-21 14:30:54.429484400 +0300
+-+++ /tmp/server-copy-Complaints_m/.gitignore	2026-03-20 00:50:15.171221022 +0300
+-@@ -3,27 +3,4 @@
+- complaints/
+- *.tar.gz
+- complaints-backend@1.0.0
+--tsc
+--
+--# Secrets and local env files
+--.env
+--.env.*
+--*_secret*
+--*_secrets*
+--*.pem
+--*.key
+--id_rsa*
+--
+--# Common local build/vendor directories
+--node_modules/
+--vendor/
+--dist/
+--build/
+--.next/
+--
+--# Allow only encrypted secrets in repository
+--!_server_secrets/
+--!_server_secrets/README.md
+--!_server_secrets/*.gpg
+--!_server_secrets/*.age
+--!_server_secrets/*.enc
+-+tsc
+-diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/_server_audit/inventory.md" /tmp/server-copy-Complaints_m/_server_audit/inventory.md
+---- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/_server_audit/inventory.md"	1970-01-01 03:00:00.000000000 +0300
+-+++ /tmp/server-copy-Complaints_m/_server_audit/inventory.md	2026-05-21 14:28:02.439873787 +0300
+-@@ -0,0 +1,125 @@
+-+# Server Inventory (pre-migration)
+-+
+-+## Project path
+-+- `/var/www/complaints-backend/complaints_m`
+-+
+-+## Git state
+-+- Current branch: `multi-user`
+-+- Last commit: `103341d Complete full refactor pass, baseline verification, and docs sync`
+-+- Remote:
+-+  - `origin git@github.com:9401689-sudo/complaints.git (fetch)`
+-+  - `origin git@github.com:9401689-sudo/complaints.git (push)`
+-+
+-+### Working tree status
+-+- Tracked modified files:
+-+  - `.env`
+-+- Staged files:
+-+  - none
+-+- Untracked files:
+-+  - `.env.server.bak`
+-+  - `auth-scope-policy-utils.js`
+-+  - `case-status-badge-utils.js`
+-+  - `case-status-constants.js`
+-+  - `context-nav-model-utils.js`
+-+  - `date-text-utils.js`
+-+  - `directory-category-constants.js`
+-+  - `display-format-utils.js`
+-+  - `file-preview-display-utils.js`
+-+  - `filter-option-derivation-utils.js`
+-+  - `fixed-variables-config.js`
+-+  - `label-lookup-utils.js`
+-+  - `list-filter-query-utils.js`
+-+  - `mime-preview-lookup-utils.js`
+-+  - `preview-markup-template-utils.js`
+-+  - `preview-text-format-utils.js`
+-+  - `readonly-ui-decision-utils.js`
+-+  - `safe-modules-boundary.js`
+-+  - `scripts/smoke-check-app-boundary-imports.sh`
+-+  - `scripts/smoke-check-auth-scope-policy-utils.sh`
+-+  - `scripts/smoke-check-case-status-badge-utils.sh`
+-+  - `scripts/smoke-check-context-nav-model-utils.sh`
+-+  - `scripts/smoke-check-date-text-utils.sh`
+-+  - `scripts/smoke-check-display-format-utils.sh`
+-+  - `scripts/smoke-check-extracted-constants.sh`
+-+  - `scripts/smoke-check-file-preview-display-utils.sh`
+-+  - `scripts/smoke-check-filter-option-derivation-utils.sh`
+-+  - `scripts/smoke-check-fixed-variables-config.sh`
+-+  - `scripts/smoke-check-label-lookup-utils.sh`
+-+  - `scripts/smoke-check-list-filter-query-utils.sh`
+-+  - `scripts/smoke-check-mime-preview-lookup-utils.sh`
+-+  - `scripts/smoke-check-preview-markup-template-utils.sh`
+-+  - `scripts/smoke-check-preview-text-format-utils.sh`
+-+  - `scripts/smoke-check-readonly-ui-decision-utils.sh`
+-+  - `scripts/smoke-check-safe-boundary-completeness.sh`
+-+  - `scripts/smoke-check-submit-workspace-precondition-utils.sh`
+-+  - `scripts/smoke-check-template-workspace-derivation-utils.sh`
+-+  - `scripts/smoke-check-text-display-utils.sh`
+-+  - `scripts/smoke-check-variable-template-transform-utils.sh`
+-+  - `scripts/smoke-check-workspace-status-progress-text-utils.sh`
+-+  - `submit-workspace-precondition-utils.js`
+-+  - `template-workspace-derivation-utils.js`
+-+  - `text-display-utils.js`
+-+  - `variable-template-transform-utils.js`
+-+  - `workspace-status-progress-text-utils.js`
+-+
+-+## Environment files (.env*)
+-+- `./.env`
+-+- `./.env.save`
+-+- `./.env.server.bak`
+-+
+-+## Docker / deploy / infra-related files
+-+### Docker
+-+- `./docker-compose.yml`
+-+- `./Dockerfile`
+-+
+-+### Deploy scripts
+-+- `./scripts/deploy-complaints-m.ps1`
+-+- `./scripts/deploy-complaints-m.sh`
+-+
+-+### Scripts and migration-related references
+-+- Script directories:
+-+  - `./scripts`
+-+  - `./src/scripts`
+-+- Script files:
+-+  - `./scripts/verify-baseline.ps1`
+-+  - `./scripts/smoke-check-*.sh` (multiple files, see untracked list)
+-+  - `./src/scripts/create-admin-user.ts`
+-+  - `./src/scripts/restore-case-from-nextcloud.ts`
+-+- Migration/README docs found nearby:
+-+  - `./docs/04-data/migrations-and-sql.md`
+-+  - `./docs/06-infrastructure/deployment-runbook.md`
+-+  - `./docs/README.md`
+-+  - `./docs/00-overview/README.md`
+-+
+-+### nginx/apache/systemd configs рядом с проектом
+-+- Dedicated runtime config files (`nginx.conf`, `apache*.conf`, `*.service`) in project root tree: not found.
+-+- Only documentation-style `.conf` hits were detected by broad filename pattern.
+-+
+-+## Runtime directories (potentially important)
+-+Detected inside project tree:
+-+- `./backups`
+-+
+-+Also matched by generic name pattern (not application runtime payload, but git internals):
+-+- `./.git/logs`
+-+
+-+No explicit matches found for:
+-+- `uploads`
+-+- `storage`
+-+- `data`
+-+- `media`
+-+- `public/uploads`
+-+- top-level `logs`
+-+
+-+## What is already in git vs not
+-+### Already tracked in git
+-+- Main project files and docs currently at commit `103341d`.
+-+- `.env` is tracked and currently locally modified on server.
+-+
+-+### Not tracked in git (server-local)
+-+- All files listed in “Untracked files” above (helper JS and smoke scripts cluster + `.env.server.bak`).
+-+
+-+## Notes for migration preparation
+-+- Server working tree is **not clean** (`.env` modified + large untracked set).
+-+- Before migration/copy, preserve both:
+-+  1. tracked state at commit `103341d`, and
+-+  2. server-local deltas listed above (especially `.env` and untracked scripts/helpers).
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/_server_secrets/README.md" /tmp/server-copy-Complaints_m/_server_secrets/README.md
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/_server_secrets/README.md"	2026-05-21 14:30:41.241722500 +0300
++++ /tmp/server-copy-Complaints_m/_server_secrets/README.md	1970-01-01 03:00:00.000000000 +0300
+@@ -1,18 +0,0 @@
+-# Server Secrets Policy
+-
+-## Important rules
+-
+-- Raw `.env` files are never committed to this repository.
+-- Secrets are stored only in encrypted form (`.gpg`, `.age`, `.enc`).
+-- Plaintext secret files must stay local and be transferred securely outside git.
+-
+-## GPG decryption example
+-
+-```bash
+-gpg --output .env --decrypt prod.env.gpg
+-```
+-
+-## Key management
+-
+-- The encryption password/private key must not be stored in this repository.
+-- Keep decryption keys in a secure secret manager or offline protected storage.
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/auth-scope-policy-utils.js" /tmp/server-copy-Complaints_m/auth-scope-policy-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/auth-scope-policy-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/auth-scope-policy-utils.js	2026-04-12 15:16:45.426584133 +0300
+@@ -0,0 +1,58 @@
++export function isAdminRole(role) {
++  return role === "admin_view" || role === "admin_full";
++}
++
++export function isAuthenticatedUser(authUser) {
++  return Boolean(authUser);
++}
++
++export function canManageDirectories(authUser) {
++  return authUser?.role === "admin_full";
++}
++
++export function canManageUsers(authUser) {
++  return authUser?.role === "admin_full";
++}
++
++export function canEditDirectoryItem(item) {
++  return Boolean(item?.can_edit);
++}
++
++export function canOpenDirectoryItem(authUser, item) {
++  if (!isAuthenticatedUser(authUser)) {
++    return false;
++  }
++  return Boolean(item);
++}
++
++export function getDirectoryScopeOptions(authUser, kind) {
++  if (isAdminRole(authUser?.role)) {
++    return kind === "institutions"
++      ? [
++          { value: "", label: "Все организации" },
++          { value: "public", label: "Общие" },
++          { value: "owned", label: "Организации пользователей" }
++        ]
++      : [
++          { value: "", label: "Все шаблоны" },
++          { value: "public", label: "Общие" },
++          { value: "owned", label: "Шаблоны пользователей" }
++      ];
++  }
++
++  if (!isAuthenticatedUser(authUser)) {
++    return kind === "institutions"
++      ? [{ value: "", label: "Все организации" }]
++      : [{ value: "", label: "Все шаблоны" }];
++  }
++
++  return kind === "institutions"
++    ? [
++        { value: "", label: "Все организации" },
++        { value: "favorites", label: "Мои организации" }
++      ]
++    : [
++        { value: "", label: "Все шаблоны" },
++        { value: "favorites", label: "Мои шаблоны" }
++      ];
++}
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/case-status-badge-utils.js" /tmp/server-copy-Complaints_m/case-status-badge-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/case-status-badge-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/case-status-badge-utils.js	2026-04-12 11:25:16.202918448 +0300
+@@ -0,0 +1,30 @@
++import {
++  CASE_STATUS_CLASSES,
++  CASE_STATUS_LABELS
++} from "./case-status-constants.js";
++
++export function getCaseStatusBadges(item) {
++  const badges = [];
++
++  if (!item.institution_id) {
++    badges.push({ text: "НЕТ ОРГАНИЗАЦИИ", cls: "warn" });
++  }
++
++  if (!item.template_id) {
++    badges.push({ text: "НЕТ ШАБЛОНА", cls: "warn" });
++  }
++
++  const primaryStatus = String(item.case_status || "").trim() || "created";
++  if (CASE_STATUS_LABELS[primaryStatus]) {
++    badges.push({
++      text: CASE_STATUS_LABELS[primaryStatus],
++      cls: CASE_STATUS_CLASSES[primaryStatus] || "info"
++    });
++  }
++
++  if (Number(item.linked_cases_count || 0) > 0) {
++    badges.push({ text: "ЕСТЬ СВЯЗАННЫЕ", cls: "info" });
++  }
++
++  return badges;
++}
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/case-status-constants.js" /tmp/server-copy-Complaints_m/case-status-constants.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/case-status-constants.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/case-status-constants.js	2026-04-11 23:33:09.789604273 +0300
+@@ -0,0 +1,24 @@
++export const CASE_STATUS_LABELS = {
++  created: "СОЗДАНО",
++  sent: "ОТПРАВЛЕНО",
++  has_reply: "ЕСТЬ ОТВЕТ"
++};
++
++export const CASE_STATUS_CLASSES = {
++  created: "info",
++  sent: "ready",
++  has_reply: "ready"
++};
++
++export const ROLE_LABELS = {
++  user: "пользователь",
++  admin_view: "только просмотр",
++  admin_full: "полный доступ"
++};
++
++export const CASE_STATUS_FILTER_OPTIONS = [
++  { value: "", label: "Все статусы" },
++  { value: "created_group", label: "Создано" },
++  { value: "sent", label: "Отправлено" },
++  { value: "has_reply", label: "Есть ответ" }
++];
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/context-nav-model-utils.js" /tmp/server-copy-Complaints_m/context-nav-model-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/context-nav-model-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/context-nav-model-utils.js	2026-04-12 20:46:06.157047927 +0300
+@@ -0,0 +1,107 @@
++export function deriveContextNavModel(input = {}) {
++  const currentScreen = String(input.currentScreen || "");
++  const currentWorkspaceTab = String(input.currentWorkspaceTab || "");
++  const adminSection = String(input.adminSection || "");
++  const isAuthenticated = Boolean(input.isAuthenticated);
++  const institutionsScopeFilter = String(input.institutionsScopeFilter || "");
++  const institutionsCategoryFilter = String(input.institutionsCategoryFilter || "");
++  const templatesScopeFilter = String(input.templatesScopeFilter || "");
++  const templatesCategoryFilter = String(input.templatesCategoryFilter || "");
++  const directoryCategories = Array.isArray(input.directoryCategories) ? input.directoryCategories : [];
++  const institutionsScopeOptions = Array.isArray(input.institutionsScopeOptions) ? input.institutionsScopeOptions : [];
++  const templatesScopeOptions = Array.isArray(input.templatesScopeOptions) ? input.templatesScopeOptions : [];
++
++  if (currentScreen === "case-workspace") {
++    return {
++      title: "Обращение",
++      items: [
++        { action: "tab:variables", label: "Переменные", active: currentWorkspaceTab === "variables" },
++        { action: "tab:text", label: "Текст", active: currentWorkspaceTab === "text" },
++        { action: "tab:files", label: "Файлы", active: currentWorkspaceTab === "files" },
++        { action: "tab:submit", label: "Отправка", active: currentWorkspaceTab === "submit" },
++        { action: "tab:result", label: "Ответ", active: currentWorkspaceTab === "result" }
++      ]
++    };
++  }
++
++  if (currentScreen === "institutions") {
++    return {
++      title: "Фильтры",
++      items: deriveScopedCategoryItems({
++        scopeOptions: institutionsScopeOptions,
++        scopePrefix: "institutions-scope",
++        scopeActiveValue: institutionsScopeFilter,
++        categoryOptions: directoryCategories,
++        categoryPrefix: "institutions-category",
++        categoryActiveValue: institutionsCategoryFilter
++      })
++    };
++  }
++
++  if (currentScreen === "templates") {
++    return {
++      title: "Фильтры",
++      items: deriveScopedCategoryItems({
++        scopeOptions: templatesScopeOptions,
++        scopePrefix: "templates-scope",
++        scopeActiveValue: templatesScopeFilter,
++        categoryOptions: directoryCategories,
++        categoryPrefix: "templates-category",
++        categoryActiveValue: templatesCategoryFilter
++      })
++    };
++  }
++
++  if (currentScreen === "admin") {
++    return {
++      title: "Панель администратора",
++      items: [
++        { action: "admin-section:users", label: "Пользователи", active: adminSection === "users" },
++        { action: "admin-section:private_institutions", label: "Личные организации", active: adminSection === "private_institutions" },
++        { action: "admin-section:private_templates", label: "Личные шаблоны", active: adminSection === "private_templates" },
++        { action: "admin-section:deleted", label: "Просмотр помеченных", active: adminSection === "deleted" },
++        { action: "admin-action:purge-deleted", label: "Удаление помеченных", active: false },
++        { action: "admin-section:backups", label: "Резервные копии", active: adminSection === "backups" }
++      ]
++    };
++  }
++
++  if (isAuthenticated) {
++    return {
++      title: "Обращения",
++      items: [
++        { action: "dashboard:create-case", label: "Создать обращение", active: false }
++      ]
++    };
++  }
++
++  return {
++    title: "О сервисе",
++    items: []
++  };
++}
++
++function deriveScopedCategoryItems(input = {}) {
++  const scopeOptions = Array.isArray(input.scopeOptions) ? input.scopeOptions : [];
++  const categoryOptions = Array.isArray(input.categoryOptions) ? input.categoryOptions : [];
++  const scopePrefix = String(input.scopePrefix || "");
++  const scopeActiveValue = String(input.scopeActiveValue || "");
++  const categoryPrefix = String(input.categoryPrefix || "");
++  const categoryActiveValue = String(input.categoryActiveValue || "");
++
++  const scopeItems = scopeOptions.map((item) => ({
++    action: `${scopePrefix}:${item.value}`,
++    label: item.label,
++    active: scopeActiveValue === item.value
++  }));
++
++  const categoryItems = categoryOptions.map((item) => ({
++    action: `${categoryPrefix}:${item.value}`,
++    label: item.label,
++    active: categoryActiveValue === item.value
++  }));
++
++  return scopeItems
++    .concat(scopeItems.length ? [{ action: "__divider__", label: "", active: false }] : [])
++    .concat(categoryItems);
++}
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/date-text-utils.js" /tmp/server-copy-Complaints_m/date-text-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/date-text-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/date-text-utils.js	2026-04-11 22:24:55.215521033 +0300
+@@ -0,0 +1,125 @@
++export function formatDateForInput(date) {
++  const day = String(date.getDate()).padStart(2, "0");
++  const month = String(date.getMonth() + 1).padStart(2, "0");
++  const year = String(date.getFullYear());
++  return `${day}.${month}.${year}`;
++}
++
++export function maskDateInputValue(value) {
++  const digits = String(value || "").replace(/\D/g, "").slice(0, 8);
++  const parts = [];
++
++  if (digits.length > 0) {
++    parts.push(digits.slice(0, 2));
++  }
++  if (digits.length > 2) {
++    parts.push(digits.slice(2, 4));
++  }
++  if (digits.length > 4) {
++    parts.push(digits.slice(4, 8));
++  }
++
++  return parts.join(".");
++}
++
++export function normalizeDisplayDate(value) {
++  const raw = String(value || "").trim();
++
++  if (!raw) {
++    return "";
++  }
++
++  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
++  if (isoMatch) {
++    const [, year, month, day] = isoMatch;
++    return `${day}.${month}.${year}`;
++  }
++
++  return maskDateInputValue(raw);
++}
++
++export function parseStrictDisplayDate(value, fieldLabel) {
++  const raw = String(value || "").trim();
++
++  if (!raw) {
++    return "";
++  }
++
++  const match = raw.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
++  if (!match) {
++    throw new Error(`${fieldLabel}: используйте формат дд.мм.гггг`);
++  }
++
++  const [, dayText, monthText, yearText] = match;
++  const day = Number(dayText);
++  const month = Number(monthText);
++  const year = Number(yearText);
++  const currentYear = new Date().getFullYear();
++
++  if (day < 1 || day > 31) {
++    throw new Error(`${fieldLabel}: день должен быть в диапазоне 01-31`);
++  }
++
++  if (month < 1 || month > 12) {
++    throw new Error(`${fieldLabel}: месяц должен быть в диапазоне 01-12`);
++  }
++
++  if (year < 2000 || year > currentYear) {
++    throw new Error(`${fieldLabel}: год должен быть в диапазоне 2000-${currentYear}`);
++  }
++
++  const maxDay = new Date(year, month, 0).getDate();
++  if (day > maxDay) {
++    throw new Error(`${fieldLabel}: такой даты не существует`);
++  }
++
++  return `${dayText}.${monthText}.${yearText}`;
++}
++
++export function formatComplaintDate(value) {
++  const raw = String(value || "").trim();
++
++  if (!raw) {
++    return "";
++  }
++
++  const displayMatch = raw.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
++  if (displayMatch) {
++    const [, day, month, year] = displayMatch;
++    const date = new Date(Number(year), Number(month) - 1, Number(day));
++
++    if (!Number.isNaN(date.getTime())) {
++      return new Intl.DateTimeFormat("ru-RU", {
++        day: "numeric",
++        month: "long",
++        year: "numeric"
++      }).format(date) + " г.";
++    }
++  }
++
++  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
++  if (!match) {
++    return raw;
++  }
++
++  const [, year, month, day] = match;
++  const date = new Date(Number(year), Number(month) - 1, Number(day));
++
++  if (Number.isNaN(date.getTime())) {
++    return raw;
++  }
++
++  return new Intl.DateTimeFormat("ru-RU", {
++    day: "numeric",
++    month: "long",
++    year: "numeric"
++  }).format(date) + " г.";
++}
++
++export function collapseDuplicateDateSuffixes(text) {
++  return String(text || "").replace(
++    /(\d{1,2}\s+[А-Яа-яЁё]+\s+\d{4})\s*г\.\s*г\./g,
++    "$1 г."
++  );
++}
++
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/directory-category-constants.js" /tmp/server-copy-Complaints_m/directory-category-constants.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/directory-category-constants.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/directory-category-constants.js	2026-04-11 23:45:11.347996761 +0300
+@@ -0,0 +1,12 @@
++export const DIRECTORY_CATEGORIES = [
++  { value: "", label: "Все категории" },
++  { value: "authority", label: "Органы власти" },
++  { value: "state_org", label: "Государственные организации" },
++  { value: "other_org", label: "Прочие организации" }
++];
++
++export const DIRECTORY_CATEGORY_LABELS = {
++  authority: "Органы власти",
++  state_org: "Государственные организации",
++  other_org: "Прочие организации"
++};
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/display-format-utils.js" /tmp/server-copy-Complaints_m/display-format-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/display-format-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/display-format-utils.js	2026-04-12 03:43:32.888958407 +0300
+@@ -0,0 +1,22 @@
++export function getVisibilityLabel(visibility) {
++  return visibility === "private" ? "Личное" : "Общее";
++}
++
++export function formatBytes(value) {
++  const bytes = Number(value || 0);
++  if (!Number.isFinite(bytes) || bytes <= 0) {
++    return "0 Б";
++  }
++
++  const units = ["Б", "КБ", "МБ", "ГБ"];
++  let current = bytes;
++  let index = 0;
++
++  while (current >= 1024 && index < units.length - 1) {
++    current /= 1024;
++    index += 1;
++  }
++
++  const digits = current >= 10 || index === 0 ? 0 : 1;
++  return `${current.toFixed(digits)} ${units[index]}`;
++}
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/file-preview-display-utils.js" /tmp/server-copy-Complaints_m/file-preview-display-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/file-preview-display-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/file-preview-display-utils.js	2026-04-12 05:22:57.242434163 +0300
+@@ -0,0 +1,25 @@
++import {
++  guessMimeByFileName,
++  isImageMime,
++  isPdfMime,
++  isVideoMime
++} from "./mime-preview-lookup-utils.js";
++
++export function getPreviewFileMeta(file = {}) {
++  const mimeType = file.mime_type || file.mimeType || guessMimeByFileName(file.file_name || file.fileName || "");
++  const title = file.file_name || file.fileName || "preview";
++  return { mimeType, title };
++}
++
++export function getPreviewDisplayKind(mimeType) {
++  if (isImageMime(mimeType)) return "image";
++  if (isVideoMime(mimeType)) return "video";
++  if (isPdfMime(mimeType)) return "pdf";
++  return "file";
++}
++
++export function getPreviewWrapperAttr(fileId, opts = {}) {
++  const previewAttr = opts.attrName || "data-preview-file-id";
++  const clickable = opts.clickable !== false;
++  return clickable ? `${previewAttr}="${fileId}"` : "";
++}
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/filter-option-derivation-utils.js" /tmp/server-copy-Complaints_m/filter-option-derivation-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/filter-option-derivation-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/filter-option-derivation-utils.js	2026-04-12 17:39:32.109285654 +0300
+@@ -0,0 +1,41 @@
++export function deriveAdminUserDatalistOptions(adminUsers = [], toFilterValue) {
++  return adminUsers.map((user) => ({
++    value: resolveAdminUserFilterValue(user, toFilterValue)
++  }));
++}
++
++export function getAdminUserByFilterValue(adminUsers = [], value, toFilterValue) {
++  const normalized = String(value || "").trim();
++  if (!normalized) {
++    return null;
++  }
++
++  return adminUsers.find((user) => resolveAdminUserFilterValue(user, toFilterValue) === normalized) || null;
++}
++
++export function getAdminUserFilterInputValue(adminUsers = [], userId, toFilterValue) {
++  if (!userId) {
++    return "";
++  }
++
++  const user = adminUsers.find((item) => item.id === userId);
++  return user ? resolveAdminUserFilterValue(user, toFilterValue) : "";
++}
++
++export function deriveCaseFilterOptions(institutions = [], statusOptions = []) {
++  return {
++    institutionOptions: [
++      { value: "", label: "Все организации" },
++      ...institutions.map((item) => ({ value: item.id, label: item.name || "" }))
++    ],
++    statusOptions: statusOptions.map((item) => ({ value: item.value, label: item.label }))
++  };
++}
++
++function resolveAdminUserFilterValue(user, toFilterValue) {
++  if (typeof toFilterValue === "function") {
++    return String(toFilterValue(user));
++  }
++
++  return String(user?.nickname || "");
++}
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/fixed-variables-config.js" /tmp/server-copy-Complaints_m/fixed-variables-config.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/fixed-variables-config.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/fixed-variables-config.js	2026-04-12 01:28:08.173064363 +0300
+@@ -0,0 +1,23 @@
++export const FIXED_VARIABLES = [
++  {
++    key: "complaint_date",
++    enabledKey: "complaint_date_enabled",
++    label: "Дата",
++    type: "date",
++    token: "{{complaint_date}}"
++  },
++  {
++    key: "address",
++    enabledKey: "address_enabled",
++    label: "Адрес",
++    type: "text",
++    token: "{{address}}"
++  },
++  {
++    key: "license_plate",
++    enabledKey: "license_plate_enabled",
++    label: "Гос.номер",
++    type: "text",
++    token: "{{license_plate}}"
++  }
++];
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/label-lookup-utils.js" /tmp/server-copy-Complaints_m/label-lookup-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/label-lookup-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/label-lookup-utils.js	2026-04-12 04:45:43.767639597 +0300
+@@ -0,0 +1,14 @@
++import { ROLE_LABELS } from "./case-status-constants.js";
++import { DIRECTORY_CATEGORY_LABELS } from "./directory-category-constants.js";
++
++export function roleLabel(role) {
++  return ROLE_LABELS[role] || role || "Пользователь";
++}
++
++export function getCategoryLabel(value) {
++  return DIRECTORY_CATEGORY_LABELS[value] || "Без категории";
++}
++
++export function getAdminUserFilterValue(user) {
++  return `${user.nickname} [${roleLabel(user.role)}]`;
++}
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/list-filter-query-utils.js" /tmp/server-copy-Complaints_m/list-filter-query-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/list-filter-query-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/list-filter-query-utils.js	2026-04-12 12:36:21.845084361 +0300
+@@ -0,0 +1,121 @@
++export function deriveVisibleCases(cases = [], filters = {}) {
++  const query = normalizeQuery(filters.query);
++  const institutionFilter = filters.institutionFilter || "";
++  const statusFilter = filters.statusFilter || "";
++  const userFilter = filters.userFilter || "";
++
++  return cases.filter((item) => {
++    if (institutionFilter && item.institution_id !== institutionFilter) {
++      return false;
++    }
++
++    if (userFilter && item.owner_user_id !== userFilter) {
++      return false;
++    }
++
++    if (statusFilter) {
++      if (statusFilter === "created_group") {
++        if (!isCreatedGroupStatus(item.case_status)) {
++          return false;
++        }
++      } else if (item.case_status !== statusFilter) {
++        return false;
++      }
++    }
++
++    return includesQuery([
++      item.title || "",
++      item.description || "",
++      item.case_number || "",
++      item.institution_name || "",
++      item.template_name || "",
++      item.owner_nickname || ""
++    ], query);
++  });
++}
++
++export function deriveVisibleInstitutions(institutions = [], filters = {}) {
++  const showOwner = Boolean(filters.showOwner);
++  const scopeFilter = filters.scopeFilter || "";
++  const userFilter = filters.userFilter || "";
++  const categoryFilter = filters.categoryFilter || "";
++  const searchQuery = normalizeQuery(filters.search);
++
++  return institutions.filter((item) => {
++    if (showOwner) {
++      if (scopeFilter === "owned" && item.visibility !== "private") {
++        return false;
++      }
++      if (scopeFilter === "public" && item.visibility !== "public") {
++        return false;
++      }
++      if (userFilter && item.owner_user_id !== userFilter) {
++        return false;
++      }
++    } else if (scopeFilter === "favorites" && !item.is_favorite) {
++      return false;
++    }
++
++    if (categoryFilter && (item.category || "authority") !== categoryFilter) {
++      return false;
++    }
++
++    return includesQuery([
++      item.name || "",
++      item.submit_url || "",
++      item.owner_nickname || ""
++    ], searchQuery);
++  });
++}
++
++export function deriveVisibleTemplates(templates = [], filters = {}) {
++  const showOwner = Boolean(filters.showOwner);
++  const scopeFilter = filters.scopeFilter || "";
++  const userFilter = filters.userFilter || "";
++  const categoryFilter = filters.categoryFilter || "";
++  const searchQuery = normalizeQuery(filters.search);
++
++  return templates.filter((item) => {
++    if (showOwner) {
++      if (scopeFilter === "owned" && item.visibility !== "private") {
++        return false;
++      }
++      if (scopeFilter === "public" && item.visibility !== "public") {
++        return false;
++      }
++      if (userFilter && item.owner_user_id !== userFilter) {
++        return false;
++      }
++    } else if (scopeFilter === "favorites" && !item.is_favorite) {
++      return false;
++    }
++
++    if (categoryFilter && (item.category || "authority") !== categoryFilter) {
++      return false;
++    }
++
++    return includesQuery([
++      item.name || "",
++      item.body_template || "",
++      item.owner_nickname || ""
++    ], searchQuery);
++  });
++}
++
++function normalizeQuery(value) {
++  return String(value || "").trim().toLowerCase();
++}
++
++function includesQuery(parts, query) {
++  if (!query) {
++    return true;
++  }
++
++  return parts.join(" ").toLowerCase().includes(query);
++}
++
++function isCreatedGroupStatus(status) {
++  return status === "no_organization"
++    || status === "no_template"
++    || status === "created";
++}
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/mime-preview-lookup-utils.js" /tmp/server-copy-Complaints_m/mime-preview-lookup-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/mime-preview-lookup-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/mime-preview-lookup-utils.js	2026-04-12 05:07:51.572459537 +0300
+@@ -0,0 +1,30 @@
++export function isImageMime(mimeType) {
++  return ["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp", "image/tiff", "image/heic", "image/heif"].includes(mimeType || "");
++}
++
++export function isVideoMime(mimeType) {
++  return ["video/mp4", "video/webm", "video/quicktime", "video/x-m4v", "video/x-matroska"].includes(mimeType || "");
++}
++
++export function isPdfMime(mimeType) {
++  return mimeType === "application/pdf";
++}
++
++export function guessMimeByFileName(fileName = "") {
++  const ext = String(fileName).split(".").pop()?.toLowerCase() || "";
++  if (["jpg", "jpeg"].includes(ext)) return "image/jpeg";
++  if (ext === "png") return "image/png";
++  if (ext === "webp") return "image/webp";
++  if (ext === "gif") return "image/gif";
++  if (ext === "bmp") return "image/bmp";
++  if (["tif", "tiff"].includes(ext)) return "image/tiff";
++  if (ext === "heic") return "image/heic";
++  if (ext === "heif") return "image/heif";
++  if (ext === "pdf") return "application/pdf";
++  if (ext === "mp4") return "video/mp4";
++  if (ext === "webm") return "video/webm";
++  if (ext === "m4v") return "video/x-m4v";
++  if (ext === "mkv") return "video/x-matroska";
++  if (["mov", "qt"].includes(ext)) return "video/quicktime";
++  return "";
++}
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/preview-markup-template-utils.js" /tmp/server-copy-Complaints_m/preview-markup-template-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/preview-markup-template-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/preview-markup-template-utils.js	2026-04-12 09:34:27.707040129 +0300
+@@ -0,0 +1,37 @@
++export function buildPreviewMarkupByKind({
++  previewKind,
++  src,
++  wrapperAttr,
++  escapedTitle,
++  badgeText,
++  pdfFrameSrc,
++  fallbackTileText
++}) {
++  if (previewKind === "image") {
++    return `<button class="preview-button" type="button" ${wrapperAttr}><img class="image-thumb" src="${src}" alt="${escapedTitle}" /></button>`;
++  }
++
++  if (previewKind === "video") {
++    return `
++      <button class="preview-button" type="button" ${wrapperAttr}>
++        <video class="media-thumb" src="${src}" muted preload="metadata" playsinline></video>
++        <span class="thumb-badge">${badgeText}</span>
++      </button>
++    `;
++  }
++
++  if (previewKind === "pdf") {
++    return `
++      <button class="preview-button" type="button" ${wrapperAttr}>
++        <iframe class="pdf-thumb" src="${pdfFrameSrc}" title="${escapedTitle}"></iframe>
++        <span class="thumb-badge">${badgeText}</span>
++      </button>
++    `;
++  }
++
++  return `
++    <button class="preview-button" type="button" ${wrapperAttr}>
++      <span class="file-thumb media-tile">${fallbackTileText}</span>
++    </button>
++  `;
++}
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/preview-text-format-utils.js" /tmp/server-copy-Complaints_m/preview-text-format-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/preview-text-format-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/preview-text-format-utils.js	2026-04-12 05:35:58.796817867 +0300
+@@ -0,0 +1,13 @@
++export function getPreviewBadgeText(previewKind) {
++  if (previewKind === "video") return "Видео";
++  if (previewKind === "pdf") return "PDF";
++  return "";
++}
++
++export function getPdfPreviewFrameSrc(src) {
++  return `${src}#toolbar=0&navpanes=0&scrollbar=0`;
++}
++
++export function getPreviewFallbackTileText(mimeType) {
++  return (mimeType || "FILE").toUpperCase();
++}
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/readonly-ui-decision-utils.js" /tmp/server-copy-Complaints_m/readonly-ui-decision-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/readonly-ui-decision-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/readonly-ui-decision-utils.js	2026-04-12 18:09:10.633378043 +0300
+@@ -0,0 +1,44 @@
++const HIDDEN_BUTTONS = [
++  "btnCreateCase",
++  "btnToggleInstitutionForm",
++  "btnToggleTemplateForm",
++  "btnCreateLinkedCase",
++  "btnSaveCaseMeta",
++  "btnSaveFilesSelection",
++  "btnPickWorkspaceFiles",
++  "btnSaveVariables",
++  "btnSaveText",
++  "btnRebuildSubmitPackage",
++  "btnUploadResultFiles"
++];
++
++const DISABLED_CONTROLS = [
++  "resultComment",
++  "caseTitle",
++  "caseDescription",
++  "caseDate",
++  "caseInstitutionSelect",
++  "caseTemplateSelect"
++];
++
++const READONLY_CONTROLS = [
++  "caseTextEditor"
++];
++
++const HIDDEN_ZONES = [
++  "workspaceDropzone"
++];
++
++export function deriveReadonlyUiStateMatrix(input = {}) {
++  const authenticated = Boolean(input.isAuthenticated);
++  const readOnly = !authenticated;
++
++  return {
++    readOnly,
++    hiddenButtons: HIDDEN_BUTTONS,
++    disabledControls: DISABLED_CONTROLS,
++    readOnlyControls: READONLY_CONTROLS,
++    hiddenZones: HIDDEN_ZONES,
++    variablesFormControlsDisabled: true
++  };
++}
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/safe-modules-boundary.js" /tmp/server-copy-Complaints_m/safe-modules-boundary.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/safe-modules-boundary.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/safe-modules-boundary.js	2026-04-12 12:36:46.524874868 +0300
+@@ -0,0 +1,77 @@
++export {
++  CASE_STATUS_CLASSES,
++  CASE_STATUS_FILTER_OPTIONS,
++  CASE_STATUS_LABELS,
++  ROLE_LABELS
++} from "./case-status-constants.js";
++
++export {
++  DIRECTORY_CATEGORIES,
++  DIRECTORY_CATEGORY_LABELS
++} from "./directory-category-constants.js";
++
++export { FIXED_VARIABLES } from "./fixed-variables-config.js";
++
++export {
++  collapseDuplicateDateSuffixes,
++  formatComplaintDate,
++  formatDateForInput,
++  maskDateInputValue,
++  normalizeDisplayDate,
++  parseStrictDisplayDate
++} from "./date-text-utils.js";
++
++export {
++  escapeHtml,
++  formatUrlPreview,
++  sanitizeFilename,
++  shorten
++} from "./text-display-utils.js";
++
++export {
++  formatBytes,
++  getVisibilityLabel
++} from "./display-format-utils.js";
++
++export {
++  getAdminUserFilterValue,
++  getCategoryLabel,
++  roleLabel
++} from "./label-lookup-utils.js";
++
++
++export {
++  guessMimeByFileName,
++  isImageMime,
++  isPdfMime,
++  isVideoMime
++} from "./mime-preview-lookup-utils.js";
++
++export {
++  getPreviewDisplayKind,
++  getPreviewFileMeta,
++  getPreviewWrapperAttr
++} from "./file-preview-display-utils.js";
++
++export {
++  getPdfPreviewFrameSrc,
++  getPreviewBadgeText,
++  getPreviewFallbackTileText
++} from "./preview-text-format-utils.js";
++
++export { buildPreviewMarkupByKind } from "./preview-markup-template-utils.js";
++
++export {
++  getDefaultTemplateValues,
++  getRenderableVariableValue,
++  getTemplateVariablesSchema,
++  normalizeVariableState
++} from "./variable-template-transform-utils.js";
++
++export { getCaseStatusBadges } from "./case-status-badge-utils.js";
++
++export {
++  deriveVisibleCases,
++  deriveVisibleInstitutions,
++  deriveVisibleTemplates
++} from "./list-filter-query-utils.js";
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-app-boundary-imports.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-app-boundary-imports.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-app-boundary-imports.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-app-boundary-imports.sh	2026-04-12 04:09:20.513045193 +0300
+@@ -0,0 +1,58 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_absent_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[FAIL] $title" >&2
++    exit 1
++  else
++    echo "[OK] $title"
++  fi
++}
++
++require_file "$APP_FILE"
++
++echo "Checking app boundary import discipline..."
++
++# Positive guard: safe symbols must come through boundary import
++require_pattern '^import \{.*CASE_STATUS_LABELS.*\} from "\./safe-modules-boundary\.js";' "$APP_FILE" 'safe symbol import includes CASE_STATUS_LABELS via boundary'
++require_pattern '^import \{.*FIXED_VARIABLES.*\} from "\./safe-modules-boundary\.js";' "$APP_FILE" 'safe symbol import includes FIXED_VARIABLES via boundary'
++require_pattern '^import \{.*formatDateForInput.*\} from "\./safe-modules-boundary\.js";' "$APP_FILE" 'safe symbol import includes date utils via boundary'
++require_pattern '^import \{.*escapeHtml.*\} from "\./safe-modules-boundary\.js";' "$APP_FILE" 'safe symbol import includes text-display utils via boundary'
++require_pattern '^import \{.*formatBytes.*\} from "\./safe-modules-boundary\.js";' "$APP_FILE" 'safe symbol import includes display-format utils via boundary'
++
++# Regression guards: no direct imports from underlying safe modules
++require_absent_pattern 'from "\./case-status-constants\.js"' "$APP_FILE" 'no direct import from case-status-constants.js'
++require_absent_pattern 'from "\./directory-category-constants\.js"' "$APP_FILE" 'no direct import from directory-category-constants.js'
++require_absent_pattern 'from "\./fixed-variables-config\.js"' "$APP_FILE" 'no direct import from fixed-variables-config.js'
++require_absent_pattern 'from "\./date-text-utils\.js"' "$APP_FILE" 'no direct import from date-text-utils.js'
++require_absent_pattern 'from "\./text-display-utils\.js"' "$APP_FILE" 'no direct import from text-display-utils.js'
++require_absent_pattern 'from "\./display-format-utils\.js"' "$APP_FILE" 'no direct import from display-format-utils.js'
++
++echo "App boundary-import smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-auth-scope-policy-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-auth-scope-policy-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-auth-scope-policy-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-auth-scope-policy-utils.sh	2026-04-12 15:18:22.724500896 +0300
+@@ -0,0 +1,116 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/auth-scope-policy-utils.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++
++echo "Checking auth-scope-policy-utils exports..."
++require_pattern '^export function isAdminRole' "$UTILS_FILE" 'isAdminRole export exists'
++require_pattern '^export function isAuthenticatedUser' "$UTILS_FILE" 'isAuthenticatedUser export exists'
++require_pattern '^export function canManageDirectories' "$UTILS_FILE" 'canManageDirectories export exists'
++require_pattern '^export function canManageUsers' "$UTILS_FILE" 'canManageUsers export exists'
++require_pattern '^export function getDirectoryScopeOptions' "$UTILS_FILE" 'getDirectoryScopeOptions export exists'
++require_pattern '^export function canOpenDirectoryItem' "$UTILS_FILE" 'canOpenDirectoryItem export exists'
++require_pattern '^export function canEditDirectoryItem' "$UTILS_FILE" 'canEditDirectoryItem export exists'
++
++echo "Checking app.js policy wiring..."
++require_pattern 'from "\./auth-scope-policy-utils\.js"' "$APP_FILE" 'app.js imports auth-scope-policy-utils.js'
++require_pattern 'return isAdminRolePolicy\(role\);' "$APP_FILE" 'isAdminRole delegates to policy module'
++require_pattern 'return getDirectoryScopeOptionsPolicy\(state\.authUser, kind\);' "$APP_FILE" 'getDirectoryScopeOptions delegates with explicit authUser'
++require_pattern 'return canManageDirectoriesPolicy\(state\.authUser\);' "$APP_FILE" 'canManageDirectories delegates with explicit authUser'
++require_pattern 'return canManageUsersPolicy\(state\.authUser\);' "$APP_FILE" 'canManageUsers delegates with explicit authUser'
++require_pattern 'return isAuthenticatedUserPolicy\(state\.authUser\);' "$APP_FILE" 'isAuthenticated delegates with explicit authUser'
++
++echo "Running policy matrix fixtures..."
++node - "$UTILS_FILE" <<'NODE'
++const fs = require('fs');
++const vm = require('vm');
++
++const utilsPath = process.argv[2];
++let source = fs.readFileSync(utilsPath, 'utf8');
++source = source.replace(/export function\s+/g, 'function ');
++source += '\nmodule.exports = { isAdminRole, isAuthenticatedUser, canManageDirectories, canManageUsers, canOpenDirectoryItem, canEditDirectoryItem, getDirectoryScopeOptions };\n';
++
++const context = { module: { exports: {} }, exports: {} };
++vm.createContext(context);
++vm.runInContext(source, context, { filename: utilsPath });
++
++const {
++  isAdminRole,
++  isAuthenticatedUser,
++  canManageDirectories,
++  canManageUsers,
++  canOpenDirectoryItem,
++  canEditDirectoryItem,
++  getDirectoryScopeOptions
++} = context.module.exports;
++
++function assert(condition, message) {
++  if (!condition) throw new Error(message);
++}
++
++const guest = null;
++const user = { id: 'u1', role: 'user' };
++const adminView = { id: 'u2', role: 'admin_view' };
++const adminFull = { id: 'u3', role: 'admin_full' };
++
++assert(isAdminRole('admin_view') === true, 'admin_view must be admin role');
++assert(isAdminRole('admin_full') === true, 'admin_full must be admin role');
++assert(isAdminRole('user') === false, 'user must not be admin role');
++
++assert(isAuthenticatedUser(guest) === false, 'guest must be unauthenticated');
++assert(isAuthenticatedUser(user) === true, 'user must be authenticated');
++
++assert(canManageDirectories(guest) === false, 'guest must not manage directories');
++assert(canManageDirectories(adminView) === false, 'admin_view must not manage directories');
++assert(canManageDirectories(adminFull) === true, 'admin_full must manage directories');
++
++assert(canManageUsers(guest) === false, 'guest must not manage users');
++assert(canManageUsers(adminView) === false, 'admin_view must not manage users');
++assert(canManageUsers(adminFull) === true, 'admin_full must manage users');
++
++assert(canOpenDirectoryItem(guest, { id: 'x' }) === false, 'guest must not open directory item');
++assert(canOpenDirectoryItem(user, null) === false, 'authenticated with missing item must be false');
++assert(canOpenDirectoryItem(user, { id: 'x' }) === true, 'authenticated with item must be true');
++
++assert(canEditDirectoryItem({ can_edit: true }) === true, 'can_edit=true must be editable');
++assert(canEditDirectoryItem({ can_edit: false }) === false, 'can_edit=false must not be editable');
++
++const guestInst = getDirectoryScopeOptions(guest, 'institutions').map((x) => x.value).join(',');
++const userInst = getDirectoryScopeOptions(user, 'institutions').map((x) => x.value).join(',');
++const adminInst = getDirectoryScopeOptions(adminView, 'institutions').map((x) => x.value).join(',');
++const adminTpl = getDirectoryScopeOptions(adminFull, 'templates').map((x) => x.value).join(',');
++
++assert(guestInst === '', 'guest institutions options mismatch');
++assert(userInst === ',favorites', 'user institutions options mismatch');
++assert(adminInst === ',public,owned', 'admin institutions options mismatch');
++assert(adminTpl === ',public,owned', 'admin templates options mismatch');
++
++console.log('Policy matrix fixture checks passed.');
++NODE
++
++echo "Auth/scope policy smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-case-status-badge-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-case-status-badge-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-case-status-badge-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-case-status-badge-utils.sh	2026-04-12 11:25:16.205918417 +0300
+@@ -0,0 +1,56 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/case-status-badge-utils.js"
++BOUNDARY_FILE="$ROOT_DIR/safe-modules-boundary.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_absent_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[FAIL] $title" >&2
++    exit 1
++  else
++    echo "[OK] $title"
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++require_file "$BOUNDARY_FILE"
++
++echo "Checking case-status-badge-utils exports..."
++require_pattern '^export function getCaseStatusBadges' "$UTILS_FILE" 'getCaseStatusBadges export exists'
++
++echo "Checking boundary re-exports and app wiring..."
++require_pattern 'from "\./case-status-badge-utils\.js"' "$BOUNDARY_FILE" 'boundary re-exports case-status-badge-utils'
++require_pattern 'from "\./safe-modules-boundary\.js"' "$APP_FILE" 'app.js imports safe-modules-boundary.js'
++require_pattern 'getCaseStatusBadges' "$APP_FILE" 'app.js references getCaseStatusBadges'
++
++echo "Checking removed local helper declaration in app.js..."
++require_absent_pattern '^function getCaseStatusBadges' "$APP_FILE" 'local getCaseStatusBadges declaration removed'
++
++echo "Case-status badge utils smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-context-nav-model-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-context-nav-model-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-context-nav-model-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-context-nav-model-utils.sh	2026-04-12 20:46:06.169047800 +0300
+@@ -0,0 +1,124 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/context-nav-model-utils.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++
++echo "Checking context-nav-model-utils exports..."
++require_pattern '^export function deriveContextNavModel' "$UTILS_FILE" 'deriveContextNavModel export exists'
++
++echo "Checking app.js wiring for context-nav model seam..."
++require_pattern 'from "\./context-nav-model-utils\.js"' "$APP_FILE" 'app.js imports context-nav-model-utils.js'
++require_pattern 'const model = deriveContextNavModel\(' "$APP_FILE" 'renderContextNav uses derived nav model'
++require_pattern 'els\.contextNavTitle\.textContent = model\.title;' "$APP_FILE" 'renderContextNav sets title from model'
++require_pattern 'els\.contextNav\.innerHTML = model\.items\.map' "$APP_FILE" 'renderContextNav renders items from model'
++
++echo "Running context-nav model fixtures..."
++node - "$UTILS_FILE" <<'NODE'
++const fs = require('fs');
++const vm = require('vm');
++
++const utilsPath = process.argv[2];
++let source = fs.readFileSync(utilsPath, 'utf8');
++source = source.replace(/export function\s+/g, 'function ');
++source += '\nmodule.exports = { deriveContextNavModel };\n';
++
++const context = { module: { exports: {} }, exports: {} };
++vm.createContext(context);
++vm.runInContext(source, context, { filename: utilsPath });
++
++const { deriveContextNavModel } = context.module.exports;
++
++function assert(condition, message) {
++  if (!condition) throw new Error(message);
++}
++
++const categories = [
++  { value: '', label: 'Все категории' },
++  { value: 'authority', label: 'Органы власти' }
++];
++const scopeOptions = [
++  { value: '', label: 'Все' },
++  { value: 'public', label: 'Общие' }
++];
++
++const workspace = deriveContextNavModel({
++  currentScreen: 'case-workspace',
++  currentWorkspaceTab: 'submit'
++});
++assert(workspace.title === 'Обращение', 'workspace title mismatch');
++assert(workspace.items.length === 5, 'workspace nav items count mismatch');
++assert(workspace.items.find((x) => x.action === 'tab:submit')?.active === true, 'workspace submit tab active mismatch');
++
++const institutions = deriveContextNavModel({
++  currentScreen: 'institutions',
++  institutionsScopeFilter: 'public',
++  institutionsCategoryFilter: 'authority',
++  directoryCategories: categories,
++  institutionsScopeOptions: scopeOptions
++});
++assert(institutions.title === 'Фильтры', 'institutions title mismatch');
++assert(institutions.items.some((x) => x.action === '__divider__'), 'institutions divider expected when scope options exist');
++assert(institutions.items.find((x) => x.action === 'institutions-scope:public')?.active === true, 'institutions scope active mismatch');
++assert(institutions.items.find((x) => x.action === 'institutions-category:authority')?.active === true, 'institutions category active mismatch');
++
++const templates = deriveContextNavModel({
++  currentScreen: 'templates',
++  templatesScopeFilter: '',
++  templatesCategoryFilter: '',
++  directoryCategories: categories,
++  templatesScopeOptions: []
++});
++assert(templates.title === 'Фильтры', 'templates title mismatch');
++assert(!templates.items.some((x) => x.action === '__divider__'), 'templates divider must be absent without scope options');
++assert(templates.items.find((x) => x.action === 'templates-category:')?.active === true, 'templates empty category active mismatch');
++
++const admin = deriveContextNavModel({
++  currentScreen: 'admin',
++  adminSection: 'deleted'
++});
++assert(admin.title === 'Панель администратора', 'admin title mismatch');
++assert(admin.items.find((x) => x.action === 'admin-section:deleted')?.active === true, 'admin section active mismatch');
++
++const authDashboard = deriveContextNavModel({
++  currentScreen: 'dashboard',
++  isAuthenticated: true
++});
++assert(authDashboard.title === 'Обращения', 'authenticated dashboard title mismatch');
++assert(authDashboard.items.length === 1 && authDashboard.items[0].action === 'dashboard:create-case', 'authenticated dashboard items mismatch');
++
++const guestDashboard = deriveContextNavModel({
++  currentScreen: 'dashboard',
++  isAuthenticated: false
++});
++assert(guestDashboard.title === 'О сервисе', 'guest dashboard title mismatch');
++assert(guestDashboard.items.length === 0, 'guest dashboard items mismatch');
++
++console.log('Context-nav model fixture checks passed.');
++NODE
++
++echo "Context-nav model smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-date-text-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-date-text-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-date-text-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-date-text-utils.sh	2026-04-12 01:38:02.671611316 +0300
+@@ -0,0 +1,68 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/date-text-utils.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_absent_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[FAIL] $title" >&2
++    exit 1
++  else
++    echo "[OK] $title"
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++
++echo "Checking date-text-utils exports..."
++require_pattern '^export function formatDateForInput' "$UTILS_FILE" 'formatDateForInput export exists'
++require_pattern '^export function maskDateInputValue' "$UTILS_FILE" 'maskDateInputValue export exists'
++require_pattern '^export function normalizeDisplayDate' "$UTILS_FILE" 'normalizeDisplayDate export exists'
++require_pattern '^export function parseStrictDisplayDate' "$UTILS_FILE" 'parseStrictDisplayDate export exists'
++require_pattern '^export function formatComplaintDate' "$UTILS_FILE" 'formatComplaintDate export exists'
++require_pattern '^export function collapseDuplicateDateSuffixes' "$UTILS_FILE" 'collapseDuplicateDateSuffixes export exists'
++
++echo "Checking app.js imports and references..."
++require_pattern 'from "\./safe-modules-boundary\.js"' "$APP_FILE" 'app.js imports safe-modules-boundary.js'
++require_pattern 'formatDateForInput' "$APP_FILE" 'app.js references formatDateForInput'
++require_pattern 'maskDateInputValue' "$APP_FILE" 'app.js references maskDateInputValue'
++require_pattern 'normalizeDisplayDate' "$APP_FILE" 'app.js references normalizeDisplayDate'
++require_pattern 'parseStrictDisplayDate' "$APP_FILE" 'app.js references parseStrictDisplayDate'
++require_pattern 'formatComplaintDate' "$APP_FILE" 'app.js references formatComplaintDate'
++require_pattern 'collapseDuplicateDateSuffixes' "$APP_FILE" 'app.js references collapseDuplicateDateSuffixes'
++
++echo "Checking removed local helper declarations in app.js..."
++require_absent_pattern '^function formatDateForInput' "$APP_FILE" 'local formatDateForInput declaration removed'
++require_absent_pattern '^function maskDateInputValue' "$APP_FILE" 'local maskDateInputValue declaration removed'
++require_absent_pattern '^function normalizeDisplayDate' "$APP_FILE" 'local normalizeDisplayDate declaration removed'
++require_absent_pattern '^function parseStrictDisplayDate' "$APP_FILE" 'local parseStrictDisplayDate declaration removed'
++require_absent_pattern '^function formatComplaintDate' "$APP_FILE" 'local formatComplaintDate declaration removed'
++require_absent_pattern '^function collapseDuplicateDateSuffixes' "$APP_FILE" 'local collapseDuplicateDateSuffixes declaration removed'
++
++echo "Date-text-utils smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-display-format-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-display-format-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-display-format-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-display-format-utils.sh	2026-04-12 03:43:32.944957808 +0300
+@@ -0,0 +1,59 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/display-format-utils.js"
++BOUNDARY_FILE="$ROOT_DIR/safe-modules-boundary.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_absent_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[FAIL] $title" >&2
++    exit 1
++  else
++    echo "[OK] $title"
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++require_file "$BOUNDARY_FILE"
++
++echo "Checking display-format-utils exports..."
++require_pattern '^export function getVisibilityLabel' "$UTILS_FILE" 'getVisibilityLabel export exists'
++require_pattern '^export function formatBytes' "$UTILS_FILE" 'formatBytes export exists'
++
++echo "Checking boundary re-exports and app wiring..."
++require_pattern 'from "\./display-format-utils\.js"' "$BOUNDARY_FILE" 'boundary re-exports display-format-utils'
++require_pattern 'from "\./safe-modules-boundary\.js"' "$APP_FILE" 'app.js imports safe-modules-boundary.js'
++require_pattern 'getVisibilityLabel' "$APP_FILE" 'app.js references getVisibilityLabel'
++require_pattern 'formatBytes' "$APP_FILE" 'app.js references formatBytes'
++
++echo "Checking removed local declarations in app.js..."
++require_absent_pattern '^function getVisibilityLabel' "$APP_FILE" 'local getVisibilityLabel declaration removed'
++require_absent_pattern '^function formatBytes' "$APP_FILE" 'local formatBytes declaration removed'
++
++echo "Display-format-utils smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-extracted-constants.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-extracted-constants.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-extracted-constants.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-extracted-constants.sh	2026-04-12 01:38:02.671611316 +0300
+@@ -0,0 +1,71 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++STATUS_CONSTS="$ROOT_DIR/case-status-constants.js"
++DIR_CONSTS="$ROOT_DIR/directory-category-constants.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_absent_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[FAIL] $title" >&2
++    exit 1
++  else
++    echo "[OK] $title"
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$STATUS_CONSTS"
++require_file "$DIR_CONSTS"
++
++echo "Checking exports in constants modules..."
++require_pattern '^export const CASE_STATUS_LABELS' "$STATUS_CONSTS" 'CASE_STATUS_LABELS export exists'
++require_pattern '^export const CASE_STATUS_CLASSES' "$STATUS_CONSTS" 'CASE_STATUS_CLASSES export exists'
++require_pattern '^export const ROLE_LABELS' "$STATUS_CONSTS" 'ROLE_LABELS export exists'
++require_pattern '^export const CASE_STATUS_FILTER_OPTIONS' "$STATUS_CONSTS" 'CASE_STATUS_FILTER_OPTIONS export exists'
++require_pattern '^export const DIRECTORY_CATEGORIES' "$DIR_CONSTS" 'DIRECTORY_CATEGORIES export exists'
++require_pattern '^export const DIRECTORY_CATEGORY_LABELS' "$DIR_CONSTS" 'DIRECTORY_CATEGORY_LABELS export exists'
++
++echo "Checking app.js imports..."
++require_pattern 'from "\./safe-modules-boundary\.js"' "$APP_FILE" 'app.js imports safe-modules-boundary.js'
++require_pattern 'CASE_STATUS_LABELS' "$APP_FILE" 'app.js references CASE_STATUS_LABELS'
++require_pattern 'CASE_STATUS_CLASSES' "$APP_FILE" 'app.js references CASE_STATUS_CLASSES'
++require_pattern 'ROLE_LABELS' "$APP_FILE" 'app.js references ROLE_LABELS'
++require_pattern 'CASE_STATUS_FILTER_OPTIONS' "$APP_FILE" 'app.js references CASE_STATUS_FILTER_OPTIONS'
++require_pattern 'from "\./safe-modules-boundary\.js"' "$APP_FILE" 'app.js imports safe-modules-boundary.js'
++require_pattern 'DIRECTORY_CATEGORIES' "$APP_FILE" 'app.js references DIRECTORY_CATEGORIES'
++require_pattern 'DIRECTORY_CATEGORY_LABELS' "$APP_FILE" 'app.js references DIRECTORY_CATEGORY_LABELS'
++
++echo "Checking removed local declarations in app.js..."
++require_absent_pattern '^const CASE_STATUS_LABELS' "$APP_FILE" 'local CASE_STATUS_LABELS declaration removed'
++require_absent_pattern '^const CASE_STATUS_CLASSES' "$APP_FILE" 'local CASE_STATUS_CLASSES declaration removed'
++require_absent_pattern '^const ROLE_LABELS' "$APP_FILE" 'local ROLE_LABELS declaration removed'
++require_absent_pattern '^const CASE_STATUS_FILTER_OPTIONS' "$APP_FILE" 'local CASE_STATUS_FILTER_OPTIONS declaration removed'
++require_absent_pattern '^const DIRECTORY_CATEGORIES' "$APP_FILE" 'local DIRECTORY_CATEGORIES declaration removed'
++require_absent_pattern '^const DIRECTORY_CATEGORY_LABELS' "$APP_FILE" 'local DIRECTORY_CATEGORY_LABELS declaration removed'
++
++echo "Smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-file-preview-display-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-file-preview-display-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-file-preview-display-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-file-preview-display-utils.sh	2026-04-12 05:22:57.247434113 +0300
+@@ -0,0 +1,62 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/file-preview-display-utils.js"
++BOUNDARY_FILE="$ROOT_DIR/safe-modules-boundary.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_absent_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[FAIL] $title" >&2
++    exit 1
++  else
++    echo "[OK] $title"
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++require_file "$BOUNDARY_FILE"
++
++echo "Checking file-preview-display-utils exports..."
++require_pattern '^export function getPreviewFileMeta' "$UTILS_FILE" 'getPreviewFileMeta export exists'
++require_pattern '^export function getPreviewDisplayKind' "$UTILS_FILE" 'getPreviewDisplayKind export exists'
++require_pattern '^export function getPreviewWrapperAttr' "$UTILS_FILE" 'getPreviewWrapperAttr export exists'
++
++echo "Checking boundary re-exports and app wiring..."
++require_pattern 'from "\./file-preview-display-utils\.js"' "$BOUNDARY_FILE" 'boundary re-exports file-preview-display-utils'
++require_pattern 'from "\./safe-modules-boundary\.js"' "$APP_FILE" 'app.js imports safe-modules-boundary.js'
++require_pattern 'getPreviewFileMeta' "$APP_FILE" 'app.js references getPreviewFileMeta'
++require_pattern 'getPreviewDisplayKind' "$APP_FILE" 'app.js references getPreviewDisplayKind'
++require_pattern 'getPreviewWrapperAttr' "$APP_FILE" 'app.js references getPreviewWrapperAttr'
++
++echo "Checking inline preview decision fragments were removed from app.js..."
++require_absent_pattern 'const mimeType = file\.mime_type \|\| file\.mimeType \|\| guessMimeByFileName\(file\.file_name \|\| file\.fileName \|\| ""\);' "$APP_FILE" 'inline MIME/title decision in getPreviewMarkup removed'
++require_absent_pattern 'const previewAttr = opts\.attrName \|\| "data-preview-file-id";' "$APP_FILE" 'inline preview attr decision removed'
++require_absent_pattern 'const clickable = opts\.clickable !== false;' "$APP_FILE" 'inline clickable decision removed'
++
++echo "File preview display utils smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-filter-option-derivation-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-filter-option-derivation-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-filter-option-derivation-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-filter-option-derivation-utils.sh	2026-04-12 17:39:32.121285556 +0300
+@@ -0,0 +1,101 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/filter-option-derivation-utils.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++
++echo "Checking filter-option-derivation-utils exports..."
++require_pattern '^export function deriveAdminUserDatalistOptions' "$UTILS_FILE" 'deriveAdminUserDatalistOptions export exists'
++require_pattern '^export function getAdminUserByFilterValue' "$UTILS_FILE" 'getAdminUserByFilterValue export exists'
++require_pattern '^export function getAdminUserFilterInputValue' "$UTILS_FILE" 'getAdminUserFilterInputValue export exists'
++require_pattern '^export function deriveCaseFilterOptions' "$UTILS_FILE" 'deriveCaseFilterOptions export exists'
++
++echo "Checking app.js wiring for option derivation seam..."
++require_pattern 'from "\./filter-option-derivation-utils\.js"' "$APP_FILE" 'app.js imports filter-option-derivation-utils.js'
++require_pattern 'deriveAdminUserDatalistOptions\(' "$APP_FILE" 'renderDirectoryUserFilters uses deriveAdminUserDatalistOptions'
++require_pattern 'getAdminUserByFilterValueDerived\(' "$APP_FILE" 'getAdminUserByFilterValue delegates to derived helper'
++require_pattern 'getAdminUserFilterInputValueDerived\(' "$APP_FILE" 'getAdminUserFilterInputValue delegates to derived helper'
++require_pattern 'deriveCaseFilterOptions\(' "$APP_FILE" 'renderCaseFilters uses deriveCaseFilterOptions'
++
++echo "Running option-derivation fixtures..."
++node - "$UTILS_FILE" <<'NODE'
++const fs = require('fs');
++const vm = require('vm');
++
++const utilsPath = process.argv[2];
++let source = fs.readFileSync(utilsPath, 'utf8');
++source = source.replace(/export function\s+/g, 'function ');
++source += '\nmodule.exports = { deriveAdminUserDatalistOptions, getAdminUserByFilterValue, getAdminUserFilterInputValue, deriveCaseFilterOptions };\n';
++
++const context = { module: { exports: {} }, exports: {} };
++vm.createContext(context);
++vm.runInContext(source, context, { filename: utilsPath });
++
++const {
++  deriveAdminUserDatalistOptions,
++  getAdminUserByFilterValue,
++  getAdminUserFilterInputValue,
++  deriveCaseFilterOptions
++} = context.module.exports;
++
++function assert(condition, message) {
++  if (!condition) throw new Error(message);
++}
++
++const users = [
++  { id: 'u1', nickname: 'Ilya', role: 'admin_full' },
++  { id: 'u2', nickname: 'Anna', role: 'user' }
++];
++
++const toLabel = (user) => `${user.nickname} [${user.role}]`;
++const userOptions = deriveAdminUserDatalistOptions(users, toLabel).map((item) => item.value).join(',');
++assert(userOptions === 'Ilya [admin_full],Anna [user]', 'admin user datalist options mismatch');
++assert(getAdminUserByFilterValue(users, 'Ilya [admin_full]', toLabel)?.id === 'u1', 'exact user filter value lookup mismatch');
++assert(getAdminUserByFilterValue(users, '  Anna [user]  ', toLabel)?.id === 'u2', 'trimmed user filter value lookup mismatch');
++assert(getAdminUserByFilterValue(users, 'unknown', toLabel) === null, 'unknown user filter value must resolve to null');
++assert(getAdminUserFilterInputValue(users, 'u2', toLabel) === 'Anna [user]', 'user filter input value by id mismatch');
++assert(getAdminUserFilterInputValue(users, '', toLabel) === '', 'empty user id must resolve to empty string');
++assert(getAdminUserFilterInputValue(users, 'missing', toLabel) === '', 'missing user id must resolve to empty string');
++
++const institutions = [
++  { id: 'i1', name: 'Org A' },
++  { id: 'i2', name: 'Org B' }
++];
++const statuses = [
++  { value: '', label: 'Все статусы' },
++  { value: 'created_group', label: 'Создано' },
++  { value: 'sent', label: 'Отправлено' }
++];
++
++const options = deriveCaseFilterOptions(institutions, statuses);
++assert(options.institutionOptions.map((x) => `${x.value}:${x.label}`).join('|') === ':Все организации|i1:Org A|i2:Org B', 'institution filter options mismatch');
++assert(options.statusOptions.map((x) => `${x.value}:${x.label}`).join('|') === ':Все статусы|created_group:Создано|sent:Отправлено', 'status filter options mismatch');
++
++console.log('Option-derivation fixture checks passed.');
++NODE
++
++echo "Filter option derivation smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-fixed-variables-config.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-fixed-variables-config.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-fixed-variables-config.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-fixed-variables-config.sh	2026-04-12 01:38:02.671611316 +0300
+@@ -0,0 +1,54 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++CFG_FILE="$ROOT_DIR/fixed-variables-config.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_absent_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[FAIL] $title" >&2
++    exit 1
++  else
++    echo "[OK] $title"
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$CFG_FILE"
++
++echo "Checking FIXED_VARIABLES config export..."
++require_pattern '^export const FIXED_VARIABLES' "$CFG_FILE" 'FIXED_VARIABLES export exists'
++require_pattern 'complaint_date' "$CFG_FILE" 'complaint_date entry exists'
++require_pattern 'address' "$CFG_FILE" 'address entry exists'
++require_pattern 'license_plate' "$CFG_FILE" 'license_plate entry exists'
++
++echo "Checking app.js wiring..."
++require_pattern 'from "\./safe-modules-boundary\.js"' "$APP_FILE" 'app.js imports safe-modules-boundary.js'
++require_pattern 'FIXED_VARIABLES' "$APP_FILE" 'app.js references FIXED_VARIABLES'
++require_absent_pattern '^const FIXED_VARIABLES' "$APP_FILE" 'local FIXED_VARIABLES declaration removed'
++
++echo "FIXED_VARIABLES smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-label-lookup-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-label-lookup-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-label-lookup-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-label-lookup-utils.sh	2026-04-12 04:45:43.820639075 +0300
+@@ -0,0 +1,62 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/label-lookup-utils.js"
++BOUNDARY_FILE="$ROOT_DIR/safe-modules-boundary.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_absent_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[FAIL] $title" >&2
++    exit 1
++  else
++    echo "[OK] $title"
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++require_file "$BOUNDARY_FILE"
++
++echo "Checking label-lookup-utils exports..."
++require_pattern '^export function roleLabel' "$UTILS_FILE" 'roleLabel export exists'
++require_pattern '^export function getCategoryLabel' "$UTILS_FILE" 'getCategoryLabel export exists'
++require_pattern '^export function getAdminUserFilterValue' "$UTILS_FILE" 'getAdminUserFilterValue export exists'
++
++echo "Checking boundary re-exports and app wiring..."
++require_pattern 'from "\./label-lookup-utils\.js"' "$BOUNDARY_FILE" 'boundary re-exports label-lookup-utils'
++require_pattern 'from "\./safe-modules-boundary\.js"' "$APP_FILE" 'app.js imports safe-modules-boundary.js'
++require_pattern 'roleLabel' "$APP_FILE" 'app.js references roleLabel'
++require_pattern 'getCategoryLabel' "$APP_FILE" 'app.js references getCategoryLabel'
++require_pattern 'getAdminUserFilterValue' "$APP_FILE" 'app.js references getAdminUserFilterValue'
++
++echo "Checking removed local helper declarations in app.js..."
++require_absent_pattern '^function roleLabel' "$APP_FILE" 'local roleLabel declaration removed'
++require_absent_pattern '^function getCategoryLabel' "$APP_FILE" 'local getCategoryLabel declaration removed'
++require_absent_pattern '^function getAdminUserFilterValue' "$APP_FILE" 'local getAdminUserFilterValue declaration removed'
++
++echo "Label-lookup-utils smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-list-filter-query-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-list-filter-query-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-list-filter-query-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-list-filter-query-utils.sh	2026-04-12 12:45:30.721306964 +0300
+@@ -0,0 +1,122 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/list-filter-query-utils.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_absent_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[FAIL] $title" >&2
++    exit 1
++  else
++    echo "[OK] $title"
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++
++echo "Checking list-filter-query-utils exports..."
++require_pattern '^export function deriveVisibleCases' "$UTILS_FILE" 'deriveVisibleCases export exists'
++require_pattern '^export function deriveVisibleInstitutions' "$UTILS_FILE" 'deriveVisibleInstitutions export exists'
++require_pattern '^export function deriveVisibleTemplates' "$UTILS_FILE" 'deriveVisibleTemplates export exists'
++
++echo "Checking app.js wiring for unified filter/query pipeline..."
++require_pattern 'from "\./list-filter-query-utils\.js"' "$APP_FILE" 'app.js imports list-filter-query-utils.js'
++require_pattern 'deriveVisibleCases\(state\.cases' "$APP_FILE" 'renderCases uses deriveVisibleCases'
++require_pattern 'deriveVisibleInstitutions\(state\.institutions' "$APP_FILE" 'renderInstitutions uses deriveVisibleInstitutions'
++require_pattern 'deriveVisibleTemplates\(state\.templates' "$APP_FILE" 'renderTemplates uses deriveVisibleTemplates'
++require_absent_pattern 'const filteredCases = state\.cases\.filter' "$APP_FILE" 'inline cases filter removed from renderCases'
++require_absent_pattern 'const filteredInstitutions = state\.institutions\.filter' "$APP_FILE" 'inline institutions filter removed from renderInstitutions'
++require_absent_pattern 'const filteredTemplates = state\.templates\.filter' "$APP_FILE" 'inline templates filter removed from renderTemplates'
++
++echo "Running semantic fixture checks for key branches..."
++node - "$UTILS_FILE" <<'NODE'
++const fs = require('fs');
++const vm = require('vm');
++
++const utilsPath = process.argv[2];
++let source = fs.readFileSync(utilsPath, 'utf8');
++source = source.replace(/export function\s+/g, 'function ');
++source += '\nmodule.exports = { deriveVisibleCases, deriveVisibleInstitutions, deriveVisibleTemplates };\n';
++
++const context = { module: { exports: {} }, exports: {} };
++vm.createContext(context);
++vm.runInContext(source, context, { filename: utilsPath });
++
++const {
++  deriveVisibleCases,
++  deriveVisibleInstitutions,
++  deriveVisibleTemplates
++} = context.module.exports;
++
++function assert(condition, message) {
++  if (!condition) {
++    throw new Error(message);
++  }
++}
++
++const cases = [
++  { id: 'c1', institution_id: 'i1', owner_user_id: 'u1', case_status: 'created', title: 'A', description: 'alpha', case_number: 'CASE-1', institution_name: 'OrgA', template_name: 'TmpA', owner_nickname: 'Ilya' },
++  { id: 'c2', institution_id: 'i1', owner_user_id: 'u2', case_status: 'sent', title: 'B', description: 'beta', case_number: 'CASE-2', institution_name: 'OrgB', template_name: 'TmpB', owner_nickname: 'Anna' },
++  { id: 'c3', institution_id: 'i2', owner_user_id: 'u1', case_status: 'has_reply', title: 'C', description: 'gamma', case_number: 'CASE-3', institution_name: 'OrgC', template_name: 'TmpC', owner_nickname: 'Ilya' },
++  { id: 'c4', institution_id: 'i2', owner_user_id: 'u1', case_status: 'no_template', title: 'D', description: 'delta', case_number: 'CASE-4', institution_name: 'OrgD', template_name: '', owner_nickname: 'Ilya' }
++];
++
++assert(deriveVisibleCases(cases, { statusFilter: 'created_group' }).map((x) => x.id).join(',') === 'c1,c4', 'created_group must include created + reminder statuses only');
++assert(deriveVisibleCases(cases, { statusFilter: 'sent' }).map((x) => x.id).join(',') === 'c2', 'sent status filtering mismatch');
++assert(deriveVisibleCases(cases, { userFilter: 'u1', institutionFilter: 'i2' }).map((x) => x.id).join(',') === 'c3,c4', 'user/institution combined filtering mismatch');
++assert(deriveVisibleCases(cases, { query: 'anna' }).map((x) => x.id).join(',') === 'c2', 'case query matching mismatch');
++
++const institutions = [
++  { id: 'i1', visibility: 'public', owner_user_id: 'u1', is_favorite: true, category: 'authority', name: 'Alpha', submit_url: 'https://a', owner_nickname: 'Ilya' },
++  { id: 'i2', visibility: 'private', owner_user_id: 'u2', is_favorite: false, category: 'state_org', name: 'Beta', submit_url: 'https://b', owner_nickname: 'Anna' },
++  { id: 'i3', visibility: 'public', owner_user_id: 'u2', is_favorite: false, category: 'other_org', name: 'Gamma', submit_url: 'https://c', owner_nickname: 'Anna' }
++];
++
++assert(deriveVisibleInstitutions(institutions, { showOwner: false, scopeFilter: 'favorites' }).map((x) => x.id).join(',') === 'i1', 'favorites filtering mismatch for institutions');
++assert(deriveVisibleInstitutions(institutions, { showOwner: true, scopeFilter: 'owned' }).map((x) => x.id).join(',') === 'i2', 'admin owned scope for institutions mismatch');
++assert(deriveVisibleInstitutions(institutions, { showOwner: true, scopeFilter: 'public', userFilter: 'u2' }).map((x) => x.id).join(',') === 'i3', 'admin public+user filter for institutions mismatch');
++assert(deriveVisibleInstitutions(institutions, { showOwner: true, categoryFilter: 'state_org' }).map((x) => x.id).join(',') === 'i2', 'institution category filtering mismatch');
++assert(deriveVisibleInstitutions(institutions, { showOwner: true, search: 'anna' }).map((x) => x.id).join(',') === 'i2,i3', 'institution search filtering mismatch');
++
++const templates = [
++  { id: 't1', visibility: 'public', owner_user_id: 'u1', is_favorite: true, category: 'authority', name: 'Temp Alpha', body_template: 'Body A', owner_nickname: 'Ilya' },
++  { id: 't2', visibility: 'private', owner_user_id: 'u2', is_favorite: false, category: 'state_org', name: 'Temp Beta', body_template: 'Body B', owner_nickname: 'Anna' },
++  { id: 't3', visibility: 'public', owner_user_id: 'u2', is_favorite: false, category: 'other_org', name: 'Temp Gamma', body_template: 'Body C', owner_nickname: 'Anna' }
++];
++
++assert(deriveVisibleTemplates(templates, { showOwner: false, scopeFilter: 'favorites' }).map((x) => x.id).join(',') === 't1', 'favorites filtering mismatch for templates');
++assert(deriveVisibleTemplates(templates, { showOwner: true, scopeFilter: 'owned' }).map((x) => x.id).join(',') === 't2', 'admin owned scope for templates mismatch');
++assert(deriveVisibleTemplates(templates, { showOwner: true, scopeFilter: 'public', userFilter: 'u2' }).map((x) => x.id).join(',') === 't3', 'admin public+user filter for templates mismatch');
++assert(deriveVisibleTemplates(templates, { showOwner: true, categoryFilter: 'state_org' }).map((x) => x.id).join(',') === 't2', 'template category filtering mismatch');
++assert(deriveVisibleTemplates(templates, { showOwner: true, search: 'body c' }).map((x) => x.id).join(',') === 't3', 'template search filtering mismatch');
++
++console.log('Fixture checks passed.');
++NODE
++
++echo "Unified filter/query pipeline smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-mime-preview-lookup-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-mime-preview-lookup-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-mime-preview-lookup-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-mime-preview-lookup-utils.sh	2026-04-12 05:07:51.580459457 +0300
+@@ -0,0 +1,65 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/mime-preview-lookup-utils.js"
++BOUNDARY_FILE="$ROOT_DIR/safe-modules-boundary.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_absent_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[FAIL] $title" >&2
++    exit 1
++  else
++    echo "[OK] $title"
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++require_file "$BOUNDARY_FILE"
++
++echo "Checking mime-preview-lookup-utils exports..."
++require_pattern '^export function isImageMime' "$UTILS_FILE" 'isImageMime export exists'
++require_pattern '^export function isVideoMime' "$UTILS_FILE" 'isVideoMime export exists'
++require_pattern '^export function isPdfMime' "$UTILS_FILE" 'isPdfMime export exists'
++require_pattern '^export function guessMimeByFileName' "$UTILS_FILE" 'guessMimeByFileName export exists'
++
++echo "Checking boundary re-exports and app wiring..."
++require_pattern 'from "\./mime-preview-lookup-utils\.js"' "$BOUNDARY_FILE" 'boundary re-exports mime-preview-lookup-utils'
++require_pattern 'from "\./safe-modules-boundary\.js"' "$APP_FILE" 'app.js imports safe-modules-boundary.js'
++require_pattern 'isImageMime' "$APP_FILE" 'app.js references isImageMime'
++require_pattern 'isVideoMime' "$APP_FILE" 'app.js references isVideoMime'
++require_pattern 'isPdfMime' "$APP_FILE" 'app.js references isPdfMime'
++require_pattern 'guessMimeByFileName' "$APP_FILE" 'app.js references guessMimeByFileName'
++
++echo "Checking removed local helper declarations in app.js..."
++require_absent_pattern '^function isImageMime' "$APP_FILE" 'local isImageMime declaration removed'
++require_absent_pattern '^function isVideoMime' "$APP_FILE" 'local isVideoMime declaration removed'
++require_absent_pattern '^function isPdfMime' "$APP_FILE" 'local isPdfMime declaration removed'
++require_absent_pattern '^function guessMimeByFileName' "$APP_FILE" 'local guessMimeByFileName declaration removed'
++
++echo "MIME preview lookup smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-preview-markup-template-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-preview-markup-template-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-preview-markup-template-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-preview-markup-template-utils.sh	2026-04-12 09:34:27.713040058 +0300
+@@ -0,0 +1,60 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/preview-markup-template-utils.js"
++BOUNDARY_FILE="$ROOT_DIR/safe-modules-boundary.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_absent_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[FAIL] $title" >&2
++    exit 1
++  else
++    echo "[OK] $title"
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++require_file "$BOUNDARY_FILE"
++
++echo "Checking preview-markup-template-utils exports..."
++require_pattern '^export function buildPreviewMarkupByKind' "$UTILS_FILE" 'buildPreviewMarkupByKind export exists'
++
++echo "Checking boundary re-exports and app wiring..."
++require_pattern 'from "\./preview-markup-template-utils\.js"' "$BOUNDARY_FILE" 'boundary re-exports preview-markup-template-utils'
++require_pattern 'from "\./safe-modules-boundary\.js"' "$APP_FILE" 'app.js imports safe-modules-boundary.js'
++require_pattern 'buildPreviewMarkupByKind' "$APP_FILE" 'app.js references buildPreviewMarkupByKind'
++
++echo "Checking template-selection branch moved out of app.js..."
++require_absent_pattern 'if \(previewKind === "image"\)' "$APP_FILE" 'inline image template-selection branch removed from app.js'
++require_absent_pattern 'if \(previewKind === "video"\)' "$APP_FILE" 'inline video template-selection branch removed from app.js'
++require_absent_pattern 'if \(previewKind === "pdf"\)' "$APP_FILE" 'inline pdf template-selection branch removed from app.js'
++require_absent_pattern '<video class="media-thumb"' "$APP_FILE" 'inline video preview markup removed from app.js'
++require_absent_pattern '<iframe class="pdf-thumb"' "$APP_FILE" 'inline pdf preview markup removed from app.js'
++
++echo "Preview markup template utils smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-preview-text-format-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-preview-text-format-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-preview-text-format-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-preview-text-format-utils.sh	2026-04-12 05:35:58.802817788 +0300
+@@ -0,0 +1,63 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/preview-text-format-utils.js"
++BOUNDARY_FILE="$ROOT_DIR/safe-modules-boundary.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_absent_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[FAIL] $title" >&2
++    exit 1
++  else
++    echo "[OK] $title"
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++require_file "$BOUNDARY_FILE"
++
++echo "Checking preview-text-format-utils exports..."
++require_pattern '^export function getPreviewBadgeText' "$UTILS_FILE" 'getPreviewBadgeText export exists'
++require_pattern '^export function getPdfPreviewFrameSrc' "$UTILS_FILE" 'getPdfPreviewFrameSrc export exists'
++require_pattern '^export function getPreviewFallbackTileText' "$UTILS_FILE" 'getPreviewFallbackTileText export exists'
++
++echo "Checking boundary re-exports and app wiring..."
++require_pattern 'from "\./preview-text-format-utils\.js"' "$BOUNDARY_FILE" 'boundary re-exports preview-text-format-utils'
++require_pattern 'from "\./safe-modules-boundary\.js"' "$APP_FILE" 'app.js imports safe-modules-boundary.js'
++require_pattern 'getPreviewBadgeText' "$APP_FILE" 'app.js references getPreviewBadgeText'
++require_pattern 'getPdfPreviewFrameSrc' "$APP_FILE" 'app.js references getPdfPreviewFrameSrc'
++require_pattern 'getPreviewFallbackTileText' "$APP_FILE" 'app.js references getPreviewFallbackTileText'
++
++echo "Checking inline preview text/format fragments were removed from app.js..."
++require_absent_pattern '<span class="thumb-badge">Видео</span>' "$APP_FILE" 'inline Видео badge removed'
++require_absent_pattern '<span class="thumb-badge">PDF</span>' "$APP_FILE" 'inline PDF badge removed'
++require_absent_pattern 'src="\$\{src\}#toolbar=0&navpanes=0&scrollbar=0"' "$APP_FILE" 'inline PDF iframe src format removed'
++require_absent_pattern '\(mimeType \|\| "FILE"\)\.toUpperCase\(\)' "$APP_FILE" 'inline fallback MIME tile text format removed'
++
++echo "Preview text/format utils smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-readonly-ui-decision-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-readonly-ui-decision-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-readonly-ui-decision-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-readonly-ui-decision-utils.sh	2026-04-12 18:09:10.648377844 +0300
+@@ -0,0 +1,93 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/readonly-ui-decision-utils.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++
++echo "Checking readonly-ui-decision-utils exports..."
++require_pattern '^export function deriveReadonlyUiStateMatrix' "$UTILS_FILE" 'deriveReadonlyUiStateMatrix export exists'
++
++echo "Checking app.js wiring for readonly decision seam..."
++require_pattern 'from "\./readonly-ui-decision-utils\.js"' "$APP_FILE" 'app.js imports readonly-ui-decision-utils.js'
++require_pattern 'const matrix = deriveReadonlyUiStateMatrix\(\{ isAuthenticated: isAuthenticated\(\) \}\);' "$APP_FILE" 'applyReadonlyUiState derives matrix from explicit input'
++require_pattern 'matrix\.hiddenButtons\.forEach' "$APP_FILE" 'hidden-buttons DOM adapter consumes matrix'
++require_pattern 'matrix\.disabledControls\.forEach' "$APP_FILE" 'disabled-controls DOM adapter consumes matrix'
++require_pattern 'matrix\.readOnlyControls\.forEach' "$APP_FILE" 'readonly-controls DOM adapter consumes matrix'
++require_pattern 'matrix\.hiddenZones\.forEach' "$APP_FILE" 'hidden-zones DOM adapter consumes matrix'
++
++echo "Running readonly decision matrix fixtures..."
++node - "$UTILS_FILE" <<'NODE'
++const fs = require('fs');
++const vm = require('vm');
++
++const utilsPath = process.argv[2];
++let source = fs.readFileSync(utilsPath, 'utf8');
++source = source.replace(/export function\s+/g, 'function ');
++source += '\nmodule.exports = { deriveReadonlyUiStateMatrix };\n';
++
++const context = { module: { exports: {} }, exports: {} };
++vm.createContext(context);
++vm.runInContext(source, context, { filename: utilsPath });
++
++const { deriveReadonlyUiStateMatrix } = context.module.exports;
++
++function assert(condition, message) {
++  if (!condition) throw new Error(message);
++}
++
++const guest = deriveReadonlyUiStateMatrix({ isAuthenticated: false });
++const user = deriveReadonlyUiStateMatrix({ isAuthenticated: true });
++
++assert(guest.readOnly === true, 'guest must produce readOnly=true');
++assert(user.readOnly === false, 'authenticated must produce readOnly=false');
++
++const expectedHiddenButtons = [
++  'btnCreateCase',
++  'btnToggleInstitutionForm',
++  'btnToggleTemplateForm',
++  'btnCreateLinkedCase',
++  'btnSaveCaseMeta',
++  'btnSaveFilesSelection',
++  'btnPickWorkspaceFiles',
++  'btnSaveVariables',
++  'btnSaveText',
++  'btnRebuildSubmitPackage',
++  'btnUploadResultFiles'
++].join(',');
++
++assert(guest.hiddenButtons.join(',') === expectedHiddenButtons, 'hiddenButtons matrix mismatch');
++assert(user.hiddenButtons.join(',') === expectedHiddenButtons, 'hiddenButtons must be stable across auth states');
++
++assert(guest.disabledControls.join(',') === 'resultComment,caseTitle,caseDescription,caseDate,caseInstitutionSelect,caseTemplateSelect', 'disabledControls matrix mismatch');
++assert(guest.readOnlyControls.join(',') === 'caseTextEditor', 'readOnlyControls matrix mismatch');
++assert(guest.hiddenZones.join(',') === 'workspaceDropzone', 'hiddenZones matrix mismatch');
++assert(guest.variablesFormControlsDisabled === true, 'variablesFormControlsDisabled must remain true');
++
++console.log('Readonly decision matrix fixture checks passed.');
++NODE
++
++echo "Readonly decision-matrix smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-safe-boundary-completeness.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-safe-boundary-completeness.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-safe-boundary-completeness.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-safe-boundary-completeness.sh	2026-04-12 03:54:14.875129549 +0300
+@@ -0,0 +1,62 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++BOUNDARY_FILE="$ROOT_DIR/safe-modules-boundary.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_file "$BOUNDARY_FILE"
++
++echo "Checking safe-modules-boundary completeness..."
++
++require_pattern 'from "\./case-status-constants\.js"' "$BOUNDARY_FILE" 're-export source case-status-constants.js exists'
++require_pattern 'CASE_STATUS_CLASSES' "$BOUNDARY_FILE" 'CASE_STATUS_CLASSES re-export exists'
++require_pattern 'CASE_STATUS_FILTER_OPTIONS' "$BOUNDARY_FILE" 'CASE_STATUS_FILTER_OPTIONS re-export exists'
++require_pattern 'CASE_STATUS_LABELS' "$BOUNDARY_FILE" 'CASE_STATUS_LABELS re-export exists'
++require_pattern 'ROLE_LABELS' "$BOUNDARY_FILE" 'ROLE_LABELS re-export exists'
++
++require_pattern 'from "\./directory-category-constants\.js"' "$BOUNDARY_FILE" 're-export source directory-category-constants.js exists'
++require_pattern 'DIRECTORY_CATEGORIES' "$BOUNDARY_FILE" 'DIRECTORY_CATEGORIES re-export exists'
++require_pattern 'DIRECTORY_CATEGORY_LABELS' "$BOUNDARY_FILE" 'DIRECTORY_CATEGORY_LABELS re-export exists'
++
++require_pattern 'from "\./fixed-variables-config\.js"' "$BOUNDARY_FILE" 're-export source fixed-variables-config.js exists'
++require_pattern 'FIXED_VARIABLES' "$BOUNDARY_FILE" 'FIXED_VARIABLES re-export exists'
++
++require_pattern 'from "\./date-text-utils\.js"' "$BOUNDARY_FILE" 're-export source date-text-utils.js exists'
++require_pattern 'collapseDuplicateDateSuffixes' "$BOUNDARY_FILE" 'collapseDuplicateDateSuffixes re-export exists'
++require_pattern 'formatComplaintDate' "$BOUNDARY_FILE" 'formatComplaintDate re-export exists'
++require_pattern 'formatDateForInput' "$BOUNDARY_FILE" 'formatDateForInput re-export exists'
++require_pattern 'maskDateInputValue' "$BOUNDARY_FILE" 'maskDateInputValue re-export exists'
++require_pattern 'normalizeDisplayDate' "$BOUNDARY_FILE" 'normalizeDisplayDate re-export exists'
++require_pattern 'parseStrictDisplayDate' "$BOUNDARY_FILE" 'parseStrictDisplayDate re-export exists'
++
++require_pattern 'from "\./text-display-utils\.js"' "$BOUNDARY_FILE" 're-export source text-display-utils.js exists'
++require_pattern 'escapeHtml' "$BOUNDARY_FILE" 'escapeHtml re-export exists'
++require_pattern 'formatUrlPreview' "$BOUNDARY_FILE" 'formatUrlPreview re-export exists'
++require_pattern 'sanitizeFilename' "$BOUNDARY_FILE" 'sanitizeFilename re-export exists'
++require_pattern 'shorten' "$BOUNDARY_FILE" 'shorten re-export exists'
++
++require_pattern 'from "\./display-format-utils\.js"' "$BOUNDARY_FILE" 're-export source display-format-utils.js exists'
++require_pattern 'formatBytes' "$BOUNDARY_FILE" 'formatBytes re-export exists'
++require_pattern 'getVisibilityLabel' "$BOUNDARY_FILE" 'getVisibilityLabel re-export exists'
++
++echo "Safe boundary completeness smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-submit-workspace-precondition-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-submit-workspace-precondition-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-submit-workspace-precondition-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-submit-workspace-precondition-utils.sh	2026-04-12 20:24:17.878730354 +0300
+@@ -0,0 +1,103 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/submit-workspace-precondition-utils.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++
++echo "Checking submit-workspace-precondition-utils exports..."
++require_pattern '^export function deriveSubmitActionGate' "$UTILS_FILE" 'deriveSubmitActionGate export exists'
++require_pattern '^export function deriveOpenSubmitTabDecision' "$UTILS_FILE" 'deriveOpenSubmitTabDecision export exists'
++require_pattern '^export function deriveWorkspaceTabLeavePersistenceDecision' "$UTILS_FILE" 'deriveWorkspaceTabLeavePersistenceDecision export exists'
++
++echo "Checking app.js wiring for submit/workspace precondition seam..."
++require_pattern 'from "\./submit-workspace-precondition-utils\.js"' "$APP_FILE" 'app.js imports submit-workspace-precondition-utils.js'
++require_pattern 'const gate = deriveSubmitActionGate\(\{' "$APP_FILE" 'submit action gate derivation exists'
++require_pattern 'const decision = deriveOpenSubmitTabDecision\(\{' "$APP_FILE" 'open-submit decision derivation exists'
++require_pattern 'const tabLeaveDecision = deriveWorkspaceTabLeavePersistenceDecision\(\{' "$APP_FILE" 'workspace tab-leave decision derivation exists'
++require_pattern 'if \(tabLeaveDecision\.shouldPersistSubmitMetaOnLeave\)' "$APP_FILE" 'submit metadata persistence uses decision output'
++require_pattern 'if \(tabLeaveDecision\.shouldPersistResultCommentOnLeave\)' "$APP_FILE" 'result comment persistence uses decision output'
++
++echo "Running submit/workspace precondition fixtures..."
++node - "$UTILS_FILE" <<'NODE'
++const fs = require('fs');
++const vm = require('vm');
++
++const utilsPath = process.argv[2];
++let source = fs.readFileSync(utilsPath, 'utf8');
++source = source.replace(/export function\s+/g, 'function ');
++source += '\nmodule.exports = { deriveSubmitActionGate, deriveOpenSubmitTabDecision, deriveWorkspaceTabLeavePersistenceDecision };\n';
++
++const context = { module: { exports: {} }, exports: {} };
++vm.createContext(context);
++vm.runInContext(source, context, { filename: utilsPath });
++
++const {
++  deriveSubmitActionGate,
++  deriveOpenSubmitTabDecision,
++  deriveWorkspaceTabLeavePersistenceDecision
++} = context.module.exports;
++
++function assert(condition, message) {
++  if (!condition) throw new Error(message);
++}
++
++const unauth = deriveSubmitActionGate({ isAuthenticated: false, hasCurrentCase: false });
++assert(unauth.canRun === false && unauth.blockingReason === 'unauthenticated', 'unauthenticated gate branch mismatch');
++
++const missingCase = deriveSubmitActionGate({ isAuthenticated: true, hasCurrentCase: false });
++assert(missingCase.canRun === false && missingCase.blockingReason === 'missing_case', 'missing_case gate branch mismatch');
++
++const allowed = deriveSubmitActionGate({ isAuthenticated: true, hasCurrentCase: true });
++assert(allowed.canRun === true && allowed.blockingReason === null, 'allowed gate branch mismatch');
++
++const withSubmitData = deriveOpenSubmitTabDecision({ hasSubmitData: true, currentFsmState: 'draft' });
++assert(withSubmitData.shouldRenderExistingSubmitData === true, 'shouldRenderExistingSubmitData mismatch');
++assert(withSubmitData.requiresPackageBuild === true, 'requiresPackageBuild mismatch when submit data exists');
++
++const readyPackage = deriveOpenSubmitTabDecision({ hasSubmitData: false, currentFsmState: 'package_ready' });
++assert(readyPackage.requiresPackageBuild === false, 'package_ready branch must not require package build');
++assert(readyPackage.submitProgressLabel === 'Подготавливаем отправку...', 'package_ready progress label mismatch');
++
++const needsBuild = deriveOpenSubmitTabDecision({ hasSubmitData: false, currentFsmState: 'text_saved' });
++assert(needsBuild.requiresPackageBuild === true, 'non-ready package must require package build');
++assert(needsBuild.submitProgressLabel === 'Собираем пакет...', 'non-ready package progress label mismatch');
++
++const submitLeave = deriveWorkspaceTabLeavePersistenceDecision({ currentWorkspaceTab: 'submit', targetTab: 'files' });
++assert(submitLeave.shouldPersistSubmitMetaOnLeave === true, 'submit leave persistence mismatch');
++assert(submitLeave.shouldPersistResultCommentOnLeave === false, 'submit leave should not persist result comment');
++
++const resultLeave = deriveWorkspaceTabLeavePersistenceDecision({ currentWorkspaceTab: 'result', targetTab: 'text' });
++assert(resultLeave.shouldPersistSubmitMetaOnLeave === false, 'result leave should not persist submit meta');
++assert(resultLeave.shouldPersistResultCommentOnLeave === true, 'result leave persistence mismatch');
++
++const sameTab = deriveWorkspaceTabLeavePersistenceDecision({ currentWorkspaceTab: 'submit', targetTab: 'submit' });
++assert(sameTab.shouldPersistSubmitMetaOnLeave === false, 'same submit tab should not persist submit meta');
++
++console.log('Submit/workspace precondition fixture checks passed.');
++NODE
++
++echo "Submit/workspace precondition smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-template-workspace-derivation-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-template-workspace-derivation-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-template-workspace-derivation-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-template-workspace-derivation-utils.sh	2026-04-12 17:55:58.024328439 +0300
+@@ -0,0 +1,133 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/template-workspace-derivation-utils.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++
++echo "Checking template-workspace-derivation-utils exports..."
++require_pattern '^export function resolveCurrentTemplate' "$UTILS_FILE" 'resolveCurrentTemplate export exists'
++require_pattern '^export function buildComputedTextPreview' "$UTILS_FILE" 'buildComputedTextPreview export exists'
++
++echo "Checking app.js wiring for template/workspace derivation seam..."
++require_pattern 'from "\./template-workspace-derivation-utils\.js"' "$APP_FILE" 'app.js imports template-workspace-derivation-utils.js'
++require_pattern 'return resolveCurrentTemplate\(state\.templates, templateId\);' "$APP_FILE" 'getCurrentTemplate delegates to extracted lookup helper'
++require_pattern 'return buildComputedTextPreviewDerived\(getCurrentTemplate\(\), state\.variables\);' "$APP_FILE" 'buildComputedTextPreview delegates to extracted computed-text helper'
++
++echo "Running computed-text and template-lookup fixtures..."
++node - "$UTILS_FILE" <<'NODE'
++const fs = require('fs');
++const vm = require('vm');
++
++const utilsPath = process.argv[2];
++let source = fs.readFileSync(utilsPath, 'utf8');
++source = source.replace(/import[\s\S]*?from\s+["'][^"']+["'];\n?/g, '');
++source = source.replace(/export function\s+/g, 'function ');
++source += '\nmodule.exports = { resolveCurrentTemplate, buildComputedTextPreview };\n';
++
++const FIXED_VARIABLES = [
++  { key: 'complaint_date', enabledKey: 'complaint_date_enabled' },
++  { key: 'address', enabledKey: 'address_enabled' },
++  { key: 'license_plate', enabledKey: 'license_plate_enabled' }
++];
++
++function normalizeVariableState(variables = {}) {
++  const normalized = { ...variables };
++  for (const field of FIXED_VARIABLES) {
++    const rawEnabled = normalized[field.enabledKey];
++    const enabled = rawEnabled === undefined ? true : String(rawEnabled).toLowerCase() === 'true';
++    normalized[field.enabledKey] = String(enabled);
++    if (normalized[field.key] === undefined || normalized[field.key] === null || normalized[field.key] === '') {
++      normalized[field.key] = '';
++    }
++  }
++  return normalized;
++}
++
++function getRenderableVariableValue(field, variables) {
++  const enabled = String(variables[field.enabledKey] ?? 'true').toLowerCase() === 'true';
++  if (!enabled) return '';
++  if (field.key === 'complaint_date') {
++    return String(variables[field.key] || '').trim() ? '1 января 2026 г.' : '';
++  }
++  return String(variables[field.key] ?? '');
++}
++
++function collapseDuplicateDateSuffixes(text) {
++  return String(text || '').replace(/(\d{1,2}\s+[А-Яа-яЁё]+\s+\d{4})\s*г\.\s*г\./g, '$1 г.');
++}
++
++const context = {
++  module: { exports: {} },
++  exports: {},
++  FIXED_VARIABLES,
++  normalizeVariableState,
++  getRenderableVariableValue,
++  collapseDuplicateDateSuffixes
++};
++vm.createContext(context);
++vm.runInContext(source, context, { filename: utilsPath });
++
++const { resolveCurrentTemplate, buildComputedTextPreview } = context.module.exports;
++
++function assert(condition, message) {
++  if (!condition) throw new Error(message);
++}
++
++const templates = [
++  { id: 't1', body_template: 'A {{address}}', default_values: { address: 'Default st' } },
++  { id: 't2', body_template: 'Дата: {{complaint_date}} г.', default_values: { complaint_date: '01.01.2026' } }
++];
++
++assert(resolveCurrentTemplate(templates, 't1')?.id === 't1', 'template lookup by id mismatch');
++assert(resolveCurrentTemplate(templates, 'missing') === null, 'unknown template id must resolve to null');
++assert(resolveCurrentTemplate(templates, '') === null, 'empty template id must resolve to null');
++
++assert(buildComputedTextPreview(null, {}) === '', 'missing template must return empty preview');
++assert(buildComputedTextPreview({ id: 'x', body_template: '' }, {}) === '', 'template without body must return empty preview');
++
++const mergedPreview = buildComputedTextPreview(
++  { id: 'x', body_template: 'Адрес: {{address}} | Номер: {{custom}}', default_values: { address: 'Default', custom: 'A' } },
++  { address: 'Override', custom: 'B' }
++);
++assert(mergedPreview === 'Адрес: Override | Номер: B', 'default/state merge precedence mismatch');
++
++const disabledPreview = buildComputedTextPreview(
++  { id: 'x', body_template: 'Адрес: {{address}}', default_values: { address: 'Default' } },
++  { address_enabled: 'false', address: 'Hidden' }
++);
++assert(disabledPreview === 'Адрес: ', 'disabled fixed variable must render as empty string');
++
++const dateSuffixPreview = buildComputedTextPreview(
++  { id: 'x', body_template: 'Дата: {{complaint_date}} г.', default_values: { complaint_date: '01.01.2026' } },
++  {}
++);
++assert(dateSuffixPreview === 'Дата: 1 января 2026 г.', 'duplicate date suffix collapse mismatch');
++
++console.log('Template/workspace derivation fixture checks passed.');
++NODE
++
++echo "Template/workspace derivation smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-text-display-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-text-display-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-text-display-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-text-display-utils.sh	2026-04-12 02:16:21.154031484 +0300
+@@ -0,0 +1,65 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/text-display-utils.js"
++BOUNDARY_FILE="$ROOT_DIR/safe-modules-boundary.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_absent_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[FAIL] $title" >&2
++    exit 1
++  else
++    echo "[OK] $title"
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++require_file "$BOUNDARY_FILE"
++
++echo "Checking text-display-utils exports..."
++require_pattern '^export function escapeHtml' "$UTILS_FILE" 'escapeHtml export exists'
++require_pattern '^export function shorten' "$UTILS_FILE" 'shorten export exists'
++require_pattern '^export function sanitizeFilename' "$UTILS_FILE" 'sanitizeFilename export exists'
++require_pattern '^export function formatUrlPreview' "$UTILS_FILE" 'formatUrlPreview export exists'
++
++echo "Checking boundary re-exports and app wiring..."
++require_pattern 'from "\./text-display-utils\.js"' "$BOUNDARY_FILE" 'boundary re-exports text-display-utils'
++require_pattern 'from "\./safe-modules-boundary\.js"' "$APP_FILE" 'app.js imports safe-modules-boundary.js'
++require_pattern 'escapeHtml' "$APP_FILE" 'app.js references escapeHtml'
++require_pattern 'shorten' "$APP_FILE" 'app.js references shorten'
++require_pattern 'sanitizeFilename' "$APP_FILE" 'app.js references sanitizeFilename'
++require_pattern 'formatUrlPreview' "$APP_FILE" 'app.js references formatUrlPreview'
++
++echo "Checking removed local helper declarations in app.js..."
++require_absent_pattern '^function escapeHtml' "$APP_FILE" 'local escapeHtml declaration removed'
++require_absent_pattern '^function shorten' "$APP_FILE" 'local shorten declaration removed'
++require_absent_pattern '^function sanitizeFilename' "$APP_FILE" 'local sanitizeFilename declaration removed'
++require_absent_pattern '^function formatUrlPreview' "$APP_FILE" 'local formatUrlPreview declaration removed'
++
++echo "Text-display-utils smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-variable-template-transform-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-variable-template-transform-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-variable-template-transform-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-variable-template-transform-utils.sh	2026-04-12 09:57:23.037864761 +0300
+@@ -0,0 +1,65 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/variable-template-transform-utils.js"
++BOUNDARY_FILE="$ROOT_DIR/safe-modules-boundary.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_absent_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[FAIL] $title" >&2
++    exit 1
++  else
++    echo "[OK] $title"
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++require_file "$BOUNDARY_FILE"
++
++echo "Checking variable-template-transform-utils exports..."
++require_pattern '^export function getRenderableVariableValue' "$UTILS_FILE" 'getRenderableVariableValue export exists'
++require_pattern '^export function getDefaultTemplateValues' "$UTILS_FILE" 'getDefaultTemplateValues export exists'
++require_pattern '^export function getTemplateVariablesSchema' "$UTILS_FILE" 'getTemplateVariablesSchema export exists'
++require_pattern '^export function normalizeVariableState' "$UTILS_FILE" 'normalizeVariableState export exists'
++
++echo "Checking boundary re-exports and app wiring..."
++require_pattern 'from "\./variable-template-transform-utils\.js"' "$BOUNDARY_FILE" 'boundary re-exports variable-template-transform-utils'
++require_pattern 'from "\./safe-modules-boundary\.js"' "$APP_FILE" 'app.js imports safe-modules-boundary.js'
++require_pattern 'getRenderableVariableValue' "$APP_FILE" 'app.js references getRenderableVariableValue'
++require_pattern 'getDefaultTemplateValues' "$APP_FILE" 'app.js references getDefaultTemplateValues'
++require_pattern 'getTemplateVariablesSchema' "$APP_FILE" 'app.js references getTemplateVariablesSchema'
++require_pattern 'normalizeVariableState' "$APP_FILE" 'app.js references normalizeVariableState'
++
++echo "Checking removed local helper declarations in app.js..."
++require_absent_pattern '^function getRenderableVariableValue' "$APP_FILE" 'local getRenderableVariableValue declaration removed'
++require_absent_pattern '^function getDefaultTemplateValues' "$APP_FILE" 'local getDefaultTemplateValues declaration removed'
++require_absent_pattern '^function getTemplateVariablesSchema' "$APP_FILE" 'local getTemplateVariablesSchema declaration removed'
++require_absent_pattern '^function normalizeVariableState' "$APP_FILE" 'local normalizeVariableState declaration removed'
++
++echo "Variable-template transform utils smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-workspace-status-progress-text-utils.sh" /tmp/server-copy-Complaints_m/scripts/smoke-check-workspace-status-progress-text-utils.sh
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/scripts/smoke-check-workspace-status-progress-text-utils.sh"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/scripts/smoke-check-workspace-status-progress-text-utils.sh	2026-04-12 20:37:30.355486278 +0300
+@@ -0,0 +1,105 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++APP_FILE="$ROOT_DIR/app.js"
++UTILS_FILE="$ROOT_DIR/workspace-status-progress-text-utils.js"
++
++require_file() {
++  local file="$1"
++  if [[ ! -f "$file" ]]; then
++    echo "[FAIL] file not found: $file" >&2
++    exit 1
++  fi
++}
++
++require_pattern() {
++  local pattern="$1"
++  local file="$2"
++  local title="$3"
++  if grep -Eq "$pattern" "$file"; then
++    echo "[OK] $title"
++  else
++    echo "[FAIL] $title" >&2
++    exit 1
++  fi
++}
++
++require_file "$APP_FILE"
++require_file "$UTILS_FILE"
++
++echo "Checking workspace-status-progress-text-utils exports..."
++require_pattern '^export function deriveWorkspaceSummaryText' "$UTILS_FILE" 'deriveWorkspaceSummaryText export exists'
++require_pattern '^export function deriveWorkspaceFileSelectionStatusText' "$UTILS_FILE" 'deriveWorkspaceFileSelectionStatusText export exists'
++require_pattern '^export function deriveCreateCaseProgressLabel' "$UTILS_FILE" 'deriveCreateCaseProgressLabel export exists'
++require_pattern '^export function deriveFilesSyncProgressLabel' "$UTILS_FILE" 'deriveFilesSyncProgressLabel export exists'
++require_pattern '^export function deriveResultUploadProgressLabel' "$UTILS_FILE" 'deriveResultUploadProgressLabel export exists'
++require_pattern '^export function deriveSubmitProgressLabel' "$UTILS_FILE" 'deriveSubmitProgressLabel export exists'
++
++echo "Checking app.js wiring for status/progress/summary derivation seam..."
++require_pattern 'from "\./workspace-status-progress-text-utils\.js"' "$APP_FILE" 'app.js imports workspace-status-progress-text-utils.js'
++require_pattern 'const summaryText = deriveWorkspaceSummaryText\(' "$APP_FILE" 'renderWorkspaceSummary uses derived summary text'
++require_pattern 'deriveWorkspaceFileSelectionStatusText\(' "$APP_FILE" 'workspace file status text uses derived helper'
++require_pattern 'deriveCreateCaseProgressLabel\(' "$APP_FILE" 'create-case progress uses derived helper'
++require_pattern 'deriveFilesSyncProgressLabel\(' "$APP_FILE" 'files sync progress uses derived helper'
++require_pattern 'deriveResultUploadProgressLabel\(' "$APP_FILE" 'result upload progress uses derived helper'
++require_pattern 'deriveSubmitProgressLabel\(' "$APP_FILE" 'submit progress wording uses derived helper'
++
++echo "Running status/progress/summary derivation fixtures..."
++node - "$UTILS_FILE" <<'NODE'
++const fs = require('fs');
++const vm = require('vm');
++
++const utilsPath = process.argv[2];
++let source = fs.readFileSync(utilsPath, 'utf8');
++source = source.replace(/export function\s+/g, 'function ');
++source += '\nmodule.exports = { deriveWorkspaceSummaryText, deriveWorkspaceFileSelectionStatusText, deriveCreateCaseProgressLabel, deriveFilesSyncProgressLabel, deriveResultUploadProgressLabel, deriveSubmitProgressLabel };\n';
++
++const context = { module: { exports: {} }, exports: {} };
++vm.createContext(context);
++vm.runInContext(source, context, { filename: utilsPath });
++
++const {
++  deriveWorkspaceSummaryText,
++  deriveWorkspaceFileSelectionStatusText,
++  deriveCreateCaseProgressLabel,
++  deriveFilesSyncProgressLabel,
++  deriveResultUploadProgressLabel,
++  deriveSubmitProgressLabel
++} = context.module.exports;
++
++function assert(condition, message) {
++  if (!condition) throw new Error(message);
++}
++
++const summaryAdmin = deriveWorkspaceSummaryText({
++  caseData: { title: '', case_number: 'CASE-1', description: 'Desc', owner_nickname: 'Ilya' },
++  isAdmin: true
++});
++assert(summaryAdmin.title === 'Обращение CASE-1', 'workspace title derivation mismatch');
++assert(summaryAdmin.subtitle === 'Desc · Пользователь: Ilya', 'admin subtitle derivation mismatch');
++
++const summaryUser = deriveWorkspaceSummaryText({
++  caseData: { title: 'My title', description: '', owner_nickname: 'Ilya' },
++  isAdmin: false
++});
++assert(summaryUser.title === 'My title', 'workspace title from explicit title mismatch');
++assert(summaryUser.subtitle === '', 'non-admin subtitle derivation mismatch');
++
++assert(deriveWorkspaceFileSelectionStatusText(true, 4) === 'В подаче · порядок 4', 'selected file status text mismatch');
++assert(deriveWorkspaceFileSelectionStatusText(false, 4) === 'Не выбран для подачи', 'unselected file status text mismatch');
++
++assert(deriveCreateCaseProgressLabel() === 'Создаём обращение...', 'create-case progress label mismatch');
++assert(deriveFilesSyncProgressLabel('sync_initial') === 'Синхронизируем файлы из incoming...', 'sync initial label mismatch');
++assert(deriveFilesSyncProgressLabel('upload_batch', { done: 2, total: 5 }) === 'Загружено 2 из 5', 'upload batch label mismatch');
++assert(deriveFilesSyncProgressLabel('unknown') === 'Синхронизируем файлы...', 'files sync fallback label mismatch');
++
++assert(deriveResultUploadProgressLabel(3, 7) === 'Загружено 3 из 7', 'result upload label mismatch');
++assert(deriveSubmitProgressLabel('rebuild') === 'Собираем пакет заново...', 'submit rebuild label mismatch');
++assert(deriveSubmitProgressLabel('prepare') === 'Перемещаем файлы и готовим отправку...', 'submit prepare label mismatch');
++assert(deriveSubmitProgressLabel('other') === 'Подготовка отправки...', 'submit fallback label mismatch');
++
++console.log('Workspace status/progress text fixture checks passed.');
++NODE
++
++echo "Workspace status/progress text smoke-check passed."
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/submit-workspace-precondition-utils.js" /tmp/server-copy-Complaints_m/submit-workspace-precondition-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/submit-workspace-precondition-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/submit-workspace-precondition-utils.js	2026-04-12 20:24:17.861730528 +0300
+@@ -0,0 +1,35 @@
++export function deriveSubmitActionGate(input = {}) {
++  const isAuthenticated = Boolean(input.isAuthenticated);
++  const hasCurrentCase = Boolean(input.hasCurrentCase);
++
++  if (!isAuthenticated) {
++    return { canRun: false, blockingReason: "unauthenticated" };
++  }
++  if (!hasCurrentCase) {
++    return { canRun: false, blockingReason: "missing_case" };
++  }
++
++  return { canRun: true, blockingReason: null };
++}
++
++export function deriveOpenSubmitTabDecision(input = {}) {
++  const hasSubmitData = Boolean(input.hasSubmitData);
++  const currentFsmState = String(input.currentFsmState || "");
++  const requiresPackageBuild = currentFsmState !== "package_ready";
++
++  return {
++    shouldRenderExistingSubmitData: hasSubmitData,
++    requiresPackageBuild,
++    submitProgressLabel: requiresPackageBuild ? "Собираем пакет..." : "Подготавливаем отправку..."
++  };
++}
++
++export function deriveWorkspaceTabLeavePersistenceDecision(input = {}) {
++  const currentWorkspaceTab = String(input.currentWorkspaceTab || "");
++  const targetTab = String(input.targetTab || "");
++
++  return {
++    shouldPersistSubmitMetaOnLeave: currentWorkspaceTab === "submit" && targetTab !== "submit",
++    shouldPersistResultCommentOnLeave: currentWorkspaceTab === "result" && targetTab !== "result"
++  };
++}
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/template-workspace-derivation-utils.js" /tmp/server-copy-Complaints_m/template-workspace-derivation-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/template-workspace-derivation-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/template-workspace-derivation-utils.js	2026-04-12 17:55:23.211660959 +0300
+@@ -0,0 +1,38 @@
++import { FIXED_VARIABLES } from "./fixed-variables-config.js";
++import { collapseDuplicateDateSuffixes } from "./date-text-utils.js";
++import {
++  getRenderableVariableValue,
++  normalizeVariableState
++} from "./variable-template-transform-utils.js";
++
++export function resolveCurrentTemplate(templates = [], templateId = "") {
++  if (!templateId) {
++    return null;
++  }
++
++  return templates.find((item) => item.id === templateId) || null;
++}
++
++export function buildComputedTextPreview(template, variables) {
++  if (!template?.body_template) {
++    return "";
++  }
++
++  const mergedVariables = normalizeVariableState({
++    ...(template.default_values && typeof template.default_values === "object"
++      ? template.default_values
++      : {}),
++    ...(variables || {})
++  });
++
++  const rendered = template.body_template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key) => {
++    const field = FIXED_VARIABLES.find((item) => item.key === key);
++    if (field) {
++      return getRenderableVariableValue(field, mergedVariables);
++    }
++
++    return String(mergedVariables[key] ?? "");
++  });
++
++  return collapseDuplicateDateSuffixes(rendered);
++}
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/text-display-utils.js" /tmp/server-copy-Complaints_m/text-display-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/text-display-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/text-display-utils.js	2026-04-12 02:15:27.320578627 +0300
+@@ -0,0 +1,32 @@
++export function shorten(value, max) {
++  const str = String(value || "");
++  return str.length > max ? `${str.slice(0, max)}…` : str;
++}
++
++export function formatUrlPreview(value, max = 88) {
++  const url = String(value || "").trim();
++  if (!url) return "—";
++
++  try {
++    const parsed = new URL(url);
++    const compact = `${parsed.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
++    return shorten(compact, max);
++  } catch {
++    return shorten(url, max);
++  }
++}
++
++export function escapeHtml(value) {
++  return String(value)
++    .replaceAll("&", "&amp;")
++    .replaceAll("<", "&lt;")
++    .replaceAll(">", "&gt;")
++    .replaceAll('"', "&quot;")
++    .replaceAll("'", "&#39;");
++}
++
++export function sanitizeFilename(value, fallback = "download.bin") {
++  const name = String(value || "").trim();
++  const cleaned = name.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").replace(/\s+$/g, "");
++  return cleaned || fallback;
++}
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/variable-template-transform-utils.js" /tmp/server-copy-Complaints_m/variable-template-transform-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/variable-template-transform-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/variable-template-transform-utils.js	2026-04-12 09:57:23.032864815 +0300
+@@ -0,0 +1,54 @@
++import { FIXED_VARIABLES } from "./fixed-variables-config.js";
++import {
++  formatComplaintDate,
++  formatDateForInput,
++  normalizeDisplayDate
++} from "./date-text-utils.js";
++
++export function getRenderableVariableValue(field, variables) {
++  const enabled = String(variables[field.enabledKey] ?? "true").toLowerCase() === "true";
++
++  if (!enabled) {
++    return "";
++  }
++
++  const rawValue = String(variables[field.key] ?? "");
++  return field.key === "complaint_date" ? formatComplaintDate(rawValue) : rawValue;
++}
++
++export function getDefaultTemplateValues() {
++  return {
++    complaint_date: "",
++    address: "",
++    license_plate: ""
++  };
++}
++
++export function getTemplateVariablesSchema() {
++  return FIXED_VARIABLES.map(({ key, label, type }) => ({
++    key,
++    label,
++    type,
++    required: false
++  }));
++}
++
++export function normalizeVariableState(variables = {}) {
++  const normalized = { ...variables };
++
++  for (const field of FIXED_VARIABLES) {
++    const rawEnabled = normalized[field.enabledKey];
++    const enabled = rawEnabled === undefined ? true : String(rawEnabled).toLowerCase() === "true";
++    normalized[field.enabledKey] = String(enabled);
++
++    if (normalized[field.key] === undefined || normalized[field.key] === null || normalized[field.key] === "") {
++      normalized[field.key] = field.key === "complaint_date" ? formatDateForInput(new Date()) : "";
++    }
++
++    if (field.key === "complaint_date") {
++      normalized[field.key] = normalizeDisplayDate(normalized[field.key]);
++    }
++  }
++
++  return normalized;
++}
+diff -ruN --exclude .git --exclude node_modules --exclude vendor --exclude dist --exclude build --exclude .next --exclude cache --exclude tmp --exclude .vscode "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/workspace-status-progress-text-utils.js" /tmp/server-copy-Complaints_m/workspace-status-progress-text-utils.js
+--- "/mnt/c/1_Work/\320\240\320\260\320\261\320\276\321\202\320\260/\320\241\320\260\320\271\321\202\321\213/Complaints_m/workspace-status-progress-text-utils.js"	1970-01-01 03:00:00.000000000 +0300
++++ /tmp/server-copy-Complaints_m/workspace-status-progress-text-utils.js	2026-04-12 20:37:30.343486404 +0300
+@@ -0,0 +1,59 @@
++export function deriveWorkspaceSummaryText(input = {}) {
++  const caseData = input.caseData || {};
++  const isAdmin = Boolean(input.isAdmin);
++
++  const title = caseData.title
++    ? String(caseData.title)
++    : (caseData.case_number ? `Обращение ${caseData.case_number}` : "Обращение");
++
++  const subtitleParts = [];
++  if (caseData.description) {
++    subtitleParts.push(String(caseData.description));
++  }
++  if (isAdmin) {
++    subtitleParts.push(`Пользователь: ${caseData.owner_nickname || "—"}`);
++  }
++
++  return {
++    title,
++    subtitle: subtitleParts.join(" · ")
++  };
++}
++
++export function deriveWorkspaceFileSelectionStatusText(selected, orderValue) {
++  return selected
++    ? `В подаче · порядок ${Number(orderValue)}`
++    : "Не выбран для подачи";
++}
++
++export function deriveCreateCaseProgressLabel() {
++  return "Создаём обращение...";
++}
++
++export function deriveFilesSyncProgressLabel(kind, payload = {}) {
++  if (kind === "sync_initial") {
++    return "Синхронизируем файлы из incoming...";
++  }
++
++  if (kind === "upload_batch") {
++    const done = Number(payload.done || 0);
++    const total = Number(payload.total || 0);
++    return `Загружено ${done} из ${total}`;
++  }
++
++  return "Синхронизируем файлы...";
++}
++
++export function deriveResultUploadProgressLabel(done, total) {
++  return `Загружено ${Number(done || 0)} из ${Number(total || 0)}`;
++}
++
++export function deriveSubmitProgressLabel(kind) {
++  if (kind === "rebuild") {
++    return "Собираем пакет заново...";
++  }
++  if (kind === "prepare") {
++    return "Перемещаем файлы и готовим отправку...";
++  }
++  return "Подготовка отправки...";
++}
