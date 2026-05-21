@@ -7,19 +7,61 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     ports:
       - "127.0.0.1:3018:3018"
     volumes:
       - complaints_m_backups:/app/backups
     networks:
-      - proxy
-      - n8n_default
+      - app_net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: complaints-postgres-m
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - complaints_m_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: complaints-redis-m
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - complaints_m_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app_net
 
 networks:
-  proxy:
-    external: true
-  n8n_default:
-    external: true
+  app_net:
+    driver: bridge
 
 volumes:
   complaints_m_backups:
+  complaints_m_postgres_data:
+  complaints_m_redis_data:
